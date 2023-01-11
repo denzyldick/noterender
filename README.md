@@ -144,7 +144,6 @@ const template = {
       const box = boxInstance.createInstance("box" + 1);
 
       box.position = new BABYLON.Vector3(+width / 2 + 20, 50 * i, depth / 2);
-      // box.skeleton = box.skeleton.clone("clonedSkeleton2");
       box.scaling = new BABYLON.Vector3(10, 10, depth);
       this.bar.push(box);
     }
