@@ -1,6 +1,6 @@
 # Noterender
 
-This is the code for the visualizer I made. The visualizer is running on (https://noterender.com)[https://noterender.com]
+This is the code for the visualizer I made. The visualizer is running on [https://noterender.com](https://noterender.com)
 ## Project setup
 ```
 yarn install
