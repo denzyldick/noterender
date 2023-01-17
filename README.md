@@ -19,14 +19,9 @@ yarn serve
 ```
 yarn build
 ```
-
-### Lints and fixes files
-```
-yarn lint
-```
 ### How to
 
-The 3D rendering works with [babylonjs](https://www.babylonjs.com/). If you do not know to work with 
+The 3D rendering works with [babylonjs](https://www.babylonjs.com/). If you do not know how to work with 
 babylonjs I will recommend you to read their documentation. In the code below you can see a working example of the 
 immersive template. 
 
