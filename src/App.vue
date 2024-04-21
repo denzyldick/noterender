@@ -39,7 +39,7 @@
 import Home from "./views/Home.vue";
 import Setting from "./views/Setting.vue";
 // import init, {MediaRecorder} from "media-recorder";
-import Socket from "./js/Socket";
+// import Socket from "./js/Socket";
 export default {
   name: "App",
 

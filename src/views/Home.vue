@@ -9,14 +9,14 @@
             <v-list-item>
               <v-list-item-content>
                 <v-list-item-title>
-                  <img src="/img/logo.png" width="50px" />
+                  <img src="/img/logo.png" width="50px" alt="Noterender logo." />
                 </v-list-item-title>
               </v-list-item-content>
               <v-spacer></v-spacer>
               <v-list-item-icon>
-                <v-tooltip top>
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-btn icon v-bind="attrs" v-on="on">
+                <v-tooltip location="top" v-model="activeTooltip">
+                  <template v-slot:activator="{ props }">
+                    <v-btn icon v-bind="props">
                       <v-btn
                         icon
                         v-on:click.stop="
@@ -28,7 +28,7 @@
                       </v-btn>
                     </v-btn>
                   </template>
-                  <span>Settings</span>
+                  <span>Create your own!</span>
                 </v-tooltip>
               </v-list-item-icon>
               <!-- <v-list-item-icon :class="{ 'mx-2': $vuetify.breakpoint.mdAndUp }"> -->
@@ -140,6 +140,7 @@ export default {
   },
   data: function () {
     return {
+      activeTooltip: true,
       active: true,
       audio: null,
       paywall: false,
@@ -169,6 +170,7 @@ export default {
       this.mountScene();
     },
     close: function () {
+      this.engine.dispose();
       this.$store.dispatch("toggleSetting", false);
       this.$store.dispatch("toggleVisualizer", true);
     },
@@ -208,8 +210,9 @@ export default {
       this.scene.beforeRender = this.beforeRender(); // GUI;
     },
     initTemplate(r, nb, scene, plane, width, height, depth) {
-      console.log(this.config.title, this.config.subtitle, "text");
-
+      let t = this.$store.state.title;
+      console.log(t);
+      console.log(this.config);
       TEXT.init(scene, this.config.title, this.config.subtitle);
       /// Refactor this piece of shit code.
       if (this.template === "wave") {

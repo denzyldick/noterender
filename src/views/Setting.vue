@@ -207,7 +207,7 @@
                   </v-list-item>
                   <v-list-item>
                     <v-list-item-icon>
-                      <v-icon>mdi-check</v-icon>
+                      <v-icon>mdi-check</v-icon>;
                     </v-list-item-icon>
                     <v-list-item-content>
                       <v-list-item-title>
@@ -272,7 +272,7 @@ export default {
   data() {
     return {
       tab: null,
-      title: "helloworld",
+      title: null,
       subtitle: null,
       color: "hex",
       emblem: null,
@@ -307,11 +307,10 @@ export default {
   },
   methods: {
     save: function () {
+      console.log("Saving", this.title, this.subtitle);
       this.$emit("reCreate");
-      this.$store.dispatch("changeText", {
-        title: this.title,
-        subtitle: this.subtitle,
-      });
+      this.$store.dispatch("changeTitle",this.title );
+      this.$store.dispatch("changeSubtitle",this.subtitle);
       this.$store.dispatch("toggleDialog", false);
       this.$store.dispatch("toggleSetting", false);
       this.$store.dispatch("toggleVisualizer", true);

@@ -3,7 +3,7 @@ import Vuex from "vuex";
 import Socket from "../js/Socket.js";
 
 Vue.use(Vuex);
-Socket.start();
+//Socket.start();
 export default new Vuex.Store({
   state: {
     template: "lines",
@@ -106,7 +106,7 @@ export default new Vuex.Store({
       },
     ],
     file: "/noterender.com.opus",
-    title: "Welcome.",
+    title: "Show your sound.",
     subtitle: "Generate your visualizer the easy way.",
     microphone: false,
     emblem: "/img/logo.png",
@@ -191,15 +191,22 @@ export default new Vuex.Store({
     enableCamera: function (state) {
       state.options.camera.move = true;
     },
-    changeText: function (state, text) {
-      state.title = text.title;
-      state.subtitle = text.subtitle;
+    changeTitle: function (state, title) {
+      console.log("Title: ", title);
+      state.title = title;
+      console.log("State: ", state);
     },
     setSoundFile: function (state, file) {
       state.soundFile = file;
     },
   },
   actions: {
+    changeTitle: function(context, title){
+    context.commit("changeTitle", title);
+    },
+    changeSubtitle: function(context, subtitle){
+      context.commit("changeSubtitle", subtitle);
+    },
     changeText: function (context, text) {
       context.commit("changeText", text.title, text.subtitle);
     },
@@ -255,7 +262,7 @@ export default new Vuex.Store({
         context.commit("enableRecording");
         let file = context.state.soundFile;
         if (window.location.search.includes("disablesocket") === false) {
-          Socket.startRecording(file);
+          //Socket.startRecording(file);
         }
       }
 
