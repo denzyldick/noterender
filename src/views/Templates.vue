@@ -36,16 +36,14 @@
           </v-card-subtitle>
         </v-img>
 
-        <v-card-actions>
-          <v-btn text @click="$store.commit('templateSelected', template.name)">
-            <v-icon v-if="selected === template.name" left dark>
-              mdi-check
-            </v-icon>
-            select
-          </v-btn>
-
-          <v-row align="center" justify="end" class="pr-4"> </v-row>
-        </v-card-actions>
+        <v-btn
+          width="100%"
+          text
+          @click="$store.commit('templateSelected', template.name)"
+        >
+          <v-icon v-if="selected === template.name" dark> mdi-check </v-icon>
+          <v-icon v-else dark> mdi-checkbox-blank-outline</v-icon>
+        </v-btn>
       </v-card>
     </v-col>
   </v-row>

@@ -9,7 +9,11 @@
             <v-list-item>
               <v-list-item-content>
                 <v-list-item-title>
-                  <img src="/img/logo.png" width="50px" alt="Noterender logo." />
+                  <img
+                    src="/img/logo.png"
+                    width="50px"
+                    alt="Noterender logo."
+                  />
                 </v-list-item-title>
               </v-list-item-content>
               <v-spacer></v-spacer>
@@ -214,6 +218,9 @@ export default {
       console.log(t);
       console.log(this.config);
       TEXT.init(scene, this.config.title, this.config.subtitle);
+      if (this.template === "") {
+        return;
+      }
       /// Refactor this piece of shit code.
       if (this.template === "wave") {
         //Create an Arc Rotate Camera - aimed negative z this time

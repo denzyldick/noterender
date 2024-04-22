@@ -6,7 +6,7 @@ Vue.use(Vuex);
 //Socket.start();
 export default new Vuex.Store({
   state: {
-    template: "lines",
+    template: "expanded",
     templates: [
       {
         name: "simple",
@@ -201,10 +201,10 @@ export default new Vuex.Store({
     },
   },
   actions: {
-    changeTitle: function(context, title){
-    context.commit("changeTitle", title);
+    changeTitle: function (context, title) {
+      context.commit("changeTitle", title);
     },
-    changeSubtitle: function(context, subtitle){
+    changeSubtitle: function (context, subtitle) {
       context.commit("changeSubtitle", subtitle);
     },
     changeText: function (context, text) {

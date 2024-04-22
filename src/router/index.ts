@@ -5,6 +5,11 @@ Vue.use(VueRouter);
 
 const routes = [
   {
+    path: "/e",
+    name: "editor",
+    component: () => import("../views/Editor.vue"),
+  },
+  {
     path: "/about",
     name: "About",
     // route level code-splitting
