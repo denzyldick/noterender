@@ -1,18 +1,22 @@
 <template>
   <v-row>
     <v-col
-      md="2"
+      offset-lg-2
+      md="12"
+      lg="2"
+      sm="12"
       class="ml-1"
       v-for="template in templates"
       :key="template.name"
     >
       <v-card
-        max-width="200"
+        class="mx-auto"
+        width="80%"
         :color="active || template.name === selected ? 'primary' : ''"
         @click="$store.commit('templateSelected', template.name)"
       >
         <v-img
-          max-height="200"
+          max-height="220"
           :src="`/img/templates/${template.preview}`"
           :lazy-src="`/img/templates/${template.preview}`"
           aspect-ratio="1"
@@ -42,7 +46,7 @@
           @click="$store.commit('templateSelected', template.name)"
         >
           <v-icon v-if="selected === template.name" dark> mdi-check </v-icon>
-          <v-icon v-else dark> mdi-checkbox-blank-outline</v-icon>
+          <v-icon v-else light> mdi-square-outline</v-icon>
         </v-btn>
       </v-card>
     </v-col>

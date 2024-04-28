@@ -1,33 +1,36 @@
 # Noterender
 
-This is the code for the visualizer I made. The visualizer is running on [https://noterender.com](https://noterender.com).
-
+This is the code for the visualizer I made. The visualizer is running on [https://noterender.denzyl.io](https://noterender.denzyl.io).
 
 ![example](https://github.com/denzyldick/noterender/blob/main/example.gif)
 
 ## Project setup
+
 ```
 yarn install
 ```
 
 ### Compiles and hot-reloads for development
+
 ```
 yarn serve
 ```
 
 ### Compiles and minifies for production
+
 ```
 yarn build
 ```
+
 ### How to
 
-The 3D rendering works with [babylonjs](https://www.babylonjs.com/). If you do not know how to work with 
-babylonjs I will recommend you to read their documentation. In the code below you can see a working example of the 
-immersive template. 
+The 3D rendering works with [babylonjs](https://www.babylonjs.com/). If you do not know how to work with
+babylonjs I will recommend you to read their documentation. In the code below you can see a working example of the
+immersive template.
 
-The are 2 important methods/functions you should implement. The `init` and the `render` function. 
-The `init` function will be called 1 time when the template is loaded into the dom. 
-The `render` function is where you should add your animation logic. 
+The are 2 important methods/functions you should implement. The `init` and the `render` function.
+The `init` function will be called 1 time when the template is loaded into the dom.
+The `render` function is where you should add your animation logic.
 
 ```js
 import * as BABYLON from "babylonjs";

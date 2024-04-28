@@ -67,9 +67,9 @@ class Visualizer {
     this.scene.createDefaultLight();
 
     // Animations
-    // this.alpha = 0;
-    // this.alpha
-    // this.scene.beforeRender = this.beforeRender();
+    this.alpha = 0;
+    this.alpha;
+    this.scene.beforeRender = this.beforeRender();
   }
 
   createBackground() {

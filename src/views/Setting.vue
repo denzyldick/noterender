@@ -2,37 +2,16 @@
   <v-row>
     <v-dialog v-model="dialog" overlay-color="white" overlay-opacity="1">
       <v-tabs v-model="tab">
-        <v-tab> Style </v-tab>
-        <v-tab :disabled="true"> Sound </v-tab>
-        <v-tab :disabled="true"> Branding </v-tab>
-        <v-tab :disabled="true"> Last step </v-tab>
+        <v-tab :disabled="tab != 1"> Style </v-tab>
+        <v-tab :disabled="tab != 2"> Sound </v-tab>
+        <v-tab :disabled="tab != 3"> Camera</v-tab>
+        <v-tab :disabled="tab != 4"> Branding </v-tab>
+        <v-tab :disabled="tab != 5"> Last step </v-tab>
       </v-tabs>
-      <v-tabs-items>
-        <v-tab-item>
-          <v-card flat>
-            <v-card-title> Choose a style </v-card-title>
-            <Templates />
-            <v-list-item>
-              <v-list-item-action>
-                <v-checkbox
-                  v-model="camera"
-                  v-on:change="cameraChanged"
-                ></v-checkbox>
-              </v-list-item-action>
-              <v-list-item-content>
-                <v-list-item-title>Unlock camera</v-list-item-title>
-                <v-list-item-subtitle>
-                  Move the camera with your mouse or keyboard.
-                </v-list-item-subtitle>
-              </v-list-item-content>
-            </v-list-item>
-          </v-card>
-        </v-tab-item>
-      </v-tabs-items>
       <!--        /// Style-->
       <Templates style="margin-top: 20px; margin-left: 5px" v-if="tab === 0" />
 
-      <v-list three-line subheader v-if="tab === 1">
+      <v-list height="100%" three-line subheader v-if="tab === 1">
         <v-card-title>Sound source</v-card-title>
         <v-card-subtitle
           >Upload your own sound or use your microphone to record a real-time
@@ -57,16 +36,37 @@
           </v-list-item-content>
         </v-list-item>
       </v-list>
-      <!--        /// Branding-->
+
       <v-list three-line subheader v-if="tab === 2">
-        <v-card-title>Select a background and a logo.</v-card-title>
+        <v-list-item>
+          <v-list-item-content>
+            <v-card-title> Camera</v-card-title>
+            <v-card-subtitle>Change the camera settings.</v-card-subtitle>
+            <v-row>
+              <v-col md="12">
+                <v-list-item>
+                  <v-checkbox
+                    :label="camera ? 'Unlock camera' : 'Lock camera'"
+                    v-model="camera"
+                    v-on:change="cameraChanged"
+                  ></v-checkbox>
+                </v-list-item>
+              </v-col>
+            </v-row>
+          </v-list-item-content>
+        </v-list-item>
+      </v-list>
+      <!--        /// Branding-->
+      <v-list three-line subheader v-if="tab === 3">
+        <v-card-title>Select a background.</v-card-title>
+        <v-card-subtitle>The image will be scaled to viewport.</v-card-subtitle>
         <v-list-item>
           <v-list-item-content>
             <v-file-input
               :rules="rules"
               accept="image/png, image/jpeg, image/bmp"
               prepend-icon="mdi-camera"
-              label="Choose a background."
+              label="~/"
               outlined
               dense
               v-model="background"
@@ -76,11 +76,15 @@
         </v-list-item>
         <v-list-item>
           <v-list-item-content>
+            <v-card-title>Change the logo.</v-card-title>
+            <v-card-subtitle
+              >A transparent background works better.</v-card-subtitle
+            >
             <v-file-input
               :rules="rules"
               accept="image/png, image/jpeg, image/bmp"
               prepend-icon="mdi-camera"
-              label="Choose your a logo."
+              label="~/"
               outlined
               dense
               v-model="emblem"
@@ -94,7 +98,6 @@
         <v-list-item grey>
           <v-list-item-content>
             <v-text-field
-              :disabled="true"
               v-model="title"
               label="Title"
               outlined
@@ -102,11 +105,11 @@
             ></v-text-field>
           </v-list-item-content>
         </v-list-item>
-        <v-list-item>
+        <v-list-item :disabled="true">
           <v-list-item-content>
             <v-text-field
               v-model="subtitle"
-              label="Subtitle"
+              label="Subtitle(watermark)."
               outlined
               dense
               :disabled="true"
@@ -117,10 +120,14 @@
         <v-list-item>
           <v-list-item-content>
             <v-row>
-              <v-col md="3" sm="12" lg="3">
-                <v-list-item-title>Primary color</v-list-item-title>
+              <v-col md="12" sm="12" lg="3">
+                <v-card-title>Color 1st</v-card-title>
+                <v-card-subtitle
+                  >The Color of the main element.</v-card-subtitle
+                >
                 <v-color-picker
-                  dot-size="25"
+                  class="mx-auto"
+                  dot-size="60"
                   hide-sliders
                   show-swatches
                   swatches-max-height="100"
@@ -128,8 +135,10 @@
                 ></v-color-picker>
               </v-col>
               <v-col md="3" sm="12" lg="3">
-                <v-list-item-title> Scene lights </v-list-item-title>
+                <v-card-title>Scene lights </v-card-title>
+                <v-card-subtitle>The color of the lights.</v-card-subtitle>
                 <v-color-picker
+                  class="mx-auto"
                   v-model="color"
                   dot-size="25"
                   hide-sliders
@@ -142,128 +151,97 @@
           </v-list-item-content>
         </v-list-item>
       </v-list>
-      <v-row v-if="tab === 3">
-        <v-col md="4" offset-md="2">
-          <v-card>
-            <v-card-title> Free </v-card-title>
-            <v-card-subtitle
-              >Your visualizer will be generated inside your own
-              web-browser.</v-card-subtitle
-            >
-            <v-list>
-              <v-list-item-group color="primary">
-                <v-list-item>
-                  <v-list-item-icon>
-                    <v-icon>mdi-check</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title> Download visualizer </v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-icon>
-                    <v-icon>mdi-close-thick</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title> Remove watermark </v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-icon>
-                    <v-icon>mdi-close-thick</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title> Higher quality </v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-icon>
-                    <v-icon>mdi-close-thick</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title>
-                      Change visualizer sensitivity
-                    </v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-list-item-group>
-            </v-list>
-            <v-card-actions class="justify-center">
-              <v-btn outlined rounded @click="save"> Create </v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-col>
-        <v-col md="4">
-          <v-card>
-            <v-card-title> Premium </v-card-title>
-            <v-card-subtitle
-              >We will generate the visualizer on our own
-              servers.</v-card-subtitle
-            >
-            <v-list>
-              <v-list-item-group color="primary">
-                <v-list-item>
-                  <v-list-item-icon>
-                    <v-icon>mdi-check</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title>
-                      Higher quality and performance.
-                    </v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-icon>
-                    <v-icon>mdi-check</v-icon>;
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title>
-                      Without our watermark
-                    </v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-icon>
-                    <v-icon>mdi-check</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title>
-                      Generate for social media platforms.
-                    </v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-icon>
-                    <v-icon>mdi-check</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title>
-                      Change visualizer sensitivity
-                    </v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
 
-                <v-list-item>
-                  <v-list-item-icon>
-                    <v-icon>mdi-check</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title>
-                      Share link to visualizer
-                    </v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-list-item-group>
-            </v-list>
-            <v-card-actions class="justify-center">
-              <v-btn outlined rounded disabled> Coming soon </v-btn>
-            </v-card-actions>
-          </v-card>
+      <v-list three-line subheader v-if="tab === 4">
+        <v-list-item>
+          <v-list-item-content>
+            <v-row>
+              <v-col sm="12" md="5" offset-lg="2" lg="5">
+                <v-card flat>
+                  <v-card-title> Free </v-card-title>
+                  <v-card-subtitle></v-card-subtitle>
+
+                  <v-list>
+                    <v-list-item-group color="primary">
+                      <v-list-item>
+                        <v-icon>mdi-check</v-icon>
+                        <v-list-item-title>
+                          Download visualizer
+                        </v-list-item-title>
+                      </v-list-item>
+                      <v-list-item>
+                        <v-icon>mdi-close-thick</v-icon>
+                        <v-list-item-title>
+                          Remove watermark
+                        </v-list-item-title>
+                      </v-list-item>
+                      <v-list-item>
+                        <v-icon>mdi-close-thick</v-icon>
+                        <v-list-item-title> Higher quality </v-list-item-title>
+                      </v-list-item>
+                    </v-list-item-group>
+                  </v-list>
+                  <v-card-actions>
+                    <v-btn @click="free = true" text>
+                      <v-icon v-if="free" dark> mdi-check </v-icon>
+
+                      <v-icon v-else light> mdi-square-outline</v-icon>
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-col>
+              <v-col lg="5" md="4">
+                <v-card flat>
+                  <v-card-title> Premium </v-card-title>
+                  <v-card-subtitle> </v-card-subtitle>
+                  <v-list>
+                    <v-list-item-group color="primary">
+                      <v-list-item>
+                        <v-icon>mdi-check</v-icon>
+                        <v-list-item-title>
+                          GPU powered servers.
+                        </v-list-item-title>
+                      </v-list-item>
+                      <v-list-item>
+                        <v-icon>mdi-check</v-icon>
+                        <v-list-item-title>
+                          Without our watermark
+                        </v-list-item-title>
+                      </v-list-item>
+                      <v-list-item>
+                        <v-icon>mdi-check</v-icon>
+                        <v-list-item-title>
+                          Share link to visualizer
+                        </v-list-item-title>
+                      </v-list-item>
+                    </v-list-item-group>
+                  </v-list>
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-list-item-content>
+        </v-list-item>
+      </v-list>
+      <v-row>
+        <v-col v-if="tab === 4" lg="5" md="5" sm="5" offset-sm="1">
+          <v-btn class="mx-auto" text> subscribe </v-btn>
+        </v-col>
+        <v-col v-if="tab < 4">
+          <v-btn text class="mx-auto" @click="next" color="primary">
+            Next
+          </v-btn>
+        </v-col>
+        <v-col lg="5" md="5" sm="5">
+          <v-btn
+            v-if="tab === 4"
+            :disabled="free === false"
+            color="primary"
+            text
+            @click="save"
+            >Generate and download</v-btn
+          >
         </v-col>
       </v-row>
-      <v-btn flat @click="save" color="primary" style="margin-top: 30px">
-        Next
-      </v-btn>
     </v-dialog>
   </v-row>
 </template>
@@ -277,7 +255,8 @@ export default {
   components: { Stripe, Templates },
   data() {
     return {
-      tab: null,
+      free: null,
+      tab: "5",
       title: null,
       subtitle: null,
       color: "hex",
@@ -312,6 +291,10 @@ export default {
     },
   },
   methods: {
+    next: function () {
+      this.tab++;
+    },
+
     save: function () {
       console.log("Saving", this.title, this.subtitle);
       this.$emit("reCreate");
@@ -366,4 +349,15 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+/* Hide scrollbar for Chrome, Safari and Opera */
+.v-dialog::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.v-dialog::-webkit-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+</style>

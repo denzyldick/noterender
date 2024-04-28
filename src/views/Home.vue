@@ -32,7 +32,6 @@
                       </v-btn>
                     </v-btn>
                   </template>
-                  <span>Create your own!</span>
                 </v-tooltip>
               </v-list-item-icon>
               <!-- <v-list-item-icon :class="{ 'mx-2': $vuetify.breakpoint.mdAndUp }"> -->
