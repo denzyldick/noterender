@@ -106,7 +106,7 @@ export default new Vuex.Store({
       },
     ],
     file: "/noterender.com.opus",
-    title: "lofi Hip Hop beats ",
+    title: "Create your own visualizer the easy way.",
     subtitle: "noterender",
     microphone: false,
     emblem: "/img/logo.png",
