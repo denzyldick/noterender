@@ -256,7 +256,7 @@ export default {
   data() {
     return {
       free: null,
-      tab: "5",
+      tab: "1",
       title: null,
       subtitle: null,
       color: "hex",
