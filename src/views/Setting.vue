@@ -1,8 +1,8 @@
 <template>
   <v-layout>
-    <v-main class="" style="padding-top: 10px;height: 86%;overflow-y: scroll;overflow-x: hidden; ">
+    <v-main class="" style="padding-top: 10px;overflow-y: scroll;overflow-x: hidden; ">
       <v-row height=100%>
-        <v-col offset-md=1 lg=12 md=12 sm=12>
+        <v-col offset-md=1 lg=6 md=6 sm=6>
           <v-title class="text-h2" v-if="tab === 0"><v-icon size="larger" color="#CE93D8">mdi-brush</v-icon>
             Style</v-title>
           <v-title class="text-h2" v-if="tab === 1"><v-icon size="larger" color="#90CAF9">mdi-speaker</v-icon>
@@ -95,83 +95,100 @@
               <v-list-item>
                 <v-list-item-content>
                   <v-row>
-                    <v-col md="12" sm="12" lg="3">
+                    <v-col md="6" sm="12" lg="3">
                       <v-card-title>Color 1st</v-card-title>
                       <v-card-subtitle>The Color of the main element.</v-card-subtitle>
-                      <v-color-picker class="mx-auto" dot-size="60" hide-sliders show-swatches swatches-max-height="100"
+                      <v-color-picker dot-size="60" show-swatches swatches-max-height="100"
                         @update:color="colorSelected($event)"></v-color-picker>
                     </v-col>
-                    <v-col md="3" sm="12" lg="3">
+                    <v-col md="6" sm="12" lg="3">
                       <v-card-title>Scene lights </v-card-title>
                       <v-card-subtitle>The color of the lights.</v-card-subtitle>
-                      <v-color-picker class="mx-auto" v-model="color" dot-size="25" hide-sliders show-swatches
-                        swatches-max-height="100" @change="setLightColor($event)" />
+                      <v-color-picker v-model="color" dot-size="25" show-swatches swatches-max-height="100"
+                        @change="setLightColor($event)" />
                     </v-col>
                   </v-row>
                 </v-list-item-content>
               </v-list-item>
             </v-list>
           </v-col>
-          <v-col v-if="tab === 4" sm=12 lg=12 md=10 offset-md=1>
+          <v-col v-if="tab === 4" sm=12 lg=8 md=10 offset-md=1>
             <v-list three-line subheader v-if="tab === 4">
               <v-list-item>
                 <v-list-item-content>
                   <v-row>
                     <v-col sm="12" md="5" offset-lg="2" lg="5">
                       <v-card flat>
-                        <v-card-title> Free </v-card-title>
-                        <v-card-subtitle></v-card-subtitle>
+                        <v-card-title class="text-h4"><v-icon size="larger">mdi-cash</v-icon> Free </v-card-title>
+                        <v-card-subtitle>
+                          Generate in your own browser. <v-icon size="smaller">mdi-google-chrome</v-icon>
+                        </v-card-subtitle>
 
                         <v-list>
                           <v-list-item-group color="primary">
                             <v-list-item>
-                              <v-icon>mdi-check</v-icon>
-                              <v-list-item-title>
+                              <v-icon color="#FDD835">mdi-check</v-icon>
+                              <v-list-item-title class="text-h5">&nbsp;
                                 Download visualizer
                               </v-list-item-title>
                             </v-list-item>
                             <v-list-item>
-                              <v-icon>mdi-close-thick</v-icon>
-                              <v-list-item-title>
-                                Remove watermark
+                              <v-icon color="#FF1744">mdi-close-thick</v-icon>
+                              <v-list-item-title class="text-h5">
+                                &nbsp;Remove watermark
                               </v-list-item-title>
                             </v-list-item>
                             <v-list-item>
-                              <v-icon>mdi-close-thick</v-icon>
-                              <v-list-item-title> Higher quality </v-list-item-title>
+                              <v-icon color="#FF1744">mdi-close-thick</v-icon>
+                              <v-list-item-title class="text-h5">&nbsp;Higher quality </v-list-item-title>
                             </v-list-item>
                           </v-list-item-group>
                         </v-list>
                         <v-card-actions>
-                          <v-btn @click="free = true" text>
-                            <v-icon v-if="free" dark> mdi-check </v-icon>
-
-                            <v-icon v-else light> mdi-square-outline</v-icon>
-                          </v-btn>
+                          <v-list>
+                            <v-list-item>
+                              <v-title class="text-h4">1.</v-title><v-btn @click="free = true" text class="primary">
+                                <v-icon dark> mdi-check </v-icon>
+                                select free version.
+                              </v-btn>
+                            </v-list-item>
+                            <v-list-item>
+                              <v-title class="text-h4">2. </v-title><v-btn @click="" text class="primary">
+                                Generate video. <v-icon color="red">mdi-record</v-icon>
+                              </v-btn>
+                            </v-list-item>
+                            <v-list-item>
+                              <v-title class="text-h4">3. </v-title><v-btn dark disabled @click="" text class="info">
+                                Download video <v-icon>mdi-download</v-icon>
+                              </v-btn>
+                            </v-list-item>
+                          </v-list>
                         </v-card-actions>
                       </v-card>
                     </v-col>
                     <v-col lg="5" md="4">
                       <v-card flat>
-                        <v-card-title> Premium </v-card-title>
-                        <v-card-subtitle> </v-card-subtitle>
+                        <v-card-title> <v-icon>mdi-beta</v-icon> WIP </v-card-title>
+                        <v-card-subtitle>
+                          On our own cloud <v-icon size="smaller" color="#B2EBF2">mdi-cloud</v-icon>.
+                        </v-card-subtitle>
                         <v-list>
                           <v-list-item-group color="primary">
                             <v-list-item>
-                              <v-icon>mdi-check</v-icon>
-                              <v-list-item-title>
+                              <v-icon color="#FDD835">mdi-check</v-icon>
+                              <v-list-item-title class="text-h5">&nbsp;
                                 GPU powered servers.
                               </v-list-item-title>
                             </v-list-item>
                             <v-list-item>
-                              <v-icon>mdi-check</v-icon>
-                              <v-list-item-title>
+                              <v-icon color="#FDD835">mdi-check</v-icon>
+                              <v-list-item-title class="text-h5">&nbsp;
                                 Without our watermark
                               </v-list-item-title>
                             </v-list-item>
                             <v-list-item>
-                              <v-icon>mdi-check</v-icon>
-                              <v-list-item-title>
+                              <v-icon color="#FDD835">mdi-check</v-icon>
+                              <v-list-item-title class="text-h5">&nbsp;
                                 Share link to visualizer
                               </v-list-item-title>
                             </v-list-item>
@@ -199,25 +216,20 @@
       <v-bottom-navigation style="position: fixed; width: 100%; bottom:0px; left:0px; right:0px;">
         <v-btn value="recent" @click="tab = 0" class="white">
           <v-icon :color="tab === 0 ? '#CE93D8' : ''">mdi-brush</v-icon>
-          <span v-if="tab !== 0">Style</span>
         </v-btn>
 
         <v-btn value="sound" @click="tab = 1" class="white">
           <v-icon :color="tab === 1 ? '#90CAF9' : ''">mdi-speaker</v-icon>
 
-          <span v-if="tab !== 1">Sound</span>
         </v-btn>
         <v-btn value="camera" @click="tab = 2" class="white">
           <v-icon :color="tab === 2 ? '#80CBC4' : ''">mdi-camera</v-icon>
-          <span v-if="tab !== 2">Camera</span>
         </v-btn>
         <v-btn value="branding" @click="tab = 3" class="white">
           <v-icon :color="tab === 3 ? '#EF9A9A' : ''">mdi-heart</v-icon>
-          <span v-if="tab !== 3"> Branding</span>
         </v-btn>
         <v-btn value="nearby" @click="tab = 4" class="white">
           <v-icon :color="tab === 4 ? '#C5E1A5' : ''">mdi-download</v-icon>
-          <span v-if="tab !== 4">Download</span>
         </v-btn>
       </v-bottom-navigation>
 
@@ -236,7 +248,7 @@ export default {
   data() {
     return {
       free: null,
-      tab: 0,
+      tab: 4,
       title: null,
       subtitle: null,
       color: "hex",
