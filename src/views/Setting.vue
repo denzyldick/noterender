@@ -248,7 +248,7 @@ export default {
   data() {
     return {
       free: null,
-      tab: 4,
+      tab: 0,
       title: null,
       subtitle: null,
       color: "hex",
