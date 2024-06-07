@@ -1,15 +1,15 @@
 import BABYLON from "babylonjs";
 
-let fireworks = function() {
+let fireworks = function () {
   const light = new BABYLON.DirectionalLight(
     "DirectionalLight",
     new BABYLON.Vector3(0, -1, 1),
-    this.scene
+    this.scene,
   );
   const light2 = new BABYLON.HemisphericLight(
     "HemiLight",
     new BABYLON.Vector3(0, 1, 0),
-    this.scene
+    this.scene,
   );
   light2.intensity = 0.5;
 
@@ -54,7 +54,7 @@ let fireworks = function() {
         "projection",
       ],
       needAlphaBlending: true,
-    }
+    },
   );
 
   shaderMaterial.backFaceCulling = false;
@@ -62,7 +62,7 @@ let fireworks = function() {
   this.fireWorkSphere = BABYLON.MeshBuilder.CreateSphere(
     "sphere",
     { diameter: 10 },
-    this.scene
+    this.scene,
   );
   this.fireWorkSphere.convertToFlatShadedMesh();
 

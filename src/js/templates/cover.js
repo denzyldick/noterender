@@ -13,7 +13,7 @@ const template = {
     this.lights = [];
     this.lights.push(
       new BABYLON.PointLight("HemiLight", new BABYLON.Vector3(0, 0, 0), scene),
-      new BABYLON.PointLight("HemiLight", new BABYLON.Vector3(0, 0, 0), scene)
+      new BABYLON.PointLight("HemiLight", new BABYLON.Vector3(0, 0, 0), scene),
     );
     PLANE.setCoordinates(0, 250, 0);
     PLANE.init(scene, config); // Creation of a repeated textured material

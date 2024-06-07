@@ -16,13 +16,13 @@ export default {
       new BABYLON.PointLight(
         "HemiLight",
         new BABYLON.Vector3(0, 0, 100),
-        scene
+        scene,
       ),
       new BABYLON.PointLight(
         "HemiLight",
         new BABYLON.Vector3(0, 500, 10),
-        scene
-      )
+        scene,
+      ),
     );
   },
 };

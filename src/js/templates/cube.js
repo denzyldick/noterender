@@ -77,13 +77,13 @@ const template = {
       new BABYLON.PointLight(
         "HemiLight",
         new BABYLON.Vector3(0, 0, 100),
-        scene
+        scene,
       ),
       new BABYLON.PointLight(
         "HemiLight",
         new BABYLON.Vector3(0, 500, 10),
-        scene
-      )
+        scene,
+      ),
     );
     PLANE.init(scene, config);
 
@@ -92,7 +92,7 @@ const template = {
     materialBox.ambientColor = BABYLON.Color3.FromInts(
       config.colors.r,
       config.colors.g,
-      config.colors.b
+      config.colors.b,
     );
     boxInstance.material = materialBox;
 

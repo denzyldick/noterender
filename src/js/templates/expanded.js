@@ -79,13 +79,13 @@ const template = {
       new BABYLON.PointLight(
         "HemiLight",
         new BABYLON.Vector3(0, 0, lightZ),
-        scene
+        scene,
       ),
       new BABYLON.PointLight(
         "HemiLight",
         new BABYLON.Vector3(0, 0, -lightZ),
-        scene
-      )
+        scene,
+      ),
     );
 
     //Creation of a repeated textured material
@@ -96,7 +96,7 @@ const template = {
     materialBox.emissiveColor = BABYLON.Color3.FromInts(
       config.colors.r,
       config.colors.g,
-      config.colors.b
+      config.colors.b,
     );
     boxInstance.material = materialBox;
     const amount = 20;

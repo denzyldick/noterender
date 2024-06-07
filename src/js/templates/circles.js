@@ -32,17 +32,17 @@ const template = {
     const light = new BABYLON.DirectionalLight(
       "DirectionalLight",
       new BABYLON.Vector3(0, -1, 0),
-      scene
+      scene,
     );
     light.diffuse = BABYLON.Color3.FromInts(
       config.light.r,
       config.light.g,
-      config.light.b
+      config.light.b,
     );
     light.specular = BABYLON.Color3.FromInts(
       config.light.r,
       config.light.g,
-      config.light.b
+      config.light.b,
     );
     PLANE.setCoordinates(200, 200, 0);
     PLANE.init(scene, config);
@@ -54,7 +54,7 @@ const template = {
     materialBox.ambientColor = new BABYLON.Color3.FromInts(
       config.colors.r,
       config.colors.g,
-      config.colors.b
+      config.colors.b,
     );
     boxInstance.material = materialBox;
     const amountOfCircles = 100;

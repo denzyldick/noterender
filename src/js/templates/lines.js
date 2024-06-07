@@ -33,7 +33,7 @@ const template = {
       "radius",
       7,
       BABYLON.Animation.ANIMATIONTYPE_FLOAT,
-      BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+      BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE,
     );
     const keys1 = [
       {
@@ -53,7 +53,7 @@ const template = {
       "alpha",
       60,
       BABYLON.Animation.ANIMATIONTYPE_FLOAT,
-      BABYLON.Animation.ANIMATIONLOOPMODE_RELATIVE
+      BABYLON.Animation.ANIMATIONLOOPMODE_RELATIVE,
     );
     const keys2 = [
       {
@@ -72,7 +72,7 @@ const template = {
       "beta",
       10,
       BABYLON.Animation.ANIMATIONTYPE_FLOAT,
-      BABYLON.Animation.ANIMATIONLOOPMODE__CYCLE
+      BABYLON.Animation.ANIMATIONLOOPMODE__CYCLE,
     );
     let value = this.camera.beta;
     const keys3 = [
@@ -101,29 +101,29 @@ const template = {
       new BABYLON.PointLight(
         "HemiLight",
         new BABYLON.Vector3(500, 0, -20),
-        scene
-      )
+        scene,
+      ),
     );
     this.lights.push(
       new BABYLON.PointLight(
         "HemiLight",
         new BABYLON.Vector3(-500, 0, -20),
-        scene
-      )
+        scene,
+      ),
     );
     this.lights.push(
       new BABYLON.PointLight(
         "HemiLight",
         new BABYLON.Vector3(0, 500, -20),
-        scene
-      )
+        scene,
+      ),
     );
     this.lights.push(
       new BABYLON.PointLight(
         "HemiLight",
         new BABYLON.Vector3(0, -500, -200),
-        scene
-      )
+        scene,
+      ),
     );
 
     PLANE.setCoordinates(0, 250, 0);
@@ -138,7 +138,7 @@ const template = {
     materialBox.emissiveColor = BABYLON.Color3.FromInts(
       config.colors.r,
       config.colors.g,
-      config.colors.b
+      config.colors.b,
     );
     materialBox.diffuseColor = BABYLON.Color3.FromInts(255, 0, 40);
 

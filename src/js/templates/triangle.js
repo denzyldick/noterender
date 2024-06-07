@@ -48,7 +48,7 @@ const template = {
         this.scene,
         true,
         null,
-        this.bar[i].mesh
+        this.bar[i].mesh,
       );
     }
     // left
@@ -77,7 +77,7 @@ const template = {
         this.scene,
         true,
         null,
-        this.barTop[i].mesh
+        this.barTop[i].mesh,
       );
     }
     //bottom
@@ -107,7 +107,7 @@ const template = {
         this.scene,
         true,
         null,
-        this.barBottom[i].mesh
+        this.barBottom[i].mesh,
       );
     }
     for (let i = 0; i < this.barRight.length; i++) {
@@ -136,7 +136,7 @@ const template = {
         this.scene,
         true,
         null,
-        this.barRight[i].mesh
+        this.barRight[i].mesh,
       );
     }
   },
@@ -162,7 +162,7 @@ const template = {
     materialBox.emissiveColor = BABYLON.Color3.FromInts(
       config.colors.r,
       config.colors.g,
-      config.colors.b
+      config.colors.b,
     );
     boxInstance.material = materialBox;
     const amount = 20;
@@ -185,7 +185,7 @@ const template = {
         false,
         0,
         scene,
-        true
+        true,
       );
       mesh.material = materialBox;
       this.bar.push({
@@ -214,7 +214,7 @@ const template = {
         false,
         0,
         scene,
-        true
+        true,
       );
       mesh.material = materialBox;
       this.barRight.push({
@@ -241,7 +241,7 @@ const template = {
         false,
         0,
         scene,
-        true
+        true,
       );
       mesh.material = materialBox;
       this.barBottom.push({
@@ -270,7 +270,7 @@ const template = {
         false,
         0,
         scene,
-        true
+        true,
       );
       mesh.material = materialBox;
       this.barTop.push({

@@ -266,14 +266,14 @@
             resolve(
               readBlobAsBuffer(thing).then(function (buffer) {
                 return new Uint8Array(buffer);
-              })
+              }),
             );
           } else {
             //Assume that Blob will know how to read this thing
             resolve(
               readBlobAsBuffer(new Blob([thing])).then(function (buffer) {
                 return new Uint8Array(buffer);
-              })
+              }),
             );
           }
         });
@@ -348,7 +348,7 @@
                         totalWritten,
                         buffer.length - totalWritten,
                         newEntry.offset + totalWritten,
-                        handleWriteComplete
+                        handleWriteComplete,
                       );
                     }
                   };
@@ -359,7 +359,7 @@
                   0,
                   buffer.length,
                   newEntry.offset,
-                  handleWriteComplete
+                  handleWriteComplete,
                 );
               });
             });
@@ -413,7 +413,7 @@
 
                       entry.data.set(
                         newEntry.data,
-                        newEntry.offset - entry.offset
+                        newEntry.offset - entry.offset,
                       );
                     });
                 }
@@ -586,7 +586,7 @@
     }
 
     throw new Error(
-      "Failed to find VP8 keyframe in WebP image, is this image mistakenly encoded in the Lossless WebP format?"
+      "Failed to find VP8 keyframe in WebP image, is this image mistakenly encoded in the Lossless WebP format?",
     );
   }
 
@@ -803,7 +803,7 @@
           alphaBufferContext = alphaBuffer.getContext("2d");
           alphaBufferData = alphaBufferContext.createImageData(
             alphaBuffer.width,
-            alphaBuffer.height
+            alphaBuffer.height,
           );
         }
 
@@ -812,7 +812,7 @@
             0,
             0,
             source.width,
-            source.height
+            source.height,
           ).data,
           destData = alphaBufferData.data,
           dstCursor = 0,
@@ -1005,10 +1005,10 @@
 
         // Now we know where these top-level elements lie in the file:
         seekPoints.SegmentInfo.positionEBML.data = fileOffsetToSegmentRelative(
-          segmentInfo.offset
+          segmentInfo.offset,
         );
         seekPoints.Tracks.positionEBML.data = fileOffsetToSegmentRelative(
-          tracks.offset
+          tracks.offset,
         );
 
         writtenHeader = true;
@@ -1085,7 +1085,7 @@
 
         // Flags byte
         bufferStream.writeByte(
-          1 << 7 // Keyframe
+          1 << 7, // Keyframe
         );
 
         return {
@@ -1167,7 +1167,7 @@
 
         // Now we know where the Cues element has ended up, we can update the SeekHead
         seekPoints.Cues.positionEBML.data = fileOffsetToSegmentRelative(
-          ebml.offset
+          ebml.offset,
         );
       }
 
@@ -1191,7 +1191,7 @@
         }
 
         const buffer = new ArrayBufferDataStream(
-            rawImageSize + clusterFrameBuffer.length * 64
+            rawImageSize + clusterFrameBuffer.length * 64,
           ), // Estimate 64 bytes per block header
           cluster = createCluster({
             timecode: Math.round(clusterStartTime),
@@ -1207,7 +1207,7 @@
         addCuePoint(
           DEFAULT_TRACK_NUMBER,
           Math.round(clusterStartTime),
-          cluster.offset
+          cluster.offset,
         );
 
         clusterFrameBuffer = [];
@@ -1222,7 +1222,7 @@
             options.frameDuration = 1000 / options.frameRate;
           } else {
             throw new Error(
-              "Missing required frameDuration or frameRate setting"
+              "Missing required frameDuration or frameRate setting",
             );
           }
         }
@@ -1235,7 +1235,7 @@
         } else {
           options.alphaQuality = Math.max(
             Math.min(options.alphaQuality, 0.99999),
-            0
+            0,
           );
         }
       }
@@ -1325,7 +1325,7 @@
         }
 
         let keyframe = extractKeyframeFromWebP(
-            renderAsWebP(frame, options.quality)
+            renderAsWebP(frame, options.quality),
           ),
           frameDuration,
           frameAlpha = null;
@@ -1351,7 +1351,7 @@
           duration: frameDuration,
           alpha: frameAlpha
             ? extractKeyframeFromWebP(
-                renderAsWebP(frameAlpha, options.alphaQuality)
+                renderAsWebP(frameAlpha, options.alphaQuality),
               ).frame
             : null,
         });
@@ -1389,12 +1389,12 @@
   if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
     module.exports = WebMWriter(
       require("./ArrayBufferDataStream"),
-      require("./BlobBuffer")
+      require("./BlobBuffer"),
     );
   } else {
     window.WebMWriter = WebMWriter(
       window.ArrayBufferDataStream,
-      window.BlobBuffer
+      window.BlobBuffer,
     );
   }
 })();

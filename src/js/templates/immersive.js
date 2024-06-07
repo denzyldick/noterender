@@ -44,7 +44,7 @@ const template = {
         barElement.material.ambientColor = BABYLON.Color3.FromInts(
           config.colors.r,
           config.colors.g,
-          config.colors.b
+          config.colors.b,
         );
       }
     }
@@ -71,7 +71,7 @@ const template = {
     const light = new BABYLON.DirectionalLight(
       "light1",
       new BABYLON.Vector3(0, 250, -10),
-      scene
+      scene,
     );
     light.position = new BABYLON.Vector3(0, 250, 10);
 
@@ -82,9 +82,9 @@ const template = {
       new BABYLON.PointLight(
         "HemiLight",
         new BABYLON.Vector3(0, 0, 100),
-        scene
+        scene,
       ),
-      new BABYLON.PointLight("HemiLight", new BABYLON.Vector3(0, 0, 10), scene)
+      new BABYLON.PointLight("HemiLight", new BABYLON.Vector3(0, 0, 10), scene),
     );
 
     PLANE.setCoordinates(0, 250, 0);
@@ -97,7 +97,7 @@ const template = {
     materialBox.ambientColor = BABYLON.Color3.FromInts(
       config.colors.r,
       config.colors.g,
-      config.colors.b
+      config.colors.b,
     );
     boxInstance.material = materialBox;
     const amountbars = 10;
@@ -131,7 +131,7 @@ const template = {
       box.position = new BABYLON.Vector3(
         -width / 2 + 50 * i,
         height + 20,
-        depth / 2
+        depth / 2,
       );
       // box.skeleton = box.skeleton.clone("clonedSkeleton2");
       box.scaling = new BABYLON.Vector3(10, 10, depth);

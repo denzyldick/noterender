@@ -20,7 +20,7 @@ class Audio {
       console.log(this.mediaSource);
       if (typeof this.mediaSource === "undefined") {
         this.mediaSource = this.context.createMediaElementSource(
-          elementsByTagNameElement
+          elementsByTagNameElement,
         );
       }
       //Create analyzer node

@@ -56,7 +56,7 @@ export default {
     //Texture of each particle
     particleSystem.particleTexture = new BABYLON.Texture(
       "/img/templates/Smoke30Frames.png",
-      scene
+      scene,
     );
 
     // Where the particles come from

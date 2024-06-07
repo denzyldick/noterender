@@ -143,83 +143,83 @@ export default new Vuex.Store({
     soundFile: null,
   },
   mutations: {
-    enableDialog: function(state) {
+    enableDialog: function (state) {
       state.dialog = true;
     },
-    disableDialog: function(state) {
+    disableDialog: function (state) {
       state.dialog = false;
     },
-    enableSetting: function(state) {
+    enableSetting: function (state) {
       state.settings = true;
     },
-    disableSetting: function(state) {
+    disableSetting: function (state) {
       state.settings = false;
     },
-    enableVisualizer: function(state) {
+    enableVisualizer: function (state) {
       state.visualizer = true;
     },
-    disableVisualizer: function(state) {
+    disableVisualizer: function (state) {
       state.visualizer = false;
     },
-    enableRecording: function(state) {
+    enableRecording: function (state) {
       state.recording = true;
     },
-    disableRecording: function(state) {
+    disableRecording: function (state) {
       state.recording = false;
     },
-    setSound: function(state, url) {
+    setSound: function (state, url) {
       state.file = url;
     },
-    setBackground: function(state, url) {
+    setBackground: function (state, url) {
       state.background = url;
     },
-    setEmblem: function(state, url) {
+    setEmblem: function (state, url) {
       state.emblem = url;
     },
-    setBarRGB: function(state, rgb) {
+    setBarRGB: function (state, rgb) {
       state.colors = rgb;
     },
-    setLightRGB: function(state, rgb) {
+    setLightRGB: function (state, rgb) {
       state.light = rgb;
     },
-    templateSelected: function(state, template) {
+    templateSelected: function (state, template) {
       state.template = template;
     },
-    disableCamera: function(state) {
+    disableCamera: function (state) {
       state.options.camera.move = false;
     },
-    enableCamera: function(state) {
+    enableCamera: function (state) {
       state.options.camera.move = true;
     },
-    changeTitle: function(state, title) {
+    changeTitle: function (state, title) {
       console.log("Title: ", title);
       state.title = title;
       console.log("State: ", state);
     },
-    setSoundFile: function(state, file) {
+    setSoundFile: function (state, file) {
       state.soundFile = file;
     },
   },
   actions: {
-    changeTitle: function(context, title) {
+    changeTitle: function (context, title) {
       context.commit("changeTitle", title);
     },
-    changeSubtitle: function(context, subtitle) {
+    changeSubtitle: function (context, subtitle) {
       context.commit("changeSubtitle", subtitle);
     },
-    changeText: function(context, text) {
+    changeText: function (context, text) {
       context.commit("changeText", text.title, text.subtitle);
     },
-    setSound: function(context, file) {
+    setSound: function (context, file) {
       const url = URL.createObjectURL(file);
       context.commit("setSound", url);
       context.commit("setSoundFile", file);
     },
-    setBackground: function(context, file) {
+    setBackground: function (context, file) {
       const url = URL.createObjectURL(file);
       context.commit("setBackground", url);
     },
-    setEmblem: function(context, file) {
+    setEmblem: function (context, file) {
       const url = URL.createObjectURL(file);
       context.commit("setEmblem", url);
     },
@@ -270,15 +270,15 @@ export default new Vuex.Store({
         context.commit("disableRecording");
       }
     },
-    setColor: function(context, payload) {
+    setColor: function (context, payload) {
       console.log(payload, "color selected");
 
       context.commit("setBarRGB", payload);
     },
-    setLight: function(context, payload) {
+    setLight: function (context, payload) {
       context.commit("setLightRGB", payload);
     },
-    toggleCamera: function(context, enable) {
+    toggleCamera: function (context, enable) {
       if (enable) {
         context.commit("disableCamera");
       } else {

@@ -11,7 +11,7 @@ export default {
       "beta",
       camera.beta,
       "radius",
-      camera.radius
+      camera.radius,
     );
 
     if (typeof configuration !== "undefined") {
@@ -22,7 +22,7 @@ export default {
           "beta",
           camera.beta,
           "radius",
-          camera.radius
+          camera.radius,
         );
         const number = fft * 0.0009;
         camera.radius = this.initialRadius - fft;

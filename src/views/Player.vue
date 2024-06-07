@@ -7,7 +7,11 @@
             <v-list-item>
               <v-list-item-content>
                 <v-list-item-title>
-                  <img src="/img/logo.png" width="50px" alt="Noterender logo." />
+                  <img
+                    src="/img/logo.png"
+                    width="50px"
+                    alt="Noterender logo."
+                  />
                 </v-list-item-title>
               </v-list-item-content>
               <v-spacer></v-spacer>
@@ -41,14 +45,25 @@
               <!--      <span>Recording</span> -->
               <!--    </v-tooltip> -->
               <!--  </v-list-item-icon> -->
-              <v-list-item-icon :class="{ 'mx-4': $vuetify.breakpoint.mdAndUp }">
+              <v-list-item-icon
+                :class="{ 'mx-4': $vuetify.breakpoint.mdAndUp }"
+              >
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
                     <v-btn icon v-bind="attrs" v-on="on">
-                      <v-btn id="playButton" icon v-on:click.stop="playSound" v-if="playing">
+                      <v-btn
+                        id="playButton"
+                        icon
+                        v-on:click.stop="playSound"
+                        v-if="playing"
+                      >
                         <v-icon>mdi-play</v-icon>
                       </v-btn>
-                      <v-btn icon v-on:click.stop="stopSound" v-if="playing === false">
+                      <v-btn
+                        icon
+                        v-on:click.stop="stopSound"
+                        v-if="playing === false"
+                      >
                         <v-icon>mdi-stop</v-icon>
                       </v-btn>
                     </v-btn>
@@ -62,10 +77,13 @@
       </v-bottom-sheet>
     </div>
     <div class="parent">
-      <canvas id="renderCanvas" v-if="active" v-on:click="$store.dispatch('toggleVisualizer', true)"></canvas>
+      <canvas
+        id="renderCanvas"
+        v-if="active"
+        v-on:click="$store.dispatch('toggleVisualizer', true)"
+      ></canvas>
       <audio style="display: none" controls id="audio" :src="soundFile"></audio>
     </div>
-
   </div>
 </template>
 <script>
@@ -139,8 +157,8 @@ export default {
   methods: {
     toggleSetting: function () {
       this.visualizer = false;
-      this.$store.dispatch('toggleSetting', true);
-      this.$router.push({ "path": "/setting" });
+      this.$store.dispatch("toggleSetting", true);
+      this.$router.push({ path: "/setting" });
     },
     reCreate: function () {
       this.stopSound();
@@ -182,7 +200,7 @@ export default {
       const light = new BABYLON.PointLight(
         "Omni",
         new BABYLON.Vector3(0, 0, 100),
-        this.scene
+        this.scene,
       );
       this.scene.ambientColor = new BABYLON.Color3(1, 1, 1);
       this.scene.createDefaultLight();
@@ -206,7 +224,7 @@ export default {
           1.4668188650771874,
           1000,
           BABYLON.Vector3.Zero(),
-          this.scene
+          this.scene,
         );
         this.camera.attachControl(this.canvas, true);
         wave.init(this.camera, r, nb, scene, width, height, depth, this.config);
@@ -219,7 +237,7 @@ export default {
           1.0,
           100,
           BABYLON.Vector3.Zero(),
-          this.scene
+          this.scene,
         );
         this.camera.attachControl(this.canvas, true);
         circles.init(
@@ -230,7 +248,7 @@ export default {
           width,
           height,
           depth,
-          this.config
+          this.config,
         );
       }
       if (this.template === "simple") {
@@ -241,7 +259,7 @@ export default {
           1.5560509844479748,
           2099.9806795259265,
           BABYLON.Vector3.Zero(),
-          this.scene
+          this.scene,
         );
         this.camera.attachControl(this.canvas, true);
         simple.init(
@@ -252,7 +270,7 @@ export default {
           width,
           height,
           depth,
-          this.config
+          this.config,
         );
       }
       if (this.template === "cover") {
@@ -262,7 +280,7 @@ export default {
           1.552068084791646,
           1000,
           BABYLON.Vector3.Zero(),
-          this.scene
+          this.scene,
         );
         this.camera.attachControl(this.canvas, true);
         cover.init(
@@ -273,7 +291,7 @@ export default {
           width,
           height,
           depth,
-          this.config
+          this.config,
         );
       }
       if (this.template === "lines") {
@@ -283,7 +301,7 @@ export default {
           1.552068084791646,
           1000,
           BABYLON.Vector3.Zero(),
-          this.scene
+          this.scene,
         );
         this.camera.attachControl(this.canvas, true);
         lines.init(
@@ -294,7 +312,7 @@ export default {
           width,
           height,
           depth,
-          this.config
+          this.config,
         );
       }
       if (this.template === "expanded") {
@@ -304,7 +322,7 @@ export default {
           1.5894367329793362,
           2219.98177450843,
           BABYLON.Vector3.Zero(),
-          this.scene
+          this.scene,
         );
         this.camera.attachControl(this.canvas, true);
         expanded.init(
@@ -315,7 +333,7 @@ export default {
           width,
           height,
           depth,
-          this.config
+          this.config,
         );
       }
       if (this.template === "triangle") {
@@ -325,7 +343,7 @@ export default {
           1.0,
           1000,
           BABYLON.Vector3.Zero(),
-          this.scene
+          this.scene,
         );
         this.camera.attachControl(this.canvas, true);
         triangle.init(
@@ -336,7 +354,7 @@ export default {
           width,
           height,
           depth,
-          this.config
+          this.config,
         );
       }
       if (this.template === "immersive") {
@@ -346,7 +364,7 @@ export default {
           1.552068084791646,
           1000,
           BABYLON.Vector3.Zero(),
-          this.scene
+          this.scene,
         );
         this.camera.attachControl(this.canvas, true);
         immersive.init(
@@ -357,7 +375,7 @@ export default {
           width,
           height,
           depth,
-          this.config
+          this.config,
         );
       }
 
@@ -368,7 +386,7 @@ export default {
           1.552068084791646,
           400,
           BABYLON.Vector3.Zero(),
-          this.scene
+          this.scene,
         );
         this.camera.attachControl(this.canvas, true);
         cube.init(this.camera, r, nb, scene, width, height, depth, this.config);
@@ -445,7 +463,7 @@ export default {
         this.scene,
         this.options.bars.x,
         this.options.bars.y,
-        this.options.bars.z
+        this.options.bars.z,
       );
     },
     createBackground: function () {
@@ -453,7 +471,7 @@ export default {
         "ad",
         this.config.background,
         this.scene,
-        true
+        true,
       );
     },
   },
@@ -465,5 +483,4 @@ export default {
     this.mountScene();
   },
 };
-
 </script>
