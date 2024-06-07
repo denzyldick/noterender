@@ -1,6 +1,6 @@
 import BABYLON from "babylonjs";
 
-let fireworks = function () {
+let fireworks = function() {
   const light = new BABYLON.DirectionalLight(
     "DirectionalLight",
     new BABYLON.Vector3(0, -1, 1),

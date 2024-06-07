@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <Home @playing="dialog()" @setting="setting = true" />
+    <RouterView></RouterView>
     <!--    <v-row justify="center">-->
     <!--      <v-dialog-->
     <!--          v-model="dialog"-->

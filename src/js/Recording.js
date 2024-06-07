@@ -10,12 +10,12 @@ function handleDataAvailable(event) {
 }
 
 const recording = {
-  stop: function () {
+  stop: function() {
     if (typeof mediaRecorder !== "undefined") {
       mediaRecorder.stop();
     }
   },
-  record: async function (videoStream, audioStream) {
+  record: async function(videoStream, audioStream) {
     recordedBlobs = [];
     let options = { mimeType: "video/webm;codecs=vp9,opus" };
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
@@ -59,10 +59,10 @@ const recording = {
     mediaRecorder.start();
     console.log("MediaRecorder started", mediaRecorder);
   },
-  start: async function (videoStream, audioStream) {
+  start: async function(videoStream, audioStream) {
     this.record(videoStream, audioStream);
   },
-  download: function () {
+  download: function() {
     const blob = new Blob(recordedBlobs, { type: "video/webm" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");

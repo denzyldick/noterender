@@ -1,9 +1,73 @@
 <template>
-  <div class="home">
-    <RouterView />
+  <div>
+    <div class="text-center">
+      <v-bottom-sheet inset v-model="player">
+        <v-card tile>
+          <v-list>
+            <v-list-item>
+              <v-list-item-content>
+                <v-list-item-title>
+                  <img src="/img/logo.png" width="50px" alt="Noterender logo." />
+                </v-list-item-title>
+              </v-list-item-content>
+              <v-spacer></v-spacer>
+              <v-list-item-icon>
+                <v-tooltip location="top" v-model="activeTooltip">
+                  <template v-slot:activator="{ props }">
+                    <v-btn icon v-bind="props">
+                      <v-btn icon v-on:click.stop="toggleSetting">
+                        <v-icon>mdi-cog</v-icon>
+                      </v-btn>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+              </v-list-item-icon>
+              <!-- <v-list-item-icon :class=" { 'mx-2' : $vuetify.breakpoint.mdAndUp }"> -->
+              <!--    <v-tooltip -->
+              <!--        top -->
+              <!--    > -->
+              <!--      <template v-slot:activator="{ on, attrs }"> -->
+              <!--        <v-btn -->
+              <!--            icon -->
+              <!--            v-bind="attrs" -->
+              <!--            v-on="on" -->
+              <!--            v-show="playing ===false" -->
+              <!--        > -->
+              <!--          <v-btn icon v-on:click.stop="paywall = true;stopSound" class="red--text"> -->
+              <!--            <v-icon>mdi-download</v-icon> -->
+              <!--          </v-btn> -->
+              <!--        </v-btn> -->
+              <!--      </template> -->
+              <!--      <span>Recording</span> -->
+              <!--    </v-tooltip> -->
+              <!--  </v-list-item-icon> -->
+              <v-list-item-icon :class="{ 'mx-4': $vuetify.breakpoint.mdAndUp }">
+                <v-tooltip top>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-btn icon v-bind="attrs" v-on="on">
+                      <v-btn id="playButton" icon v-on:click.stop="playSound" v-if="playing">
+                        <v-icon>mdi-play</v-icon>
+                      </v-btn>
+                      <v-btn icon v-on:click.stop="stopSound" v-if="playing === false">
+                        <v-icon>mdi-stop</v-icon>
+                      </v-btn>
+                    </v-btn>
+                  </template>
+                  <span>Play example</span>
+                </v-tooltip>
+              </v-list-item-icon>
+            </v-list-item>
+          </v-list>
+        </v-card>
+      </v-bottom-sheet>
+    </div>
+    <div class="parent">
+      <canvas id="renderCanvas" v-if="active" v-on:click="$store.dispatch('toggleVisualizer', true)"></canvas>
+      <audio style="display: none" controls id="audio" :src="soundFile"></audio>
+    </div>
+
   </div>
 </template>
-
 <script>
 import * as BABYLON from "babylonjs";
 import audio from "../js/Audio";
@@ -22,7 +86,7 @@ import cube from "../js/templates/cube";
 import TEXT from "@/js/templates/components/text";
 
 export default {
-  name: "Home",
+  name: "Player",
   props: {},
   computed: {
     template: function () {
@@ -397,38 +461,9 @@ export default {
     // eslint-disable-next-line vue/no-unused-components
     Setting,
   },
+  mounted() {
+    this.mountScene();
+  },
 };
+
 </script>
-
-<style>
-.parent {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #fafafa !important;
-}
-
-canvas {
-  /*background: transparent;*/
-  width: 100%;
-  height: 100%;
-}
-
-html,
-body {
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-#renderCanvas {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  touch-action: none;
-}
-</style>
