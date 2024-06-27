@@ -6,7 +6,7 @@ Vue.use(Vuex);
 //Socket.start();
 export default new Vuex.Store({
   state: {
-    template: "simple",
+    template: "cover",
     templates: [
       {
         name: "simple",
@@ -18,7 +18,7 @@ export default new Vuex.Store({
       },
       {
         name: "lines",
-        preview: "",
+        preview: "/img/templates/lines.gif",
         description: "Lines",
         price: "0",
         priceId: null,
@@ -26,7 +26,7 @@ export default new Vuex.Store({
       },
       {
         name: "wave",
-        preview: "wave.png",
+        preview: "/img/templates/wave.gif",
         description: "Row of bars that circles your logo.",
         price: 1.99,
         priceId: "prod_KT8EgUlY0EcvMH",
@@ -34,14 +34,14 @@ export default new Vuex.Store({
       },
       {
         name: "circles",
-        preview: "circles.png",
+        preview: "/img/templates/circles.gif",
         description: "This one is in beta.",
         price: 3.99,
         configuration: {},
       },
       {
         name: "cover",
-        preview: "cover.png",
+        preview: "/img/templates/cover.gif",
         description: "Moving album cover.",
         price: 0.99,
         configuration: {},
@@ -69,7 +69,7 @@ export default new Vuex.Store({
       },
       {
         name: "immersive",
-        preview: "immersive.png",
+        preview: "/img/templates/immersive.gif",
         description: "",
         price: 0.3,
         configuration: {},
@@ -107,7 +107,7 @@ export default new Vuex.Store({
     ],
     file: "/noterender.com.opus",
     title: "",
-    subtitle: "noterender",
+    subtitle: "Noterender",
     microphone: false,
     emblem: "/img/logo.png",
     background: "/1080.jpg",
