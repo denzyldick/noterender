@@ -6,11 +6,11 @@ Vue.use(Vuex);
 //Socket.start();
 export default new Vuex.Store({
   state: {
-    template: "expanded",
+    template: "simple",
     templates: [
       {
         name: "simple",
-        preview: "/img/simple.gif",
+        preview: "/img/templates/simple.gif",
         description: "Row of bars that expand.",
         price: "0",
         priceId: null,
@@ -133,7 +133,7 @@ export default new Vuex.Store({
         z: 2,
       },
       camera: {
-        move: false,
+        move: true,
       },
     },
     settings: false,
