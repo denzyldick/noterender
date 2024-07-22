@@ -107,10 +107,10 @@ export default new Vuex.Store({
     ],
     file: "/noterender.com.opus",
     title: "",
-    subtitle: "Noterender",
+    subtitle: "",
     microphone: false,
     emblem: "/img/logo.png",
-    background: "/1080.jpg",
+    background: "/main_bg.jpg",
     colors: {
       b: 255,
       g: 56,
