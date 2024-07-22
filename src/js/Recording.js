@@ -18,10 +18,10 @@ const recording = {
   record: async function (videoStream, audioStream) {
     recordedBlobs = [];
     debugger;
-    let options = { mimeType: "video/webm;codecs=vp8,opus" };
+    let options = {};
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
       console.error(`${options.mimeType} is not supported`);
-      options = { mimeType: "video/webm;codecs=vp8,opus" };
+      options = { mimeType: "video/webm;codecs=h264" };
       if (!MediaRecorder.isTypeSupported(options.mimeType)) {
         console.error(`${options.mimeType} is not supported`);
         options = { mimeType: "video/webm" };
@@ -38,7 +38,7 @@ const recording = {
         ...audioStream.getTracks(),
       ]);
       // let recorder = new MediaRecorder(combined);
-      mediaRecorder = new MediaRecorder(combined, options);
+      mediaRecorder = new MediaRecorder(combined, {});
     } catch (e) {
       console.error("Exception while creating MediaRecorder:", e);
       return;
@@ -64,12 +64,14 @@ const recording = {
     this.record(videoStream, audioStream);
   },
   download: function () {
-    const blob = new Blob(recordedBlobs, { type: "video/webm" });
+    const blob = new Blob(recordedBlobs, {
+      type: "video/webm;codecs=h264",
+    });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.style.display = "none";
     a.href = url;
-    a.download = "wave.denzyl.io.webm";
+    a.download = "noterender.denzyl.io.webm";
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
