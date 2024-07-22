@@ -1,9 +1,10 @@
+jjj
 <template>
   <div class="overflow-auto" style="overflow-x: hidden !important; height: 88%">
     <v-row>
       <v-col offset-md="1" lg="6" md="6" sm="6">
         <v-title class="text-h2" v-if="tab === 0"
-          ><v-icon size="larger" color="#CE93D8">mdi-brush</v-icon>
+          ><v-icon size="larger" color="#CE97D8">mdi-brush</v-icon>
           Style</v-title
         >
         <v-title class="text-h2" v-if="tab === 1"
@@ -22,7 +23,8 @@
           ><v-icon size="larger" color="#C5E1A5">mdi-download</v-icon>
           Download</v-title
         >
-      </v-col>
+      </v-col> </v-row
+    ><v-row>
       <v-col offset-md="2" offset-lg="2" lg="8" md="8" sm="12">
         <v-row style="overflow: auto">
           <v-col md="10" offset-md="1">
@@ -30,7 +32,7 @@
           </v-col>
         </v-row>
         <v-row>
-          <v-col offset-md="1" md="10" sm="12" lg="12" v-if="tab === 1">
+          <v-col md="10" offset-md="1">
             <v-list three-line subheader v-if="tab === 1">
               <v-card-title>Sound source</v-card-title>
               <v-card-subtitle
@@ -217,20 +219,7 @@
                       <v-card-actions>
                         <v-list>
                           <v-list-item>
-                            <v-title class="text-h4">1.</v-title
-                            ><v-btn disabled="true" @click="free = true" text>
-                              <v-icon dark size="x-large" color="#43A047">
-                                mdi-check
-                              </v-icon>
-                              select free version.
-                            </v-btn>
-                          </v-list-item>
-                          <v-list-item>
-                            <v-title class="text-h4">2. </v-title>
-                          </v-list-item>
-                          <v-list-item>
-                            <v-title class="text-h4">3. </v-title
-                            ><v-btn dark disabled @click="" text class="info">
+                            <v-btn dark @click="save" text class="info">
                               Download video <v-icon>mdi-download</v-icon>
                             </v-btn>
                           </v-list-item>
@@ -286,7 +275,7 @@
           :disabled="free === false"
           color="primary"
           text
-          @click="save"
+          @click="this.save"
         >
           Generate and download</v-btn
         >
@@ -373,13 +362,13 @@ export default {
     },
 
     save: function () {
-      console.log("Saving", this.title, this.subtitle);
-      this.$emit("reCreate");
-      this.$store.dispatch("changeTitle", this.title);
-      this.$store.dispatch("changeSubtitle", this.subtitle);
-      this.$store.dispatch("toggleDialog", false);
-      this.$store.dispatch("toggleSetting", false);
-      this.$store.dispatch("toggleVisualizer", true);
+      this.$router.push("/");
+      // console.log("Saving", this.title, this.subtitle);
+      // //  this.$store.dispatch("changeTitle", this.title);
+      // //  this.$store.dispatch("changeSubtitle", this.subtitle);
+      // this.$store.dispatch("toggleDialog", false);
+      // this.$store.dispatch("toggleSetting", false);
+      // this.$store.dispatch("toggleVisualizer", true);
     },
     soundSelected: function (file) {
       console.log(file);

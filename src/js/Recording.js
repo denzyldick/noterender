@@ -17,7 +17,8 @@ const recording = {
   },
   record: async function (videoStream, audioStream) {
     recordedBlobs = [];
-    let options = { mimeType: "video/webm;codecs=vp9,opus" };
+    debugger;
+    let options = { mimeType: "video/webm;codecs=vp8,opus" };
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
       console.error(`${options.mimeType} is not supported`);
       options = { mimeType: "video/webm;codecs=vp8,opus" };
