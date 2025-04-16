@@ -1,31 +1,13 @@
 <template>
   <v-row>
-    <v-col
-      md="4"
-      lg="4"
-      sm="4"
-      v-for="template in templates"
-      :key="template.name"
-    >
-      <v-card
-        class=""
-        :color="active || template.name === selected ? 'primary' : ''"
-        @click="$store.commit('templateSelected', template.name)"
-      >
-        <v-img
-          max-height="220"
-          :src="`${template.preview}`"
-          :lazy-src="`${template.preview}`"
-          aspect-ratio="1"
+    <v-col md="4" lg="4" sm="4" v-for="template in templates" :key="template.name">
+      <v-card class="" :color="active || template.name === selected ? 'primary' : ''">
+        <v-img max-height="100" :src="`${template.preview}`" :lazy-src="`${template.preview}`" aspect-ratio="1"
           class="grey lighten-2 white--black align-end"
-          gradient="to bottom left, rgba(100,115,201,.33), rgba(25,32,72,.7)"
-        >
+          gradient="to bottom left, rgba(100,115,201,.33), rgba(25,32,72,.7)">
           <template v-slot:placeholder>
             <v-row class="fill-height ma-0" align="center" justify="center">
-              <v-progress-circular
-                indeterminate
-                color="grey lighten-5"
-              ></v-progress-circular>
+              <v-progress-circular indeterminate color="grey lighten-5"></v-progress-circular>
             </v-row>
           </template>
           <v-card-title class="font-weight-black white--text text-uppercase">
@@ -37,11 +19,7 @@
           </v-card-subtitle>
         </v-img>
 
-        <v-btn
-          width="100%"
-          text
-          @click="$store.commit('templateSelected', template.name)"
-        >
+        <v-btn width="100%" text @click="$store.commit('templateSelected', template.name)">
           <v-icon v-if="selected === template.name" dark> mdi-check </v-icon>
           <v-icon v-else light> mdi-square-outline</v-icon>
         </v-btn>

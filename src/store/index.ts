@@ -81,6 +81,33 @@ export default new Vuex.Store({
         price: 10.0,
         configuration: {},
       },
+      {
+        name: "expanded",
+        preview: "expanded.png",
+        description: "Bars will appear on every direction.",
+        price: 10.99,
+        configuration: {
+          elements: {
+            top: {},
+            left: {},
+            right: {},
+            bottom: {},
+          },
+        },
+      }, {
+        name: "expanded",
+        preview: "expanded.png",
+        description: "Bars will appear on every direction.",
+        price: 10.99,
+        configuration: {
+          elements: {
+            top: {},
+            left: {},
+            right: {},
+            bottom: {},
+          },
+        },
+      }
     ],
     sizes: [
       {
