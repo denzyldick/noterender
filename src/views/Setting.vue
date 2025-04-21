@@ -1,7 +1,6 @@
-jjj
 <template>
-  <div style="overflow-x: hidden !important; height: 88%">
-    <v-row>
+  <v-container>
+    <v-row style="min-height: min-content;">
       <v-col offset-md="1" lg="6" md="6" sm="6">
         <v-title class="text-h2" v-if="tab === 0"><v-icon size="larger" color="#CE97D8">mdi-brush</v-icon>
           Style</v-title>
@@ -61,61 +60,65 @@ jjj
         <!--        /// Branding-->
         <v-col v-if="tab === 3" sm="12" lg="12" md="10" offset-md="1">
           <v-row three-line subheader v-if="tab === 3">
+            <v-col>
+              <v-card> <v-list-item v-if="(background === null)">
+                  <v-list-item-content>
+                    <v-card-title>Change the background</v-card-title>
+                    <v-card-subtitle>The image will be scaled to viewport.</v-card-subtitle>
+                    <v-file-input :rules="rules" accept="image/png, image/jpeg, image/bmp" prepend-icon="mdi-camera"
+                      label="~/" outlined dense v-model="background"
+                      @change="backgroundSelected($event)"></v-file-input>
+                  </v-list-item-content>
+                </v-list-item>
+                <v-list-item v-if="(background !== null && emblem === null)">
+                  <v-list-item-content>
+                    <v-card-title>Change the logo.</v-card-title>
+                    <v-card-subtitle>A transparent background works better.</v-card-subtitle>
+                    <v-file-input :rules="rules" accept="image/png, image/jpeg, image/bmp" prepend-icon="mdi-camera"
+                      label="~/" outlined dense v-model="emblem" @change="emblemSelected($event)"></v-file-input>
+                  </v-list-item-content>
+                </v-list-item>
+              </v-card>
+            </v-col>
+          </v-row><v-row v-if="(background !== null && emblem !== null)">
+            <v-col> <v-card>
+                <v-card-title> Change texts. </v-card-title>
+                <v-card-subtitle>Removing the text is also an option.</v-card-subtitle>
+                <v-list>
+                  <v-list-item grey>
+                    <v-list-item-content>
+                      <v-text-field v-model="title" label="Title" outlined dense></v-text-field>
+                    </v-list-item-content>
+                  </v-list-item>
+                  <v-list-item :disabled="true">
+                    <v-list-item-content>
+                      <v-text-field v-model="subtitle" label="Subtitle(watermark)." outlined dense :disabled="true">
+                      </v-text-field>
+                    </v-list-item-content>
+                  </v-list-item>
+                  <v-list-item>
+                    <v-list-item-content>
+                      <v-row>
+                        <v-col md="6" sm="12" lg="3">
+                          <v-card-title>Color 1st</v-card-title>
+                          <v-card-subtitle>The Color of the main element.</v-card-subtitle>
+                          <v-color-picker dot-size="60" show-swatches swatches-max-height="100"
+                            @update:color="colorSelected($event)"></v-color-picker>
+                        </v-col>
+                        <v-col md="6" sm="12" lg="3">
+                          <v-card-title>Scene lights </v-card-title>
+                          <v-card-subtitle>The color of the lights.</v-card-subtitle>
+                          <v-color-picker v-model="color" dot-size="25" show-swatches swatches-max-height="100"
+                            @change="setLightColor($event)" />
+                        </v-col>
 
-            <v-card> <v-card-title>Select a background.</v-card-title>
-              <v-card-subtitle>The image will be scaled to viewport.</v-card-subtitle>
-              <v-list-item>
-                <v-list-item-content>
-                  <v-file-input :rules="rules" accept="image/png, image/jpeg, image/bmp" prepend-icon="mdi-camera"
-                    label="~/" outlined dense v-model="background" @change="backgroundSelected($event)"></v-file-input>
-                </v-list-item-content>
-              </v-list-item>
-              <v-list-item>
-                <v-list-item-content>
-                  <v-card-title>Change the logo.</v-card-title>
-                  <v-card-subtitle>A transparent background works better.</v-card-subtitle>
-                  <v-file-input :rules="rules" accept="image/png, image/jpeg, image/bmp" prepend-icon="mdi-camera"
-                    label="~/" outlined dense v-model="emblem" @change="emblemSelected($event)"></v-file-input>
-                </v-list-item-content>
-              </v-list-item>
-            </v-card>
-          </v-row><v-row>
-            <v-card>
-              <v-card-title> Change texts. </v-card-title>
-              <v-card-subtitle>Removing the text is also an option.</v-card-subtitle>
-              <v-list>
-                <v-list-item grey>
-                  <v-list-item-content>
-                    <v-text-field v-model="title" label="Title" outlined dense></v-text-field>
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item :disabled="true">
-                  <v-list-item-content>
-                    <v-text-field v-model="subtitle" label="Subtitle(watermark)." outlined dense :disabled="true">
-                    </v-text-field>
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-content>
-                    <v-row>
-                      <v-col md="6" sm="12" lg="3">
-                        <v-card-title>Color 1st</v-card-title>
-                        <v-card-subtitle>The Color of the main element.</v-card-subtitle>
-                        <v-color-picker dot-size="60" show-swatches swatches-max-height="100"
-                          @update:color="colorSelected($event)"></v-color-picker>
-                      </v-col>
-                      <v-col md="6" sm="12" lg="3">
-                        <v-card-title>Scene lights </v-card-title>
-                        <v-card-subtitle>The color of the lights.</v-card-subtitle>
-                        <v-color-picker v-model="color" dot-size="25" show-swatches swatches-max-height="100"
-                          @change="setLightColor($event)" />
-                      </v-col>
+                      </v-row>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-list>
+              </v-card>
+            </v-col>
 
-                    </v-row>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-list>
-            </v-card>
           </v-row>
         </v-col>
         <v-col v-if="tab === 4" sm="12" lg="8" md="" offset-md="1">
@@ -220,7 +223,8 @@ jjj
         <v-icon :color="tab === 4 ? '#C5E1A5' : ''">mdi-download</v-icon>
       </v-btn>
     </v-bottom-navigation>
-  </div>
+
+  </v-container>
 </template>
 
 <script>

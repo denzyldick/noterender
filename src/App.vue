@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-main class="d-flex flex-rows mb-6 bg-surface-variant">
+    <v-main class=" mb-6 bg-surface-variant" style="overflow: auto;;">
       <RouterView></RouterView>
     </v-main>
   </v-app>
