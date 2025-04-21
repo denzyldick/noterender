@@ -7,11 +7,7 @@
             <v-list-item>
               <v-list-item-content>
                 <v-list-item-title>
-                  <img
-                    src="/img/logo.png"
-                    width="50px"
-                    alt="Noterender logo."
-                  />
+                  <img src="/img/logo.png" width="50px" alt="Noterender logo." />
                 </v-list-item-title>
               </v-list-item-content>
               <v-spacer></v-spacer>
@@ -45,30 +41,22 @@
               <!--      <span>Recording</span> -->
               <!--    </v-tooltip> -->
               <!--  </v-list-item-icon> -->
-              <v-list-item-icon
-                :class="{ 'mx-4': $vuetify.breakpoint.mdAndUp }"
-              >
+              <v-list-item-icon :class="{ 'mx-4': $vuetify.breakpoint.mdAndUp }">
                 <v-tooltip top>
                   <template v-slot:activator="{ on, attrs }">
                     <v-btn icon v-bind="attrs" v-on="on">
-                      <v-btn
-                        id="playButton"
-                        icon
-                        v-on:click.stop="playSound"
-                        v-if="playing"
-                      >
+                      <v-btn id="playButton" icon v-on:click.stop="playSound" v-if="playing">
                         <v-icon>mdi-play</v-icon>
                       </v-btn>
-                      <v-btn
-                        icon
-                        v-on:click.stop="stopSound"
-                        v-if="playing === false"
-                      >
-                        <v-icon>mdi-stop</v-icon>
+
+                      <v-btn icon v-on:click.stop="stopSound" v-if="playing === false">
+                        <v-icon color="red">mdi-stop</v-icon>
                       </v-btn>
                     </v-btn>
                   </template>
-                  <span>Play example</span>
+
+                  <span v-if="playing === false">Recording canvas. Play till the end.</span>
+                  <span v-if="playing">Play</span>
                 </v-tooltip>
               </v-list-item-icon>
             </v-list-item>
@@ -77,11 +65,7 @@
       </v-bottom-sheet>
     </div>
     <div class="parent">
-      <canvas
-        id="renderCanvas"
-        v-if="active"
-        v-on:click="$store.dispatch('toggleVisualizer', true)"
-      ></canvas>
+      <canvas id="renderCanvas" v-if="active"></canvas>
       <audio style="display: none" controls id="audio" :src="soundFile"></audio>
     </div>
   </div>

@@ -230,6 +230,7 @@
 <script>
 import Templates from "./Templates.vue";
 import Stripe from "./Stripe.vue";
+import { addGtag } from "vue-gtag";
 
 export default {
   name: "Setting",
@@ -238,7 +239,7 @@ export default {
     return {
       free: null,
       tab: 0,
-      title: null,
+      title: "noterender.denzyl.io",
       subtitle: null,
       color: "hex",
       emblem: null,
@@ -278,12 +279,12 @@ export default {
 
     save: function () {
       this.$router.push("/");
-      // console.log("Saving", this.title, this.subtitle);
-      // //  this.$store.dispatch("changeTitle", this.title);
-      // //  this.$store.dispatch("changeSubtitle", this.subtitle);
-      // this.$store.dispatch("toggleDialog", false);
-      // this.$store.dispatch("toggleSetting", false);
-      // this.$store.dispatch("toggleVisualizer", true);
+      console.log("Saving", this.title, this.subtitle);
+      this.$store.dispatch("changeTitle", this.title);
+      this.$store.dispatch("changeSubtitle", this.subtitle);
+      this.$store.dispatch("toggleDialog", false);
+      this.$store.dispatch("toggleSetting", false);
+      this.$store.dispatch("toggleVisualizer", true);
     },
     soundSelected: function (file) {
       console.log(file);
