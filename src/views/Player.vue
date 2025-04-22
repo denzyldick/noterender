@@ -65,7 +65,7 @@
       </v-bottom-sheet>
     </div>
     <div class="parent">
-      <canvas id="renderCanvas" v-if="active"></canvas>
+      <canvas id="renderCanvas" v-if="active" @click='store.dispatch("toggleVisualizer", true)'></canvas>
       <audio style="display: none" controls id="audio" :src="soundFile"></audio>
     </div>
   </div>
