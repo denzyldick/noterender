@@ -10,7 +10,7 @@ const template = {
     PLANE.render(fft);
     for (let i = 0; i < bar.length; i++) {
       const barElement = bar[i];
-      barElement.scaling.z = fft[i] * 1.9;
+      barElement.scaling.z = fft[i] * 5; // Increase scaling for better visibility
     }
 
     for (let i = 0; i < lights.length; i++) {
@@ -35,13 +35,16 @@ const template = {
         scene,
       ),
     );
-    PLANE.setCoordinates(0, 250, 0);
+
+    // Center the plane
+    PLANE.setCoordinates(0, 0, 0);
     PLANE.init(scene, config);
     c.lockedTarget = PLANE.getPlane();
 
-    height = 500;
+    height = 200; // Adjust height for proportionality
+    width = 200; // Adjust width for proportionality
 
-    const boxInstance = BABYLON.MeshBuilder.CreateBox("box", {}, scene);
+    const boxInstance = BABYLON.MeshBuilder.CreateBox("box", { size: 10 }, scene); // Increase size for visibility
     const materialBox = new BABYLON.StandardMaterial("texture1", scene);
     materialBox.ambientColor = BABYLON.Color3.FromInts(
       config.colors.r,
@@ -54,37 +57,36 @@ const template = {
     /// Right
     for (let i = 0; i < amountBars; i++) {
       // Add and manipulate meshes in the scene
-      const box = boxInstance.createInstance("box" + 1);
+      const box = boxInstance.createInstance("box" + i);
 
-      box.position = new BABYLON.Vector3(+width / 2 + 20, 50 * i, depth);
-      // box.skeleton = box.skeleton.clone("clonedSkeleton2");
-      box.scaling = new BABYLON.Vector3(10, 10, width);
+      box.position = new BABYLON.Vector3(+width / 2 + 20, 20 * i, depth + 50); // Position in front of the plane
+      box.scaling = new BABYLON.Vector3(10, 10, 10); // Adjust scaling
       bar.push(box);
     }
 
     //LEFT
     for (let i = 0; i < amountBars; i++) {
       // Add and manipulate meshes in the scene
-      const box = boxInstance.createInstance("box" + 1);
-      box.position = new BABYLON.Vector3(-width / 2 - 20, 50 * i, depth);
-      box.scaling = new BABYLON.Vector3(10, 10, width);
+      const box = boxInstance.createInstance("box" + i);
+      box.position = new BABYLON.Vector3(-width / 2 - 20, 20 * i, depth + 50); // Position in front of the plane
+      box.scaling = new BABYLON.Vector3(10, 10, 10); // Adjust scaling
       bar.push(box);
     }
 
     ///  TOP
     for (let i = 0; i < amountBars; i++) {
       // Add and manipulate meshes in the scene
-      const box = boxInstance.createInstance("box" + 1);
-      box.position = new BABYLON.Vector3(-width / 2 + 50 * i, height + 20, 0);
-      box.scaling = new BABYLON.Vector3(10, 10, width);
+      const box = boxInstance.createInstance("box" + i);
+      box.position = new BABYLON.Vector3(-width / 2 + 20 * i, height + 20, depth + 50); // Position in front of the plane
+      box.scaling = new BABYLON.Vector3(10, 10, 10); // Adjust scaling
       bar.push(box);
     }
 
     /// BOTTOM
     for (let i = 0; i < amountBars; i++) {
-      const box = boxInstance.createInstance("box" + 1);
-      box.position = new BABYLON.Vector3(-width / 2 + 50 * i, -20, 0);
-      box.scaling = new BABYLON.Vector3(10, 10, width);
+      const box = boxInstance.createInstance("box" + i);
+      box.position = new BABYLON.Vector3(-width / 2 + 20 * i, -20, depth + 50); // Position in front of the plane
+      box.scaling = new BABYLON.Vector3(10, 10, 10); // Adjust scaling
       bar.push(box);
     }
   },

@@ -6,7 +6,7 @@ Vue.use(Vuex);
 //Socket.start();
 export default new Vuex.Store({
   state: {
-    template: "cover",
+    template: "fractal",
     templates: [
       {
         name: "simple",
@@ -82,31 +82,31 @@ export default new Vuex.Store({
         configuration: {},
       },
       {
-        name: "expanded",
-        preview: "expanded.png",
-        description: "Bars will appear on every direction.",
-        price: 10.99,
+        name: "fractal",
+        preview: "/img/templates/fractal.gif",
+        description: "Mandelbrot-inspired fractal visualization that responds to audio.",
+        price: 5.99,
         configuration: {
-          elements: {
-            top: {},
-            left: {},
-            right: {},
-            bottom: {},
-          },
+          iterations: 100,
+          zoom: 1.0,
+          colorSpeed: 0.5
         },
-      }, {
-        name: "expanded",
-        preview: "expanded.png",
-        description: "Bars will appear on every direction.",
-        price: 10.99,
-        configuration: {
-          elements: {
-            top: {},
-            left: {},
-            right: {},
-            bottom: {},
-          },
-        },
+      },
+      {
+        name: "waveform",
+        preview: "/img/templates/waveform.gif",
+        description: "Bars moving up and down in a wave-like motion.",
+        price: "0",
+        priceId: null,
+        configuration: {},
+      },
+      {
+        name: "spiral",
+        preview: "/img/templates/spiral.gif",
+        description: "Objects rotating in a spiral pattern.",
+        price: "0",
+        priceId: null,
+        configuration: {},
       }
     ],
     sizes: [

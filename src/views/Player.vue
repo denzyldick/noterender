@@ -86,6 +86,10 @@ import triangle from "../js/templates/triangle";
 import immersive from "../js/templates/immersive";
 import cube from "../js/templates/cube";
 import TEXT from "@/js/templates/components/text";
+import fractal from "../js/templates/fractal";
+import circle from "../js/templates/circle";
+import waveform from "../js/templates/waveform";
+import spiral from "../js/templates/spiral";
 
 export default {
   name: "Player",
@@ -128,6 +132,14 @@ export default {
       fft: [],
       fftSize: 128,
       multiplierValue: 0,
+      templates: {
+        fractal,
+        circle,
+        waveform,
+        spiral,
+        // Add other templates here as you create them
+      },
+      selectedTemplate: "fractal", // Default template
     };
   },
   watch: {
@@ -191,189 +203,38 @@ export default {
       this.alpha = 0;
       this.scene.beforeRender = this.beforeRender(); // GUI;
     },
-    initTemplate(r, nb, scene, plane, width, height, depth) {
-      let t = this.$store.state.title;
-      console.log(t);
-      console.log(this.config);
-      TEXT.init(scene, this.config.title, this.config.subtitle);
-      if (this.template === "") {
+    initTemplate(scene, config) {
+      if (!this.camera) {
+        this.camera = new BABYLON.ArcRotateCamera(
+          "camera",
+          Math.PI / 2,
+          Math.PI / 4,
+          500,
+          new BABYLON.Vector3(0, 0, 0),
+          scene
+        );
+        this.camera.attachControl(scene.getEngine().getRenderingCanvas(), true);
+      }
+      if (this.templates[this.selectedTemplate]) {
+        this.templates[this.selectedTemplate].init(
+          this.camera,
+          this.renderer,
+          this.notebuffer,
+          scene,
+          this.width,
+          this.height,
+          this.depth,
+          config
+        );
+      }
+    },
+    renderTemplate(fft, config) {
+      if (!this.camera) {
+        console.error("No camera defined"); // Log error if camera is not initialized
         return;
       }
-      /// Refactor this piece of shit code.
-      if (this.template === "wave") {
-        //Create an Arc Rotate Camera - aimed negative z this time
-        this.camera = new BABYLON.ArcRotateCamera(
-          "Camera",
-          356.5818537106894,
-          1.4668188650771874,
-          1000,
-          BABYLON.Vector3.Zero(),
-          this.scene,
-        );
-        this.camera.attachControl(this.canvas, true);
-        wave.init(this.camera, r, nb, scene, width, height, depth, this.config);
-      }
-      if (this.template === "circles") {
-        //Create an Arc Rotate Camera - aimed negative z this time
-        this.camera = new BABYLON.ArcRotateCamera(
-          "Camera",
-          359,
-          1.0,
-          100,
-          BABYLON.Vector3.Zero(),
-          this.scene,
-        );
-        this.camera.attachControl(this.canvas, true);
-        circles.init(
-          this.camera,
-          r,
-          nb,
-          scene,
-          width,
-          height,
-          depth,
-          this.config,
-        );
-      }
-      if (this.template === "simple") {
-        //Create an Arc Rotate Camera - aimed negative z this time
-        this.camera = new BABYLON.ArcRotateCamera(
-          "Camera",
-          356.7128865236034,
-          1.5560509844479748,
-          2099.9806795259265,
-          BABYLON.Vector3.Zero(),
-          this.scene,
-        );
-        this.camera.attachControl(this.canvas, true);
-        simple.init(
-          this.camera,
-          r,
-          nb,
-          scene,
-          width,
-          height,
-          depth,
-          this.config,
-        );
-      }
-      if (this.template === "cover") {
-        this.camera = new BABYLON.ArcRotateCamera(
-          "Camera",
-          199.429185224242,
-          1.552068084791646,
-          1000,
-          BABYLON.Vector3.Zero(),
-          this.scene,
-        );
-        this.camera.attachControl(this.canvas, true);
-        cover.init(
-          this.camera,
-          r,
-          nb,
-          scene,
-          width,
-          height,
-          depth,
-          this.config,
-        );
-      }
-      if (this.template === "lines") {
-        this.camera = new BABYLON.ArcRotateCamera(
-          "Camera",
-          199.429185224242,
-          1.552068084791646,
-          1000,
-          BABYLON.Vector3.Zero(),
-          this.scene,
-        );
-        this.camera.attachControl(this.canvas, true);
-        lines.init(
-          this.camera,
-          r,
-          nb,
-          scene,
-          width,
-          height,
-          depth,
-          this.config,
-        );
-      }
-      if (this.template === "expanded") {
-        this.camera = new BABYLON.ArcRotateCamera(
-          "Camera",
-          356.49133056932953,
-          1.5894367329793362,
-          2219.98177450843,
-          BABYLON.Vector3.Zero(),
-          this.scene,
-        );
-        this.camera.attachControl(this.canvas, true);
-        expanded.init(
-          this.camera,
-          r,
-          nb,
-          scene,
-          width,
-          height,
-          depth,
-          this.config,
-        );
-      }
-      if (this.template === "triangle") {
-        this.camera = new BABYLON.ArcRotateCamera(
-          "Camera",
-          359,
-          1.0,
-          1000,
-          BABYLON.Vector3.Zero(),
-          this.scene,
-        );
-        this.camera.attachControl(this.canvas, true);
-        triangle.init(
-          this.camera,
-          r,
-          nb,
-          scene,
-          width,
-          height,
-          depth,
-          this.config,
-        );
-      }
-      if (this.template === "immersive") {
-        this.camera = new BABYLON.ArcRotateCamera(
-          "Camera",
-          199.429185224242,
-          1.552068084791646,
-          1000,
-          BABYLON.Vector3.Zero(),
-          this.scene,
-        );
-        this.camera.attachControl(this.canvas, true);
-        immersive.init(
-          this.camera,
-          r,
-          nb,
-          scene,
-          width,
-          height,
-          depth,
-          this.config,
-        );
-      }
-
-      if (this.template === "cube") {
-        this.camera = new BABYLON.ArcRotateCamera(
-          "Camera",
-          199.429185224242,
-          1.552068084791646,
-          400,
-          BABYLON.Vector3.Zero(),
-          this.scene,
-        );
-        this.camera.attachControl(this.canvas, true);
-        cube.init(this.camera, r, nb, scene, width, height, depth, this.config);
+      if (this.templates[this.selectedTemplate]) {
+        this.templates[this.selectedTemplate].render(fft, config);
       }
     },
     render: function () {
@@ -382,39 +243,7 @@ export default {
       }
       const fft = this.audio.getFtt();
       if (fft !== null) {
-        if (this.template === "wave") {
-          wave.render(fft, this.config);
-        }
-        if (this.template === "circles") {
-          circles.render(fft, this.config);
-        }
-
-        if (this.template === "simple") {
-          simple.render(fft, this.config);
-        }
-
-        if (this.template === "cover") {
-          cover.render(fft, this.config);
-        }
-        if (this.template === "lines") {
-          lines.render(fft, this.config);
-        }
-
-        if (this.template === "expanded") {
-          expanded.render(fft, this.config);
-        }
-
-        if (this.template === "triangle") {
-          triangle.render(fft, this.config);
-        }
-
-        if (this.template === "immersive") {
-          immersive.render(fft, this.config);
-        }
-
-        if (this.template === "cube") {
-          cube.render(fft, this.config);
-        }
+        this.renderTemplate(fft, this.config);
       }
     },
     beforeRender: function () {
@@ -442,12 +271,8 @@ export default {
       });
       this.createBackground();
       this.initTemplate(
-        10,
-        600,
         this.scene,
-        this.options.bars.x,
-        this.options.bars.y,
-        this.options.bars.z,
+        this.config
       );
     },
     createBackground: function () {
