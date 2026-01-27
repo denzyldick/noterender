@@ -15,22 +15,32 @@ const recording = {
       mediaRecorder.stop();
     }
   },
-  record: async function (videoStream, audioStream) {
+  record: async function (videoStream, audioStream, bitrate) {
     recordedBlobs = [];
     debugger;
-    let options = {};
+    let options = { mimeType: "video/mp4", extension: "mp4" };
+    if (bitrate) {
+      options.videoBitsPerSecond = bitrate;
+    }
+
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
       console.error(`${options.mimeType} is not supported`);
-      options = { mimeType: "video/webm;codecs=h264" };
+      options = { mimeType: "video/webm;codecs=h264", extension: "webm" };
+      if (bitrate) options.videoBitsPerSecond = bitrate;
+
       if (!MediaRecorder.isTypeSupported(options.mimeType)) {
         console.error(`${options.mimeType} is not supported`);
-        options = { mimeType: "video/webm" };
+        options = { mimeType: "video/webm", extension: "webm" };
+        if (bitrate) options.videoBitsPerSecond = bitrate;
+
         if (!MediaRecorder.isTypeSupported(options.mimeType)) {
           console.error(`${options.mimeType} is not supported`);
-          options = { mimeType: "" };
+          options = { mimeType: "", extension: "webm" };
+          if (bitrate) options.videoBitsPerSecond = bitrate;
         }
       }
     }
+    this.options = options; // Store for download
 
     try {
       const combined = new MediaStream([
@@ -38,7 +48,7 @@ const recording = {
         ...audioStream.getTracks(),
       ]);
       // let recorder = new MediaRecorder(combined);
-      mediaRecorder = new MediaRecorder(combined, {});
+      mediaRecorder = new MediaRecorder(combined, options);
     } catch (e) {
       console.error("Exception while creating MediaRecorder:", e);
       return;
@@ -60,8 +70,8 @@ const recording = {
     mediaRecorder.start();
     console.log("MediaRecorder started", mediaRecorder);
   },
-  start: async function (videoStream, audioStream) {
-    this.record(videoStream, audioStream);
+  start: async function (videoStream, audioStream, bitrate) {
+    this.record(videoStream, audioStream, bitrate);
   },
   download: function () {
     const blob = new Blob(recordedBlobs, {
@@ -71,7 +81,7 @@ const recording = {
     const a = document.createElement("a");
     a.style.display = "none";
     a.href = url;
-    a.download = "noterender.denzyl.io.webm";
+    a.download = `noterender.denzyl.io.${this.options.extension || "webm"}`;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {

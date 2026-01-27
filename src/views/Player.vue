@@ -90,6 +90,17 @@ import fractal from "../js/templates/fractal";
 import circle from "../js/templates/circle";
 import waveform from "../js/templates/waveform";
 import spiral from "../js/templates/spiral";
+import city from "../js/templates/city";
+import galaxy from "../js/templates/galaxy";
+import lissajous from "../js/templates/lissajous";
+import attractor from "../js/templates/attractor";
+import terrain from "../js/templates/terrain";
+import atomic from "../js/templates/atomic";
+import crystals from "../js/templates/crystals";
+import dna from "../js/templates/dna";
+import sphereflow from "../js/templates/sphereflow";
+import gridwave from "../js/templates/gridwave";
+import tunnel from "../js/templates/tunnel";
 
 export default {
   name: "Player",
@@ -137,9 +148,20 @@ export default {
         circle,
         waveform,
         spiral,
+        city,
+        galaxy,
+        lissajous,
+        attractor,
+        terrain,
+        atomic,
+        crystals,
+        dna,
+        sphereflow,
+        gridwave,
+        tunnel,
         // Add other templates here as you create them
       },
-      selectedTemplate: "fractal", // Default template
+      selectedTemplate: "city", // Default template
     };
   },
   watch: {
@@ -148,6 +170,9 @@ export default {
     },
     multiplierValue: function (val) {
       console.table(val);
+    },
+    template: function () {
+      this.reCreate();
     },
   },
   methods: {
@@ -185,10 +210,19 @@ export default {
         this.$store.dispatch("toggleSetting", false);
         this.$store.dispatch("toggleDialog", false);
         this.playing = false;
-        this.audio.nodes();
-        this.audio.play(() => {
-          Recording.start(this.canvas.captureStream(), this.audio.getStream());
-        });
+        
+        const bitrate = this.$store.state.highQuality ? 8000000 : 2500000;
+        
+        if (this.config.microphone) {
+          this.audio.useMicrophone().then(() => {
+             Recording.start(this.canvas.captureStream(), this.audio.getStream(), bitrate);
+          });
+        } else {
+          this.audio.nodes();
+          this.audio.play(() => {
+            Recording.start(this.canvas.captureStream(), this.audio.getStream(), bitrate);
+          });
+        }
       }, 1000);
     },
     createScene: function () {
@@ -200,8 +234,19 @@ export default {
       );
       this.scene.ambientColor = new BABYLON.Color3(1, 1, 1);
       this.scene.createDefaultLight();
+      
+      // Initialize Branding (Watermark/Title)
+      const title = this.$store.state.title || "noterender.denzyl.io";
+      const subtitle = this.$store.state.removeWatermark ? "" : (this.$store.state.subtitle || "Watermark");
+      // Note: TEXT.init creates a fullscreen UI
+      try {
+          TEXT.init(this.scene, title, subtitle);
+      } catch (e) {
+          console.error("Failed to init text", e);
+      }
+
       this.alpha = 0;
-      this.scene.beforeRender = this.beforeRender(); // GUI;
+      this.scene.registerBeforeRender(() => this.beforeRender());
     },
     initTemplate(scene, config) {
       if (!this.camera) {
@@ -215,8 +260,8 @@ export default {
         );
         this.camera.attachControl(scene.getEngine().getRenderingCanvas(), true);
       }
-      if (this.templates[this.selectedTemplate]) {
-        this.templates[this.selectedTemplate].init(
+      if (this.templates[this.template]) {
+        this.templates[this.template].init(
           this.camera,
           this.renderer,
           this.notebuffer,
@@ -233,8 +278,8 @@ export default {
         console.error("No camera defined"); // Log error if camera is not initialized
         return;
       }
-      if (this.templates[this.selectedTemplate]) {
-        this.templates[this.selectedTemplate].render(fft, config);
+      if (this.templates[this.template]) {
+        this.templates[this.template].render(fft, config);
       }
     },
     render: function () {

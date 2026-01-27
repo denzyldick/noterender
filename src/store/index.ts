@@ -6,7 +6,7 @@ Vue.use(Vuex);
 //Socket.start();
 export default new Vuex.Store({
   state: {
-    template: "fractal",
+    template: "city",
     templates: [
       {
         name: "simple",
@@ -107,7 +107,25 @@ export default new Vuex.Store({
         price: "0",
         priceId: null,
         configuration: {},
-      }
+      },
+      {
+        name: "city",
+        preview: "",
+        description: "3D City flight visualization.",
+        price: "0",
+        priceId: null,
+        configuration: {},
+      },
+      { name: "galaxy", preview: "", description: "Rotating 3D Galaxy.", price: "0", configuration: {} },
+      { name: "lissajous", preview: "", description: "Mathematical Lissajous curves.", price: "0", configuration: {} },
+      { name: "attractor", preview: "", description: "Lorenz Strange Attractor.", price: "0", configuration: {} },
+      { name: "terrain", preview: "", description: "Wireframe landscape.", price: "0", configuration: {} },
+      { name: "atomic", preview: "", description: "Atomic structure model.", price: "0", configuration: {} },
+      { name: "crystals", preview: "", description: "Floating crystal shards.", price: "0", configuration: {} },
+      { name: "dna", preview: "", description: "Double helix DNA.", price: "0", configuration: {} },
+      { name: "sphereflow", preview: "", description: "Flow field on sphere.", price: "0", configuration: {} },
+      { name: "gridwave", preview: "", description: "Vaporwave grid.", price: "0", configuration: {} },
+      { name: "tunnel", preview: "", description: "Infinite tunnel.", price: "0", configuration: {} }
     ],
     sizes: [
       {
@@ -168,6 +186,8 @@ export default new Vuex.Store({
     dialog: true,
     recording: false,
     soundFile: null,
+    highQuality: false,
+    removeWatermark: false,
   },
   mutations: {
     enableDialog: function (state) {
@@ -209,6 +229,12 @@ export default new Vuex.Store({
     setLightRGB: function (state, rgb) {
       state.light = rgb;
     },
+    setHighQuality: function (state, val) {
+      state.highQuality = val;
+    },
+    setRemoveWatermark: function (state, val) {
+      state.removeWatermark = val;
+    },
     templateSelected: function (state, template) {
       state.template = template;
     },
@@ -225,6 +251,9 @@ export default new Vuex.Store({
     },
     setSoundFile: function (state, file) {
       state.soundFile = file;
+    },
+    setMicrophone: function (state, val) {
+      state.microphone = val;
     },
   },
   actions: {
@@ -305,12 +334,21 @@ export default new Vuex.Store({
     setLight: function (context, payload) {
       context.commit("setLightRGB", payload);
     },
+    toggleHighQuality: function (context, val) {
+      context.commit("setHighQuality", val);
+    },
+    toggleRemoveWatermark: function (context, val) {
+      context.commit("setRemoveWatermark", val);
+    },
     toggleCamera: function (context, enable) {
       if (enable) {
         context.commit("disableCamera");
       } else {
         context.commit("enableCamera");
       }
+    },
+    toggleMicrophone: function (context, val) {
+      context.commit("setMicrophone", val);
     },
   },
   modules: {},

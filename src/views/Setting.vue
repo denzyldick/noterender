@@ -14,8 +14,8 @@
           Download</v-title>
       </v-col> </v-row><v-row>
       <v-col offset-md="2" offset-lg="2" lg="8" md="8" sm="12">
-        <v-row style="overflow: auto">
-          <v-col md="10" offset-md="1">
+        <v-row>
+          <v-col md="10" offset-md="1" style="max-height: 60vh; overflow-y: auto;">
             <Templates style="margin-top: 10px" v-if="tab === 0" />
           </v-col>
         </v-row>
@@ -26,6 +26,11 @@
               <v-card-subtitle>Upload your own sound or use your microphone to record a
                 real-time sound.</v-card-subtitle>
               <v-list-item>
+                <v-list-item-content>
+                  <v-checkbox v-model="microphone" label="Use Microphone / Sound Card Input"></v-checkbox>
+                </v-list-item-content>
+              </v-list-item>
+              <v-list-item v-if="!microphone">
                 <v-list-item-content>
                   <v-list-item>
                     <v-list-item-content>
@@ -140,15 +145,14 @@
                       </v-list-item-title>
                     </v-list-item>
                     <v-list-item>
-                      <v-icon color="#FF1744">mdi-close-thick</v-icon>
-                      <v-list-item-title class="text-h5">
-                        &nbsp;Remove watermark
-                      </v-list-item-title>
+                      <v-list-item-content>
+                          <v-checkbox v-model="removeWatermark" label="Remove Watermark"></v-checkbox>
+                      </v-list-item-content>
                     </v-list-item>
                     <v-list-item>
-                      <v-icon color="#FF1744">mdi-close-thick</v-icon>
-                      <v-list-item-title class="text-h5">&nbsp;Higher quality
-                      </v-list-item-title>
+                      <v-list-item-content>
+                          <v-checkbox v-model="highQuality" label="Higher quality recording (Video Bitrate)"></v-checkbox>
+                      </v-list-item-content>
                     </v-list-item>
                   </v-list-item-group>
                 </v-list>
@@ -271,6 +275,30 @@ export default {
         return this.$store.state.options.camera.move;
       },
     },
+    microphone: {
+      set: function (val) {
+        this.$store.dispatch("toggleMicrophone", val);
+      },
+      get: function () {
+        return this.$store.state.microphone;
+      },
+    },
+    highQuality: {
+        set: function (val) {
+            this.$store.dispatch("toggleHighQuality", val);
+        },
+        get: function () {
+            return this.$store.state.highQuality;
+        }
+    },
+    removeWatermark: {
+        set: function (val) {
+            this.$store.dispatch("toggleRemoveWatermark", val);
+        },
+        get: function () {
+            return this.$store.state.removeWatermark;
+        }
+    }
   },
   methods: {
     next: function () {

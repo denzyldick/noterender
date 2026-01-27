@@ -16,8 +16,7 @@ class Audio {
       const elementsByTagNameElement =
         document.getElementsByTagName("audio")[0];
       this.audioElement = elementsByTagNameElement;
-      console.log(typeof this.mediaSource);
-      console.log(this.mediaSource);
+
       if (typeof this.mediaSource === "undefined") {
         this.mediaSource = this.context.createMediaElementSource(
           elementsByTagNameElement,
@@ -32,6 +31,26 @@ class Audio {
       this.mediaSource.connect(this.analyzer);
       this.analyzer.connect(this.context.destination);
       this.initialized = true;
+    }
+  }
+
+  async useMicrophone() {
+    this.context = new AudioContext();
+    this.analyzer = this.context.createAnalyser();
+    this.analyzer.fftSize = this.fftSize;
+    const bufferLength = this.analyzer.frequencyBinCount;
+    this.fft = new Uint8Array(bufferLength);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.stream = stream;
+      this.mediaSource = this.context.createMediaStreamSource(stream);
+      this.mediaSource.connect(this.analyzer);
+      // Do not connect to destination to avoid feedback
+      this.initialized = true;
+      this.context.resume();
+    } catch (e) {
+      console.error("Microphone access denied", e);
     }
   }
 
@@ -56,6 +75,10 @@ class Audio {
    * @returns {Promise<unknown>}
    */
   async stop(resolver) {
+    if (this.stream) {
+      this.stream.getTracks().forEach((track) => track.stop());
+      this.stream = null;
+    }
     if (typeof this.audioElement !== "undefined") {
       this.audioElement.pause();
       this.audioElement.currentTime = 0;
@@ -80,6 +103,9 @@ class Audio {
    * @returns {MediaStream}
    */
   getStream() {
+    if (this.stream) {
+      return this.stream;
+    }
     return this.audioElement.captureStream();
   }
 
