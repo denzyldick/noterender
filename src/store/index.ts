@@ -33,6 +33,14 @@ export default new Vuex.Store({
         configuration: {},
       },
       {
+        name: "tunnel",
+        preview: "",
+        description: "A square tunnel of reactive piles with dynamic backgrounds.",
+        price: "0",
+        priceId: null,
+        configuration: {},
+      },
+      {
         name: "city",
         preview: "",
         description: "3D City flight visualization.",
@@ -116,11 +124,27 @@ export default new Vuex.Store({
     visualizer: true,
     dialog: true,
     recording: false,
+    activeEffects: [],
     soundFile: null,
     highQuality: false,
     removeWatermark: false,
+    sensitivity: {
+      fftSmoothing: 0.8,
+      bassBoost: 1.0,
+    },
   },
   mutations: {
+    setSensitivity: function (state, sensitivity) {
+      state.sensitivity = { ...state.sensitivity, ...sensitivity };
+    },
+    toggleEffect: function (state, effectName) {
+      const index = state.activeEffects.indexOf(effectName);
+      if (index > -1) {
+        state.activeEffects.splice(index, 1);
+      } else {
+        state.activeEffects.push(effectName);
+      }
+    },
     enableDialog: function (state) {
       state.dialog = true;
     },
@@ -293,6 +317,20 @@ export default new Vuex.Store({
     },
     toggleMicrophone: function (context, val) {
       context.commit("setMicrophone", val);
+    },
+    setSensitivity: function (context, sensitivity) {
+      context.commit("setSensitivity", sensitivity);
+    },
+    applySensitivityPreset: function (context, presetName) {
+      const presets = {
+        "Smooth": { fftSmoothing: 0.92, bassBoost: 1.0 },
+        "Standard": { fftSmoothing: 0.8, bassBoost: 1.0 },
+        "Dynamic": { fftSmoothing: 0.6, bassBoost: 1.2 },
+        "Jumpy": { fftSmoothing: 0.3, bassBoost: 1.5 },
+      };
+      if (presets[presetName]) {
+        context.commit("setSensitivity", presets[presetName]);
+      }
     },
   },
   modules: {},

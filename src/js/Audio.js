@@ -8,6 +8,14 @@ class Audio {
     this.fftSize = fftSize;
     this.initialized = false;
     this.analyzer = null;
+    this.smoothingTimeConstant = 0.8;
+  }
+
+  setSmoothing(val) {
+    this.smoothingTimeConstant = val;
+    if (this.analyzer) {
+      this.analyzer.smoothingTimeConstant = val;
+    }
   }
 
   nodes() {
@@ -25,6 +33,7 @@ class Audio {
       //Create analyzer node
       this.analyzer = this.context.createAnalyser();
       this.analyzer.fftSize = this.fftSize;
+      this.analyzer.smoothingTimeConstant = this.smoothingTimeConstant;
       const bufferLength = this.analyzer.frequencyBinCount;
       this.fft = new Uint8Array(bufferLength);
       //Set up audio node network
@@ -38,6 +47,7 @@ class Audio {
     this.context = new AudioContext();
     this.analyzer = this.context.createAnalyser();
     this.analyzer.fftSize = this.fftSize;
+    this.analyzer.smoothingTimeConstant = this.smoothingTimeConstant;
     const bufferLength = this.analyzer.frequencyBinCount;
     this.fft = new Uint8Array(bufferLength);
 

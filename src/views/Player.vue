@@ -39,6 +39,7 @@
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-palette-swatch</v-icon><span class="tab-text ml-2">Style</span></v-tab>
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-sine-wave</v-icon><span class="tab-text ml-2">Sound</span></v-tab>
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-video-3d</v-icon><span class="tab-text ml-2">Camera</span></v-tab>
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-auto-fix</v-icon><span class="tab-text ml-2">Effects</span></v-tab>
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-text-recognition</v-icon><span class="tab-text ml-2">Branding</span></v-tab>
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-movie-filter</v-icon><span class="tab-text ml-2">Export</span></v-tab>
           </div>
@@ -58,6 +59,53 @@
                 <div class="text-overline mb-4 primary--text">Audio Input</div>
                 <v-switch v-model="microphone" label="Live Microphone" color="primary" inset></v-switch>
                 <v-file-input v-if="!microphone" label="Choose Audio" outlined dense @change="soundSelected" prepend-inner-icon="mdi-music-circle" class="mt-4"></v-file-input>
+                
+                <div class="text-overline mt-6 mb-4 primary--text">Sensitivity Presets</div>
+                <div class="d-flex flex-wrap mb-6" style="gap: 8px">
+                  <v-chip
+                    v-for="p in ['Smooth', 'Standard', 'Dynamic', 'Jumpy']"
+                    :key="p"
+                    small
+                    label
+                    outlined
+                    @click="applySensitivityPreset(p)"
+                    class="preset-chip"
+                    :style="{ borderColor: 'rgba(255,255,255,0.2)' }"
+                  >
+                    {{ p }}
+                  </v-chip>
+                </div>
+
+                <div class="text-overline mb-2 primary--text">Manual Controls</div>
+                <div class="mb-4">
+                  <div class="text-caption d-flex justify-space-between grey--text">
+                    <span>FFT Smoothing</span>
+                    <span>{{ Math.round(sensitivity.fftSmoothing * 100) }}%</span>
+                  </div>
+                  <v-slider
+                    v-model="fftSmoothing"
+                    min="0"
+                    max="0.99"
+                    step="0.01"
+                    hide-details
+                    class="mt-1"
+                  ></v-slider>
+                </div>
+
+                <div class="mb-4">
+                  <div class="text-caption d-flex justify-space-between grey--text">
+                    <span>Bass Sensitivity</span>
+                    <span>{{ sensitivity.bassBoost.toFixed(1) }}x</span>
+                  </div>
+                  <v-slider
+                    v-model="bassBoost"
+                    min="0.5"
+                    max="3.0"
+                    step="0.1"
+                    hide-details
+                    class="mt-1"
+                  ></v-slider>
+                </div>
               </div>
             </v-tab-item>
 
@@ -67,6 +115,36 @@
                 <div class="text-overline mb-4 primary--text">Motion</div>
                 <v-switch v-model="cameraMove" :label="cameraMove ? 'Auto-Orbiting' : 'Stationary'" color="primary" inset></v-switch>
                 <div class="text-caption grey--text">Toggle automatic camera rotation around the scene.</div>
+              </div>
+            </v-tab-item>
+
+            <!-- Effects -->
+            <v-tab-item>
+              <div class="pa-6">
+                <div class="text-overline mb-4 primary--text">Visual Enhancements</div>
+                <v-list dark dense flat class="transparent">
+                  <v-list-item @click="toggleEffect('smoke')">
+                    <v-list-item-action><v-checkbox :input-value="activeEffects.includes('smoke')" color="primary" hide-details></v-checkbox></v-list-item-action>
+                    <v-list-item-content>
+                      <v-list-item-title>Smoke Atmosphere</v-list-item-title>
+                      <v-list-item-subtitle>Reactive particle fog system</v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                  <v-list-item @click="toggleEffect('thunder')">
+                    <v-list-item-action><v-checkbox :input-value="activeEffects.includes('thunder')" color="primary" hide-details></v-checkbox></v-list-item-action>
+                    <v-list-item-content>
+                      <v-list-item-title>Dynamic Thunder</v-list-item-title>
+                      <v-list-item-subtitle>Bass-triggered lightning flashes</v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                  <v-list-item @click="toggleEffect('birds')">
+                    <v-list-item-action><v-checkbox :input-value="activeEffects.includes('birds')" color="primary" hide-details></v-checkbox></v-list-item-action>
+                    <v-list-item-content>
+                      <v-list-item-title>Flying Creatures</v-list-item-title>
+                      <v-list-item-subtitle>Abstract birds following the beat</v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-list>
               </div>
             </v-tab-item>
 
@@ -174,6 +252,7 @@ import "babylonjs-loaders";
 import Recording from "./../js/Recording";
 import Templates from "./Templates.vue";
 import TEXT from "@/js/templates/components/text";
+import Effects from "@/js/Effects";
 
 // Visualizer Engines
 import city from "../js/templates/city";
@@ -182,6 +261,7 @@ import nebulacore from "../js/templates/nebulacore";
 import trap from "../js/templates/trap";
 import solaris from "../js/templates/solaris";
 import infinity from "../js/templates/infinity";
+import tunnel from "../js/templates/tunnel";
 
 export default {
   name: "Player",
@@ -203,7 +283,7 @@ export default {
       accentColorHex: "#00E5FF",
       lightColorHex: "#00E5FF",
       templates: {
-        city, terrain, nebulacore, trap, solaris, infinity
+        city, terrain, nebulacore, trap, solaris, infinity, tunnel
       }
     };
   },
@@ -220,7 +300,17 @@ export default {
     cameraMove: { get() { return this.$store.state.options.camera.move; }, set(val) { this.$store.dispatch("toggleCamera", val); } },
     microphone: { get() { return this.$store.state.microphone; }, set(val) { this.$store.dispatch("toggleMicrophone", val); } },
     highQuality: { get() { return this.$store.state.highQuality; }, set(val) { this.$store.dispatch("toggleHighQuality", val); } },
-    removeWatermark: { get() { return this.$store.state.removeWatermark; }, set(val) { this.$store.dispatch("toggleRemoveWatermark", val); } }
+    removeWatermark: { get() { return this.$store.state.removeWatermark; }, set(val) { this.$store.dispatch("toggleRemoveWatermark", val); } },
+    activeEffects() { return this.$store.state.activeEffects; },
+    sensitivity() { return this.$store.state.sensitivity; },
+    fftSmoothing: {
+      get() { return this.sensitivity.fftSmoothing; },
+      set(val) { this.$store.dispatch("setSensitivity", { fftSmoothing: val }); }
+    },
+    bassBoost: {
+      get() { return this.sensitivity.bassBoost; },
+      set(val) { this.$store.dispatch("setSensitivity", { bassBoost: val }); }
+    }
   },
   watch: {
     template() { this.reCreate(); },
@@ -228,6 +318,12 @@ export default {
     storeTitle(val) { TEXT.update(val, this.storeSubtitle); },
     storeSubtitle(val) { TEXT.update(this.storeTitle, val); },
     removeWatermark() { this.reCreate(); },
+    activeEffects(val) { Effects.update(val); },
+    "sensitivity.fftSmoothing"(val) {
+      if (this.audio) {
+        this.audio.setSmoothing(val);
+      }
+    },
     storeColors: {
       handler(val) { this.accentColorHex = this.rgbToHex(val.r, val.g, val.b); },
       deep: true,
@@ -248,6 +344,10 @@ export default {
     applyPreset(preset) {
       this.$store.dispatch("applyPreset", preset);
     },
+    
+    applySensitivityPreset(preset) {
+      this.$store.dispatch("applySensitivityPreset", preset);
+    },
 
     colorSelected(color) {
       const hex = color.hex || color;
@@ -258,6 +358,9 @@ export default {
       const hex = color.hex || color;
       const rgb = this.hexToRgb(hex);
       if (rgb) { this.$store.dispatch("setLight", rgb); }
+    },
+    toggleEffect(name) {
+      this.$store.commit("toggleEffect", name);
     },
     hexToRgb(hex) {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -313,11 +416,23 @@ export default {
       }, 500);
     },
 
-    mountScene() {
+    async mountScene() {
       if (!this.audio) this.audio = new audio(128);
       this.canvas = this.$refs.renderCanvas;
       if (!this.engine) {
-          this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true });
+          try {
+              const webgpuSupported = await BABYLON.WebGPUEngine.IsSupportedAsync;
+              if (webgpuSupported) {
+                  this.engine = new BABYLON.WebGPUEngine(this.canvas, { antialias: true });
+                  await this.engine.initAsync();
+                  console.log("WebGPU Engine Initialized");
+              } else {
+                  throw new Error("WebGPU not supported");
+              }
+          } catch (e) {
+              console.warn("Falling back to WebGL Engine:", e.message);
+              this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true });
+          }
           window.addEventListener("resize", () => this.engine.resize());
       }
       this.createScene();
@@ -334,6 +449,8 @@ export default {
       try {
           TEXT.init(this.scene, this.config.title || "noterender", this.removeWatermark ? "" : (this.config.subtitle || "visualizer"));
       } catch (e) { console.error(e); }
+
+      Effects.init(this.scene);
 
       this.scene.registerBeforeRender(() => { this.alpha += this.multiplierValue; });
     },
@@ -353,6 +470,8 @@ export default {
           t.init(scene, config); 
         }
       }
+
+      Effects.update(this.$store.state.activeEffects);
     },
 
     render() {
@@ -360,8 +479,11 @@ export default {
       
       this.scene.render();
       const fft = this.audio ? this.audio.getFtt() : null;
-      if (fft && this.templates[this.template]) {
-        this.templates[this.template].render(fft, this.config);
+      if (fft) {
+        if (this.templates[this.template]) {
+          this.templates[this.template].render(fft, this.config);
+        }
+        Effects.render(fft, this.config);
       }
     }
   },

@@ -161,14 +161,26 @@ export default {
     beforeRender: function () {
       this.alpha += this.multiplierValue;
     },
-    mountScene: function () {
+    mountScene: async function () {
       this.audio = new audio(128);
 
       this.canvas = document.getElementById("renderCanvas");
-      this.engine = new BABYLON.Engine(this.canvas, true, {
-        preserveDrawingBuffer: true,
-        stencil: true,
-      });
+      try {
+        const webgpuSupported = await BABYLON.WebGPUEngine.IsSupportedAsync;
+        if (webgpuSupported) {
+            this.engine = new BABYLON.WebGPUEngine(this.canvas, { antialias: true });
+            await this.engine.initAsync();
+            console.log("WebGPU Engine Initialized");
+        } else {
+            throw new Error("WebGPU not supported");
+        }
+      } catch (e) {
+        console.warn("Falling back to WebGL Engine:", e.message);
+        this.engine = new BABYLON.Engine(this.canvas, true, {
+          preserveDrawingBuffer: true,
+          stencil: true,
+        });
+      }
 
       this.createScene();
       // run the render loop

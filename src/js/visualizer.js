@@ -15,14 +15,27 @@ class Visualizer {
     this.mount();
   }
 
-  mount() {
+  async mount() {
     // Get the canvas DOM element
     this.canvas = document.getElementById("renderCanvas");
+    
     // Load the 3D engine
-    this.engine = new BABYLON.Engine(this.canvas, true, {
-      preserveDrawingBuffer: true,
-      stencil: true,
-    });
+    try {
+        const webgpuSupported = await BABYLON.WebGPUEngine.IsSupportedAsync;
+        if (webgpuSupported) {
+            this.engine = new BABYLON.WebGPUEngine(this.canvas, { antialias: true });
+            await this.engine.initAsync();
+            console.log("WebGPU Engine Initialized");
+        } else {
+            throw new Error("WebGPU not supported");
+        }
+    } catch (e) {
+        console.warn("Falling back to WebGL Engine:", e.message);
+        this.engine = new BABYLON.Engine(this.canvas, true, {
+          preserveDrawingBuffer: true,
+          stencil: true,
+        });
+    }
 
     this.createScene();
 
