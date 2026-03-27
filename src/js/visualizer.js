@@ -1,11 +1,5 @@
 import * as BABYLON from "babylonjs";
 import Recording from "@/js/Recording";
-import wave from "@/js/templates/wave";
-import Simple from "@/js/templates/simple";
-import circles from "@/js/templates/circles";
-import simple from "@/js/templates/simple";
-import cover from "@/js/templates/cover";
-import { capitalize } from "element-ui/src/utils/util";
 
 class Visualizer {
   /**
@@ -24,9 +18,6 @@ class Visualizer {
   mount() {
     // Get the canvas DOM element
     this.canvas = document.getElementById("renderCanvas");
-    // let scale = 1;
-    // this.canvas.style.width = 1080 * scale;
-    // this.canvas.style.height = 1092 * scale;
     // Load the 3D engine
     this.engine = new BABYLON.Engine(this.canvas, true, {
       preserveDrawingBuffer: true,
@@ -41,10 +32,6 @@ class Visualizer {
     });
     this.createBackground();
 
-    this.template;
-    if (this.templateName === "simple") {
-      this.template = new Simple();
-    }
     this.template.setConfiguration(this.templateConfig);
     this.template.init(this.scene);
 
@@ -68,7 +55,6 @@ class Visualizer {
 
     // Animations
     this.alpha = 0;
-    this.alpha;
     this.scene.beforeRender = this.beforeRender();
   }
 

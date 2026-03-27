@@ -66,16 +66,8 @@
         <v-col v-if="tab === 3" sm="12" lg="12" md="10" offset-md="1">
           <v-row three-line subheader v-if="tab === 3">
             <v-col>
-              <v-card> <v-list-item v-if="(background === null)">
-                  <v-list-item-content>
-                    <v-card-title>Change the background</v-card-title>
-                    <v-card-subtitle>The image will be scaled to viewport.</v-card-subtitle>
-                    <v-file-input :rules="rules" accept="image/png, image/jpeg, image/bmp" prepend-icon="mdi-camera"
-                      label="~/" outlined dense v-model="background"
-                      @change="backgroundSelected($event)"></v-file-input>
-                  </v-list-item-content>
-                </v-list-item>
-                <v-list-item v-if="(background !== null && emblem === null)">
+              <v-card>
+                <v-list-item v-if="(emblem === null)">
                   <v-list-item-content>
                     <v-card-title>Change the logo.</v-card-title>
                     <v-card-subtitle>A transparent background works better.</v-card-subtitle>
@@ -85,7 +77,7 @@
                 </v-list-item>
               </v-card>
             </v-col>
-          </v-row><v-row v-if="(background !== null && emblem !== null)">
+          </v-row><v-row v-if="(emblem !== null)">
             <v-col> <v-card>
                 <v-card-title> Change texts. </v-card-title>
                 <v-card-subtitle>Removing the text is also an option.</v-card-subtitle>
@@ -247,7 +239,6 @@ export default {
       subtitle: null,
       color: "hex",
       emblem: null,
-      background: null,
       sound: null,
       notifications: false,
       record: true,
@@ -317,9 +308,6 @@ export default {
     soundSelected: function (file) {
       console.log(file);
       this.$store.dispatch("setSound", file);
-    },
-    backgroundSelected: function (file) {
-      this.$store.dispatch("setBackground", file);
     },
     emblemSelected: function (file) {
       this.$store.dispatch("setEmblem", file);

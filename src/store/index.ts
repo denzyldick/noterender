@@ -9,101 +9,25 @@ export default new Vuex.Store({
     template: "city",
     templates: [
       {
-        name: "simple",
-        preview: "/img/templates/simple.gif",
-        description: "Row of bars that expand.",
+        name: "trap",
+        preview: "",
+        description: "Bass-heavy circular spectrum with camera shake.",
         price: "0",
         priceId: null,
         configuration: {},
       },
       {
-        name: "lines",
-        preview: "/img/templates/lines.gif",
-        description: "Lines",
+        name: "solaris",
+        preview: "",
+        description: "A pulsing star with volumetric rays and asteroid belt.",
         price: "0",
         priceId: null,
         configuration: {},
       },
       {
-        name: "wave",
-        preview: "/img/templates/wave.gif",
-        description: "Row of bars that circles your logo.",
-        price: 1.99,
-        priceId: "prod_KT8EgUlY0EcvMH",
-        configuration: {},
-      },
-      {
-        name: "circles",
-        preview: "/img/templates/circles.gif",
-        description: "This one is in beta.",
-        price: 3.99,
-        configuration: {},
-      },
-      {
-        name: "cover",
-        preview: "/img/templates/cover.gif",
-        description: "Moving album cover.",
-        price: 0.99,
-        configuration: {},
-      },
-      {
-        name: "expanded",
-        preview: "expanded.png",
-        description: "Bars will appear on every direction.",
-        price: 10.99,
-        configuration: {
-          elements: {
-            top: {},
-            left: {},
-            right: {},
-            bottom: {},
-          },
-        },
-      },
-      {
-        name: "triangle",
-        preview: "triangles.png",
-        description: "Something with triangles.",
-        price: 5.99,
-        configuration: {},
-      },
-      {
-        name: "immersive",
-        preview: "/img/templates/immersive.gif",
-        description: "",
-        price: 0.3,
-        configuration: {},
-      },
-      {
-        name: "cube",
-        preview: "cube.png",
-        description: "",
-        price: 10.0,
-        configuration: {},
-      },
-      {
-        name: "fractal",
-        preview: "/img/templates/fractal.gif",
-        description: "Mandelbrot-inspired fractal visualization that responds to audio.",
-        price: 5.99,
-        configuration: {
-          iterations: 100,
-          zoom: 1.0,
-          colorSpeed: 0.5
-        },
-      },
-      {
-        name: "waveform",
-        preview: "/img/templates/waveform.gif",
-        description: "Bars moving up and down in a wave-like motion.",
-        price: "0",
-        priceId: null,
-        configuration: {},
-      },
-      {
-        name: "spiral",
-        preview: "/img/templates/spiral.gif",
-        description: "Objects rotating in a spiral pattern.",
+        name: "infinity",
+        preview: "",
+        description: "An infinite reactive tunnel of light and geometry.",
         price: "0",
         priceId: null,
         configuration: {},
@@ -116,16 +40,23 @@ export default new Vuex.Store({
         priceId: null,
         configuration: {},
       },
-      { name: "galaxy", preview: "", description: "Rotating 3D Galaxy.", price: "0", configuration: {} },
-      { name: "lissajous", preview: "", description: "Mathematical Lissajous curves.", price: "0", configuration: {} },
-      { name: "attractor", preview: "", description: "Lorenz Strange Attractor.", price: "0", configuration: {} },
+      {
+        name: "nebulacore",
+        preview: "",
+        description: "Immersive cosmic vortex with reactive rings.",
+        price: "0",
+        priceId: null,
+        configuration: {},
+      },
       { name: "terrain", preview: "", description: "Wireframe landscape.", price: "0", configuration: {} },
-      { name: "atomic", preview: "", description: "Atomic structure model.", price: "0", configuration: {} },
-      { name: "crystals", preview: "", description: "Floating crystal shards.", price: "0", configuration: {} },
-      { name: "dna", preview: "", description: "Double helix DNA.", price: "0", configuration: {} },
-      { name: "sphereflow", preview: "", description: "Flow field on sphere.", price: "0", configuration: {} },
-      { name: "gridwave", preview: "", description: "Vaporwave grid.", price: "0", configuration: {} },
-      { name: "tunnel", preview: "", description: "Infinite tunnel.", price: "0", configuration: {} }
+    ],
+    presets: [
+      { name: "Dynamic", dynamic: true, colors: { r: 0, g: 229, b: 255 }, light: { r: 255, g: 255, b: 255 } },
+      { name: "Cyberpunk", colors: { r: 255, g: 0, b: 255 }, light: { r: 0, g: 255, b: 255 } },
+      { name: "Gold", colors: { r: 255, g: 215, b: 0 }, light: { r: 255, g: 255, b: 255 } },
+      { name: "Deep Sea", colors: { r: 0, g: 100, b: 255 }, light: { r: 0, g: 255, b: 150 } },
+      { name: "Lava", colors: { r: 255, g: 50, b: 0 }, light: { r: 255, g: 150, b: 0 } },
+      { name: "Forest", colors: { r: 50, g: 255, b: 50 }, light: { r: 150, g: 255, b: 0 } },
     ],
     sizes: [
       {
@@ -150,22 +81,22 @@ export default new Vuex.Store({
         },
       },
     ],
-    file: "/noterender.com.opus",
-    title: "",
-    subtitle: "",
+    file: "/default_audio.mp3",
+    title: "Noterender.io",
+    subtitle: "Visualizing the Beat",
     microphone: false,
     emblem: "/img/logo.png",
-    background: "/main_bg.jpg",
     colors: {
-      b: 255,
-      g: 56,
       r: 0,
+      g: 229,
+      b: 255,
     },
     light: {
-      b: 255,
-      g: 56,
       r: 0,
+      g: 229,
+      b: 255,
     },
+    dynamicColors: false,
     options: {
       emblem: {
         x: 500,
@@ -217,9 +148,6 @@ export default new Vuex.Store({
     setSound: function (state, url) {
       state.file = url;
     },
-    setBackground: function (state, url) {
-      state.background = url;
-    },
     setEmblem: function (state, url) {
       state.emblem = url;
     },
@@ -228,6 +156,9 @@ export default new Vuex.Store({
     },
     setLightRGB: function (state, rgb) {
       state.light = rgb;
+    },
+    setDynamicColors: function (state, val) {
+      state.dynamicColors = val;
     },
     setHighQuality: function (state, val) {
       state.highQuality = val;
@@ -245,9 +176,14 @@ export default new Vuex.Store({
       state.options.camera.move = true;
     },
     changeTitle: function (state, title) {
-      console.log("Title: ", title);
       state.title = title;
-      console.log("State: ", state);
+    },
+    changeSubtitle: function (state, subtitle) {
+      state.subtitle = subtitle;
+    },
+    changeText: function (state, text) {
+      state.title = text.title;
+      state.subtitle = text.subtitle;
     },
     setSoundFile: function (state, file) {
       state.soundFile = file;
@@ -264,16 +200,15 @@ export default new Vuex.Store({
       context.commit("changeSubtitle", subtitle);
     },
     changeText: function (context, text) {
-      context.commit("changeText", text.title, text.subtitle);
+      context.commit("changeText", text);
     },
     setSound: function (context, file) {
       const url = URL.createObjectURL(file);
       context.commit("setSound", url);
       context.commit("setSoundFile", file);
     },
-    setBackground: function (context, file) {
-      const url = URL.createObjectURL(file);
-      context.commit("setBackground", url);
+    setSoundUrl: function (context, url) {
+      context.commit("setSound", url);
     },
     setEmblem: function (context, file) {
       const url = URL.createObjectURL(file);
@@ -327,12 +262,21 @@ export default new Vuex.Store({
       }
     },
     setColor: function (context, payload) {
-      console.log(payload, "color selected");
-
+      context.commit("setDynamicColors", false);
       context.commit("setBarRGB", payload);
     },
     setLight: function (context, payload) {
+      context.commit("setDynamicColors", false);
       context.commit("setLightRGB", payload);
+    },
+    applyPreset: function (context, preset) {
+      if (preset.dynamic) {
+        context.commit("setDynamicColors", true);
+      } else {
+        context.commit("setDynamicColors", false);
+        context.commit("setBarRGB", preset.colors);
+        context.commit("setLightRGB", preset.light);
+      }
     },
     toggleHighQuality: function (context, val) {
       context.commit("setHighQuality", val);
@@ -342,9 +286,9 @@ export default new Vuex.Store({
     },
     toggleCamera: function (context, enable) {
       if (enable) {
-        context.commit("disableCamera");
-      } else {
         context.commit("enableCamera");
+      } else {
+        context.commit("disableCamera");
       }
     },
     toggleMicrophone: function (context, val) {

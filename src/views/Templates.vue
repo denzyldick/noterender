@@ -1,49 +1,54 @@
 <template>
-  <v-row>
-    <v-col md="4" lg="4" sm="4" v-for="template in templates" :key="template.name">
-      <v-card class="" :color="active || template.name === selected ? 'primary' : ''">
-        <v-img max-height="100" :src="`${template.preview}`" :lazy-src="`${template.preview}`" aspect-ratio="1"
-          class="grey lighten-2 white--black align-end"
-          gradient="to bottom left, rgba(100,115,201,.33), rgba(25,32,72,.7)">
-          <template v-slot:placeholder>
-            <v-row class="fill-height ma-0" align="center" justify="center">
-              <v-progress-circular indeterminate color="grey lighten-5"></v-progress-circular>
-            </v-row>
-          </template>
-          <v-card-title class="font-weight-black white--text text-uppercase">
+  <v-list dense nav class="transparent-list">
+    <v-list-item-group :value="selected" color="primary">
+      <v-list-item
+        v-for="template in templates"
+        :key="template.name"
+        :value="template.name"
+        @click="$store.commit('templateSelected', template.name)"
+        :class="{ 'active-item': selected === template.name }"
+      >
+        <v-list-item-content>
+          <v-list-item-title class="text-h6 font-weight-bold text-uppercase">
             {{ template.name }}
-          </v-card-title>
-
-          <v-card-subtitle class="text-uppercase white--text">
+          </v-list-item-title>
+          <v-list-item-subtitle class="text-caption">
             {{ template.description }}
-          </v-card-subtitle>
-        </v-img>
-
-        <v-btn width="100%" text @click="$store.commit('templateSelected', template.name)">
-          <v-icon v-if="selected === template.name" dark> mdi-check </v-icon>
-          <v-icon v-else light> mdi-square-outline</v-icon>
-        </v-btn>
-      </v-card>
-    </v-col>
-  </v-row>
+          </v-list-item-subtitle>
+        </v-list-item-content>
+        <v-list-item-action>
+          <v-icon v-if="selected === template.name" color="primary">
+            mdi-check-circle
+          </v-icon>
+          <v-icon v-else small color="grey darken-1">
+            mdi-circle-outline
+          </v-icon>
+        </v-list-item-action>
+      </v-list-item>
+    </v-list-item-group>
+  </v-list>
 </template>
 
 <script>
 export default {
   name: "Templates",
-  data: () => ({
-    model: true,
-    active: false,
-  }),
   computed: {
-    templates: function () {
+    templates() {
       return this.$store.state.templates;
     },
-    selected: function () {
+    selected() {
       return this.$store.state.template;
     },
   },
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.transparent-list {
+  background: transparent !important;
+}
+.active-item {
+  border-left: 4px solid var(--v-primary-base);
+  background: rgba(0, 229, 255, 0.05) !important;
+}
+</style>

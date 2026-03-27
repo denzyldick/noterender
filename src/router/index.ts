@@ -1,23 +1,23 @@
 import Vue from "vue";
-import VueRouter, { RouteConfig } from "vue-router";
-import { component } from "vue/types/umd";
+import VueRouter from "vue-router";
 
 Vue.use(VueRouter);
 
 const routes = [
   {
     path: "/",
-    name: "player",
-    component: () => import("../views//Player.vue"),
+    name: "studio",
+    component: () => import("../views/Player.vue"),
   },
   {
-    path: "/setting",
-    name: "setting",
-    component: () => import("../views/Setting.vue"),
-  },
+    path: "*",
+    redirect: "/",
+  }
 ];
 
 const router = new VueRouter({
+  mode: "history",
+  base: process.env.BASE_URL,
   routes,
 });
 

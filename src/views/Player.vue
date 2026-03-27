@@ -1,219 +1,306 @@
 <template>
-  <div>
-    <div class="text-center">
-      <v-bottom-sheet inset v-model="player">
-        <v-card tile>
-          <v-list>
-            <v-list-item>
-              <v-list-item-content>
-                <v-list-item-title>
-                  <img src="/img/logo.png" width="50px" alt="Noterender logo." />
-                </v-list-item-title>
-              </v-list-item-content>
-              <v-spacer></v-spacer>
-              <v-list-item-icon>
-                <v-tooltip location="top" v-model="activeTooltip">
-                  <template v-slot:activator="{ props }">
-                    <v-btn icon v-bind="props">
-                      <v-btn icon v-on:click.stop="toggleSetting">
-                        <v-icon>mdi-cog</v-icon>
-                      </v-btn>
-                    </v-btn>
-                  </template>
-                </v-tooltip>
-              </v-list-item-icon>
-              <!-- <v-list-item-icon :class=" { 'mx-2' : $vuetify.breakpoint.mdAndUp }"> -->
-              <!--    <v-tooltip -->
-              <!--        top -->
-              <!--    > -->
-              <!--      <template v-slot:activator="{ on, attrs }"> -->
-              <!--        <v-btn -->
-              <!--            icon -->
-              <!--            v-bind="attrs" -->
-              <!--            v-on="on" -->
-              <!--            v-show="playing ===false" -->
-              <!--        > -->
-              <!--          <v-btn icon v-on:click.stop="paywall = true;stopSound" class="red--text"> -->
-              <!--            <v-icon>mdi-download</v-icon> -->
-              <!--          </v-btn> -->
-              <!--        </v-btn> -->
-              <!--      </template> -->
-              <!--      <span>Recording</span> -->
-              <!--    </v-tooltip> -->
-              <!--  </v-list-item-icon> -->
-              <v-list-item-icon :class="{ 'mx-4': $vuetify.breakpoint.mdAndUp }">
-                <v-tooltip top>
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-btn icon v-bind="attrs" v-on="on">
-                      <v-btn id="playButton" icon v-on:click.stop="playSound" v-if="playing">
-                        <v-icon>mdi-play</v-icon>
-                      </v-btn>
+  <v-app dark class="studio-app">
+    <!-- Background Visualizer -->
+    <div class="visualizer-container">
+      <canvas id="renderCanvas" ref="renderCanvas"></canvas>
+    </div>
 
-                      <v-btn icon v-on:click.stop="stopSound" v-if="playing === false">
-                        <v-icon color="red">mdi-stop</v-icon>
-                      </v-btn>
-                    </v-btn>
-                  </template>
+    <!-- Sidebar Navigation -->
+    <v-navigation-drawer
+      v-model="drawer"
+      app
+      width="380"
+      color="rgba(10, 10, 10, 0.95)"
+      class="studio-sidebar no-scrollbar"
+      floating
+      style="backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.05)"
+    >
+      <div class="d-flex flex-column fill-height">
+        <!-- Brand Section -->
+        <div class="pa-8 text-center flex-shrink-0">
+          <div class="logo-wrapper mb-3 pa-4 rounded-xl d-inline-block">
+            <img src="/img/logo.png" width="80" alt="Noterender logo" />
+          </div>
+          <div class="text-caption grey--text text--lighten-2 font-weight-black letter-spacing-2">STUDIO ENGINE</div>
+        </div>
 
-                  <span v-if="playing === false">Recording canvas. Play till the end.</span>
-                  <span v-if="playing">Play</span>
-                </v-tooltip>
-              </v-list-item-icon>
-            </v-list-item>
-          </v-list>
+        <v-divider class="mx-8 opacity-10"></v-divider>
+
+        <!-- Sidebar Tabs -->
+        <v-tabs
+          v-model="activeTab"
+          vertical
+          color="primary"
+          background-color="transparent"
+          class="studio-tabs flex-grow-1"
+          hide-slider
+        >
+          <div class="tabs-scroll-area no-scrollbar">
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-palette-swatch</v-icon><span class="tab-text ml-2">Style</span></v-tab>
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-sine-wave</v-icon><span class="tab-text ml-2">Sound</span></v-tab>
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-video-3d</v-icon><span class="tab-text ml-2">Camera</span></v-tab>
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-text-recognition</v-icon><span class="tab-text ml-2">Branding</span></v-tab>
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-movie-filter</v-icon><span class="tab-text ml-2">Export</span></v-tab>
+          </div>
+
+          <v-tabs-items v-model="activeTab" class="transparent-bg studio-tab-content no-scrollbar">
+            <!-- Style -->
+            <v-tab-item>
+              <div class="pa-6">
+                <div class="text-overline mb-4 primary--text">Templates</div>
+                <Templates />
+              </div>
+            </v-tab-item>
+
+            <!-- Sound -->
+            <v-tab-item>
+              <div class="pa-6">
+                <div class="text-overline mb-4 primary--text">Audio Input</div>
+                <v-switch v-model="microphone" label="Live Microphone" color="primary" inset></v-switch>
+                <v-file-input v-if="!microphone" label="Choose Audio" outlined dense @change="soundSelected" prepend-inner-icon="mdi-music-circle" class="mt-4"></v-file-input>
+              </div>
+            </v-tab-item>
+
+            <!-- Camera -->
+            <v-tab-item>
+              <div class="pa-6">
+                <div class="text-overline mb-4 primary--text">Motion</div>
+                <v-switch v-model="cameraMove" :label="cameraMove ? 'Auto-Orbiting' : 'Stationary'" color="primary" inset></v-switch>
+                <div class="text-caption grey--text">Toggle automatic camera rotation around the scene.</div>
+              </div>
+            </v-tab-item>
+
+            <!-- Branding -->
+            <v-tab-item>
+              <div class="pa-6">
+                <div class="text-overline mb-4 primary--text">Text Content</div>
+                <v-text-field v-model="title" label="Title Text" outlined dense @input="updateTitle" class="mb-2"></v-text-field>
+                <v-text-field v-model="subtitle" label="Subtitle" outlined dense @input="updateSubtitle" class="mb-6"></v-text-field>
+                
+                <div class="text-overline mb-2 primary--text">Color Presets</div>
+                <div class="d-flex flex-wrap mb-6" style="gap: 8px">
+                  <v-chip
+                    v-for="p in colorPresets"
+                    :key="p.name"
+                    small
+                    label
+                    outlined
+                    @click="applyPreset(p)"
+                    class="preset-chip"
+                    :style="{ borderColor: 'rgba(255,255,255,0.2)' }"
+                  >
+                    <div class="preset-preview mr-2" :style="{ background: p.dynamic ? 'linear-gradient(45deg, #ff0000, #00ff00, #0000ff)' : `linear-gradient(45deg, rgb(${p.colors.r},${p.colors.g},${p.colors.b}), rgb(${p.light.r},${p.light.g},${p.light.b}))` }"></div>
+                    {{ p.name }}
+                  </v-chip>
+                </div>
+
+                <div class="text-overline mb-2 primary--text">Custom Colors</div>
+                <div class="d-flex mb-6 mt-2">
+                  <div class="mr-4 flex-grow-1">
+                    <div class="text-caption mb-2 grey--text">Primary</div>
+                    <v-menu offset-y :close-on-content-click="false">
+                      <template v-slot:activator="{ on }"><v-btn block small v-on="on" :color="accentColorHex" class="rounded-pill border-thin elevation-0">Pick</v-btn></template>
+                      <v-color-picker :value="accentColorHex" @update:color="colorSelected" flat mode="hex"></v-color-picker>
+                    </v-menu>
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="text-caption mb-2 grey--text">Accent</div>
+                    <v-menu offset-y :close-on-content-click="false">
+                      <template v-slot:activator="{ on }"><v-btn block small v-on="on" :color="lightColorHex" class="rounded-pill border-thin elevation-0">Pick</v-btn></template>
+                      <v-color-picker :value="lightColorHex" @update:color="setLightColor" flat mode="hex"></v-color-picker>
+                    </v-menu>
+                  </div>
+                </div>
+
+                <v-file-input label="Center Logo" dense outlined @change="emblemSelected" prepend-inner-icon="mdi-sticker-emoji"></v-file-input>
+              </div>
+            </v-tab-item>
+
+            <!-- Export -->
+            <v-tab-item>
+              <div class="pa-6">
+                <v-checkbox v-model="removeWatermark" label="Remove Watermark" dense color="primary"></v-checkbox>
+                <v-checkbox v-model="highQuality" label="8Mbps High Bitrate" dense color="primary" class="mb-8"></v-checkbox>
+                <v-btn block color="primary" x-large @click="togglePlay" class="rounded-lg font-weight-bold elevation-4">
+                  <v-icon left>{{ playing ? 'mdi-record' : 'mdi-stop' }}</v-icon>
+                  {{ playing ? 'Start Recording' : 'Stop & Save' }}
+                </v-btn>
+              </div>
+            </v-tab-item>
+          </v-tabs-items>
+        </v-tabs>
+      </div>
+    </v-navigation-drawer>
+
+    <!-- Sidebar Toggle Button (Floating) -->
+    <v-btn
+      fab
+      fixed
+      top
+      left
+      color="rgba(30, 30, 30, 0.8)"
+      small
+      class="mt-4 ml-4 sidebar-toggle"
+      @click="drawer = !drawer"
+      style="z-index: 100; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1)"
+    >
+      <v-icon color="white">{{ drawer ? 'mdi-chevron-left' : 'mdi-tune-vertical' }}</v-icon>
+    </v-btn>
+
+    <!-- Floating Transport HUD -->
+    <v-main class="pa-0 fill-height">
+      <div class="transport-container">
+        <v-card class="transport-bar d-flex align-center px-6 rounded-pill elevation-24" color="rgba(20, 20, 20, 0.85)">
+          <v-btn icon color="white" x-large @click="togglePlay" :class="{ 'recording-active': !playing }">
+            <v-icon size="44">{{ playing ? 'mdi-play-circle-outline' : 'mdi-stop-circle' }}</v-icon>
+          </v-btn>
+          <v-divider vertical class="mx-6 grey darken-3 my-4"></v-divider>
+          <div class="d-none d-sm-block mr-2" style="min-width: 120px">
+            <div class="text-overline primary--text font-weight-black mb-n1" style="letter-spacing: 3px !important">ACTIVE</div>
+            <div class="text-h6 white--text text-uppercase font-weight-light truncate-text">{{ template }}</div>
+          </div>
         </v-card>
-      </v-bottom-sheet>
-    </div>
-    <div class="parent">
-      <canvas id="renderCanvas" v-if="active" @click='store.dispatch("toggleVisualizer", true)'></canvas>
-      <audio style="display: none" controls id="audio" :src="soundFile"></audio>
-    </div>
-  </div>
+      </div>
+    </v-main>
+
+    <audio style="display: none" id="audio" :src="soundFile"></audio>
+  </v-app>
 </template>
+
 <script>
 import * as BABYLON from "babylonjs";
 import audio from "../js/Audio";
 import "babylonjs-loaders";
-import Setting from "./Setting.vue";
 import Recording from "./../js/Recording";
-import wave from "../js/templates/wave";
-import circles from "../js/templates/circles";
-import simple from "../js/templates/simple";
-import cover from "../js/templates/cover";
-import lines from "../js/templates/lines";
-import expanded from "../js/templates/expanded";
-import triangle from "../js/templates/triangle";
-import immersive from "../js/templates/immersive";
-import cube from "../js/templates/cube";
+import Templates from "./Templates.vue";
 import TEXT from "@/js/templates/components/text";
-import fractal from "../js/templates/fractal";
-import circle from "../js/templates/circle";
-import waveform from "../js/templates/waveform";
-import spiral from "../js/templates/spiral";
+
+// Visualizer Engines
 import city from "../js/templates/city";
-import galaxy from "../js/templates/galaxy";
-import lissajous from "../js/templates/lissajous";
-import attractor from "../js/templates/attractor";
 import terrain from "../js/templates/terrain";
-import atomic from "../js/templates/atomic";
-import crystals from "../js/templates/crystals";
-import dna from "../js/templates/dna";
-import sphereflow from "../js/templates/sphereflow";
-import gridwave from "../js/templates/gridwave";
-import tunnel from "../js/templates/tunnel";
+import nebulacore from "../js/templates/nebulacore";
+import trap from "../js/templates/trap";
+import solaris from "../js/templates/solaris";
+import infinity from "../js/templates/infinity";
 
 export default {
   name: "Player",
-  props: {},
-  computed: {
-    template: function () {
-      return this.$store.state.template;
-    },
-    options: function () {
-      return this.$store.state.options;
-    },
-    player: {
-      set: function (value) {
-        this.$store.dispatch("toggleVisualizer", value);
-      },
-      get: function () {
-        return this.$store.state.visualizer;
-      },
-    },
-    soundFile: function () {
-      return this.$store.state.file;
-    },
-    backgroundFile: function () {
-      return this.$store.state.background;
-    },
-    config: function () {
-      return this.$store.state;
-    },
-  },
-  data: function () {
+  components: { Templates },
+  data() {
     return {
-      activeTooltip: true,
-      active: true,
-      audio: null,
-      paywall: false,
-      t: 0.1, /// This is how the camera moves.
+      drawer: null,
+      activeTab: 0,
       playing: true,
-      camera: null, //
+      audio: null,
+      engine: null,
+      scene: null,
+      camera: null,
       alpha: 0,
-      fft: [],
-      fftSize: 128,
       multiplierValue: 0,
+      canvas: null,
+      title: "",
+      subtitle: "",
+      accentColorHex: "#00E5FF",
+      lightColorHex: "#00E5FF",
       templates: {
-        fractal,
-        circle,
-        waveform,
-        spiral,
-        city,
-        galaxy,
-        lissajous,
-        attractor,
-        terrain,
-        atomic,
-        crystals,
-        dna,
-        sphereflow,
-        gridwave,
-        tunnel,
-        // Add other templates here as you create them
-      },
-      selectedTemplate: "city", // Default template
+        city, terrain, nebulacore, trap, solaris, infinity
+      }
     };
   },
+  computed: {
+    template() { return this.$store.state.template; },
+    soundFile() { return this.$store.state.file; },
+    config() { return this.$store.state; },
+    emblem() { return this.$store.state.emblem; },
+    storeTitle() { return this.$store.state.title; },
+    storeSubtitle() { return this.$store.state.subtitle; },
+    colorPresets() { return this.$store.state.presets; },
+    storeColors() { return this.$store.state.colors; },
+    storeLight() { return this.$store.state.light; },
+    cameraMove: { get() { return this.$store.state.options.camera.move; }, set(val) { this.$store.dispatch("toggleCamera", val); } },
+    microphone: { get() { return this.$store.state.microphone; }, set(val) { this.$store.dispatch("toggleMicrophone", val); } },
+    highQuality: { get() { return this.$store.state.highQuality; }, set(val) { this.$store.dispatch("toggleHighQuality", val); } },
+    removeWatermark: { get() { return this.$store.state.removeWatermark; }, set(val) { this.$store.dispatch("toggleRemoveWatermark", val); } }
+  },
   watch: {
-    play: function (val) {
-      console.log(val, "Playing");
+    template() { this.reCreate(); },
+    emblem() { this.reCreate(); },
+    storeTitle(val) { TEXT.update(val, this.storeSubtitle); },
+    storeSubtitle(val) { TEXT.update(this.storeTitle, val); },
+    removeWatermark() { this.reCreate(); },
+    storeColors: {
+      handler(val) { this.accentColorHex = this.rgbToHex(val.r, val.g, val.b); },
+      deep: true,
+      immediate: true
     },
-    multiplierValue: function (val) {
-      console.table(val);
-    },
-    template: function () {
-      this.reCreate();
-    },
+    storeLight: {
+      handler(val) { this.lightColorHex = this.rgbToHex(val.r, val.g, val.b); },
+      deep: true,
+      immediate: true
+    }
   },
   methods: {
-    toggleSetting: function () {
-      this.visualizer = false;
-      this.$store.dispatch("toggleSetting", true);
-      this.$router.push({ path: "/setting" });
+    updateTitle(val) { this.$store.dispatch("changeTitle", val); },
+    updateSubtitle(val) { this.$store.dispatch("changeSubtitle", val); },
+    soundSelected(file) { if (file) this.$store.dispatch("setSound", file); },
+    emblemSelected(file) { if (file) this.$store.dispatch("setEmblem", file); },
+    
+    applyPreset(preset) {
+      this.$store.dispatch("applyPreset", preset);
     },
-    reCreate: function () {
-      this.stopSound();
-      console.log("recreating");
-      this.scene.dispose();
-      this.scene = null;
+
+    colorSelected(color) {
+      const hex = color.hex || color;
+      const rgb = this.hexToRgb(hex);
+      if (rgb) { this.$store.dispatch("setColor", rgb); }
+    },
+    setLightColor(color) {
+      const hex = color.hex || color;
+      const rgb = this.hexToRgb(hex);
+      if (rgb) { this.$store.dispatch("setLight", rgb); }
+    },
+    hexToRgb(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+    },
+    rgbToHex(r, g, b) {
+      return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    },
+
+    togglePlay() {
+      if (this.playing) this.startVisualizer();
+      else this.stopVisualizer();
+    },
+
+    reCreate() {
+      if (this.engine) {
+        this.engine.stopRenderLoop();
+      }
+      if (this.scene) { 
+        this.scene.dispose(); 
+        this.scene = null; 
+      }
+      this.camera = null; 
       this.mountScene();
     },
-    close: function () {
-      this.engine.dispose();
-      this.$store.dispatch("toggleSetting", false);
-      this.$store.dispatch("toggleVisualizer", true);
+
+    stopVisualizer() {
+      if (this.audio) {
+        this.audio.stop(() => {
+          if (this.scene) this.scene.dispose();
+          if (this.engine) this.engine.stopRenderLoop();
+          Recording.stop();
+          this.playing = true;
+        });
+      }
     },
-    stopSound: function () {
-      this.$store.dispatch("toggleDialog", true);
-      this.audio.stop(() => {
-        this.scene.dispose();
-        this.engine.stopRenderLoop();
-        Recording.stop();
-      });
-      this.playing = true;
-    },
-    playSound: function (play) {
+
+    startVisualizer() {
       this.$store.dispatch("toggleRecording", true);
-      // this.active = true;
-      // todo use a promise instead of a timeout.
       setTimeout(() => {
-        this.$store.dispatch("toggleSetting", false);
-        this.$store.dispatch("toggleDialog", false);
         this.playing = false;
-        
-        const bitrate = this.$store.state.highQuality ? 8000000 : 2500000;
-        
-        if (this.config.microphone) {
+        const bitrate = this.highQuality ? 8000000 : 2500000;
+        if (this.microphone) {
           this.audio.useMicrophone().then(() => {
              Recording.start(this.canvas.captureStream(), this.audio.getStream(), bitrate);
           });
@@ -223,118 +310,238 @@ export default {
             Recording.start(this.canvas.captureStream(), this.audio.getStream(), bitrate);
           });
         }
-      }, 1000);
+      }, 500);
     },
-    createScene: function () {
+
+    mountScene() {
+      if (!this.audio) this.audio = new audio(128);
+      this.canvas = this.$refs.renderCanvas;
+      if (!this.engine) {
+          this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true });
+          window.addEventListener("resize", () => this.engine.resize());
+      }
+      this.createScene();
+      this.initTemplate(this.scene, this.config);
+      this.engine.runRenderLoop(() => this.render());
+    },
+
+    createScene() {
       this.scene = new BABYLON.Scene(this.engine);
-      const light = new BABYLON.PointLight(
-        "Omni",
-        new BABYLON.Vector3(0, 0, 100),
-        this.scene,
-      );
-      this.scene.ambientColor = new BABYLON.Color3(1, 1, 1);
+      this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
+      new BABYLON.PointLight("Omni", new BABYLON.Vector3(0, 0, 100), this.scene);
       this.scene.createDefaultLight();
       
-      // Initialize Branding (Watermark/Title)
-      const title = this.$store.state.title || "noterender.denzyl.io";
-      const subtitle = this.$store.state.removeWatermark ? "" : (this.$store.state.subtitle || "Watermark");
-      // Note: TEXT.init creates a fullscreen UI
       try {
-          TEXT.init(this.scene, title, subtitle);
-      } catch (e) {
-          console.error("Failed to init text", e);
-      }
+          TEXT.init(this.scene, this.config.title || "noterender", this.removeWatermark ? "" : (this.config.subtitle || "visualizer"));
+      } catch (e) { console.error(e); }
 
-      this.alpha = 0;
-      this.scene.registerBeforeRender(() => this.beforeRender());
+      this.scene.registerBeforeRender(() => { this.alpha += this.multiplierValue; });
     },
+
     initTemplate(scene, config) {
       if (!this.camera) {
-        this.camera = new BABYLON.ArcRotateCamera(
-          "camera",
-          Math.PI / 2,
-          Math.PI / 4,
-          500,
-          new BABYLON.Vector3(0, 0, 0),
-          scene
-        );
-        this.camera.attachControl(scene.getEngine().getRenderingCanvas(), true);
+        this.camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, 500, BABYLON.Vector3.Zero(), scene);
+        this.camera.attachControl(this.canvas, true);
       }
-      if (this.templates[this.template]) {
-        this.templates[this.template].init(
-          this.camera,
-          this.renderer,
-          this.notebuffer,
-          scene,
-          this.width,
-          this.height,
-          this.depth,
-          config
-        );
+      
+      const t = this.templates[this.template];
+      if (t) {
+        try {
+          t.init(this.camera, this.engine, 10, scene, 1080, 1080, 1080, config);
+        } catch (e) { 
+          console.warn("Template init retry", e);
+          t.init(scene, config); 
+        }
       }
     },
-    renderTemplate(fft, config) {
-      if (!this.camera) {
-        console.error("No camera defined"); // Log error if camera is not initialized
-        return;
-      }
-      if (this.templates[this.template]) {
-        this.templates[this.template].render(fft, config);
-      }
-    },
-    render: function () {
-      if (this.scene !== null) {
-        this.scene.render();
-      }
-      const fft = this.audio.getFtt();
-      if (fft !== null) {
-        this.renderTemplate(fft, this.config);
-      }
-    },
-    beforeRender: function () {
-      this.alpha += this.multiplierValue;
-    },
-    mountScene: function () {
-      this.audio = new audio(128);
 
-      this.canvas = document.getElementById("renderCanvas");
-      // let scale = 2;
-      // this.canvas.style.width = 1080 * scale;
-      // this.canvas.style.height = 1092 * scale;
-      // Load the 3D engine
-      this.engine = new BABYLON.Engine(this.canvas, true, {
-        preserveDrawingBuffer: true,
-        stencil: true,
-      });
-
-      this.createScene();
-      // run the render loop
-      this.engine.runRenderLoop(this.render);
-      // the canvas/window esize event handler
-      window.addEventListener("resize", () => {
-        this.engine.resize();
-      });
-      this.createBackground();
-      this.initTemplate(
-        this.scene,
-        this.config
-      );
-    },
-    createBackground: function () {
-      const layer = new BABYLON.Layer(
-        "ad",
-        this.config.background,
-        this.scene,
-        true,
-      );
-    },
-  },
-  components: {
-    // eslint-disable-next-line vue/no-unused-components
-    Setting,
+    render() {
+      if (!this.scene || !this.camera) return;
+      
+      this.scene.render();
+      const fft = this.audio ? this.audio.getFtt() : null;
+      if (fft && this.templates[this.template]) {
+        this.templates[this.template].render(fft, this.config);
+      }
+    }
   },
   mounted() {
     this.mountScene();
-  },
+    this.title = this.$store.state.title;
+    this.subtitle = this.$store.state.subtitle;
+  }
 };
 </script>
+
+<style scoped>
+.logo-wrapper {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.studio-app {
+  background-color: #000 !important;
+  overflow: hidden !important;
+}
+
+/* Hide scrollbars globally for studio elements */
+.no-scrollbar,
+.no-scrollbar >>> .v-navigation-drawer__content,
+.no-scrollbar >>> .v-window__container,
+.no-scrollbar >>> .v-tabs-items {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.no-scrollbar >>> .v-navigation-drawer__content::-webkit-scrollbar,
+.no-scrollbar >>> .v-window__container::-webkit-scrollbar,
+.no-scrollbar >>> .v-tabs-items::-webkit-scrollbar {
+  display: none !important;
+}
+
+.visualizer-container {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+#renderCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  outline: none;
+}
+
+.studio-sidebar {
+  z-index: 100;
+  height: 100vh !important;
+}
+
+.studio-tabs {
+  display: flex;
+  flex-direction: row;
+}
+
+.tabs-scroll-area {
+  width: 95px;
+  overflow-y: auto;
+  border-right: 1px solid rgba(255,255,255,0.05);
+}
+
+.studio-tab-content {
+  width: calc(100% - 95px);
+  overflow-y: auto;
+}
+
+.transparent-bg {
+  background-color: transparent !important;
+}
+
+.letter-spacing-2 { letter-spacing: 2px; }
+.opacity-10 { opacity: 0.1; }
+.border-thin { border: 1px solid rgba(255,255,255,0.1) !important; }
+
+.transport-container {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  pointer-events: none;
+}
+
+.transport-bar {
+  pointer-events: auto;
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+.studio-tabs >>> .v-tabs-bar {
+  height: auto !important;
+  background-color: transparent !important;
+}
+
+.studio-tabs >>> .v-tab {
+  min-width: unset !important;
+  padding: 0 4px !important;
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  height: 90px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.tab-text {
+  margin-top: 8px;
+  margin-left: 0 !important;
+}
+
+.studio-tabs >>> .v-tab--active {
+  background: rgba(0, 229, 255, 0.08);
+}
+
+.custom-scrollbar::-webkit-scrollbar { width: 3px; height: 3px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+.recording-active {
+  animation: rec-pulse 1.5s infinite;
+  color: #ff5252 !important;
+}
+
+@keyframes rec-pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.truncate-text {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preset-chip {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.preset-chip:hover {
+  background: rgba(255,255,255,0.05) !important;
+}
+.preset-preview {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+@media (max-width: 600px) {
+  .transport-container {
+    bottom: 24px;
+    width: 90%;
+  }
+  .transport-bar {
+    width: 100%;
+    justify-content: center;
+  }
+  .tabs-scroll-area {
+    width: 70px;
+  }
+  .studio-tab-content {
+    width: calc(100% - 70px);
+  }
+  .tab-text {
+    display: none;
+  }
+  .studio-tabs >>> .v-tab {
+    padding: 0 !important;
+  }
+}
+</style>

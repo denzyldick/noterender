@@ -1,105 +1,132 @@
 import * as BABYLON from "babylonjs";
 
-let width = 300;
-let height = 300;
-let depth = 200;
+let baseWidth = 200;
+let baseHeight = 200;
+let activeWidth = 200;
+let activeHeight = 200;
 let x = 0;
 let y = 0;
 let z = 0;
 let plane;
 let particleSystem;
+let sceneRef;
 
 export default {
   setCoordinates(initialX, initialY, initialZ) {
     x = initialX;
     y = initialY;
     z = initialZ;
-    this.initialZ = z;
   },
-  setScale(startWidth, startHeight, startDepth) {
-    width = startWidth;
-    height = startHeight;
-    depth = startDepth;
+  
+  setScale(width, height) {
+    baseWidth = width;
+    baseHeight = height;
   },
+
   render(fft) {
-    let fftSum = fft.reduce((a, b) => a + b);
-    plane.scaling.x = fftSum * 0.08 + width;
-    plane.scaling.y = fftSum * 0.08 + height;
-    particleSystem.maxAngularSpeed = fft[23] * 0.3;
-    particleSystem.emitRate = 1000 + fft[32] * 100;
+    if (!plane) return;
 
-    particleSystem.color1 = BABYLON.Color3.FromInts(0.01 * fft[32], 0, 0);
+    // Calculate audio intensity
+    let bassSum = 0;
+    for (let i = 0; i < 10; i++) bassSum += fft[i];
+    const avgBass = bassSum / 10 / 255;
+
+    let midSum = 0;
+    for (let i = 10; i < 40; i++) midSum += fft[i];
+    const avgMid = midSum / 30 / 255;
+
+    // More reactive scaling
+    // Max growth 40%
+    let scaleFactor = 1 + (avgBass * 0.4) + (avgMid * 0.1);
+    scaleFactor = Math.min(scaleFactor, 1.4); 
+    
+    // Use the active scale captured at init
+    plane.scaling.x = activeWidth * scaleFactor;
+    plane.scaling.y = activeHeight * scaleFactor;
+
+    // Subtle rotation
+    plane.rotation.z = Math.sin(Date.now() * 0.001) * 0.05 + (avgMid * 0.1);
+
+    if (particleSystem) {
+        particleSystem.maxAngularSpeed = avgBass * 5;
+        particleSystem.emitRate = 500 + (avgBass * 2000);
+        const intensity = 0.5 + avgBass * 0.5;
+        particleSystem.color1 = new BABYLON.Color4(intensity, intensity * 0.5, 1, 1);
+    }
   },
+
   init(scene, config) {
-    //Creation of a repeated textured material
-    const materialPlane = new BABYLON.StandardMaterial("texturePlane", scene);
-    materialPlane.diffuseTexture = new BABYLON.Texture(config.emblem, scene);
-    materialPlane.specularTexture = new BABYLON.Texture(config.emblem, scene);
-    materialPlane.emissiveTexture = new BABYLON.Texture(config.emblem, scene);
-    materialPlane.ambientTexture = new BABYLON.Texture(config.emblem, scene);
-    materialPlane.diffuseTexture.hasAlpha = true;
-    materialPlane.transparencyMode =
-      BABYLON.Material.MATERIAL_ALPHATESTANDBLEND;
+    sceneRef = scene;
+    
+    // Capture the scale requested for this template instance
+    activeWidth = baseWidth;
+    activeHeight = baseHeight;
+
+    // Dispose previous if exists
+    if (plane) plane.dispose();
+    if (particleSystem) particleSystem.dispose();
+
+    const materialPlane = new BABYLON.StandardMaterial("logoMaterial", scene);
+    
+    const texture = new BABYLON.Texture(config.emblem || "/img/logo.png", scene);
+    texture.hasAlpha = true;
+    
+    materialPlane.diffuseTexture = texture;
+    materialPlane.emissiveTexture = texture;
     materialPlane.useAlphaFromDiffuseTexture = true;
-    materialPlane.backFaceCulling = true; //Allways show the front and the back of an element
-    //Creation of a plane
-    materialPlane.diffuseColor = BABYLON.Color3.FromInts(0, 200, 0);
-    plane = BABYLON.MeshBuilder.CreatePlane("plane", {}, scene);
+    materialPlane.transparencyMode = BABYLON.Material.MATERIAL_ALPHATESTANDBLEND;
+    materialPlane.backFaceCulling = false;
+    materialPlane.specularColor = new BABYLON.Color3(0, 0, 0);
+
+    // Create Plane
+    plane = BABYLON.MeshBuilder.CreatePlane("logoPlane", { size: 1 }, scene);
     plane.material = materialPlane;
+    
+    // Initial State
     plane.position = new BABYLON.Vector3(x, y, z);
-    plane.scaling = new BABYLON.Vector3(width, height, depth);
-    //// Particle system
+    plane.scaling = new BABYLON.Vector3(activeWidth, activeHeight, 1);
+    
+    plane.rotation.y = 0;
 
-    // Create a particle system
-    particleSystem = new BABYLON.ParticleSystem("particles", 500, scene);
+    // Particles
+    this.initParticles(scene, plane);
 
-    //Texture of each particle
-    particleSystem.particleTexture = new BABYLON.Texture(
-      "/img/templates/Smoke30Frames.png",
-      scene,
-    );
+    // Reset internal state for NEXT template
+    baseWidth = 200;
+    baseHeight = 200;
+    x = 0;
+    y = 0;
+    z = 0;
+  },
 
-    // Where the particles come from
-    particleSystem.emitter = plane; // the starting object, the emitter
-    particleSystem.minEmitBox = new BABYLON.Vector3(-1, -1, 0); // Starting all from
-    // particleSystem.maxEmitBox = new BABYLON.Vector3(1, 1, 0); // To...
+  initParticles(scene, emitter) {
+    particleSystem = new BABYLON.ParticleSystem("logoParticles", 1000, scene);
+    particleSystem.particleTexture = new BABYLON.Texture("/img/templates/Smoke30Frames.png", scene);
+    particleSystem.emitter = emitter;
+    
+    particleSystem.minEmitBox = new BABYLON.Vector3(-0.5, -0.5, 0);
+    particleSystem.maxEmitBox = new BABYLON.Vector3(0.5, 0.5, 0);
 
-    // Colors of all particles
-    particleSystem.color1 = BABYLON.Color3.FromInts(255, 0, 10);
-    // particleSystem.color2 = BABYLON.Color3.FromInts(0, 244, 10);
-    // particleSystem.colorDead = BABYLON.Color3.FromInts(0, 244, 33);
+    particleSystem.color1 = new BABYLON.Color4(0.1, 0.5, 1.0, 1.0);
+    particleSystem.color2 = new BABYLON.Color4(0.1, 0.2, 0.5, 1.0);
+    particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0);
 
-    // Size of each particle (random between...
-    particleSystem.minSize = 1;
-    particleSystem.maxSize = 20;
-
-    // Life time of each particle (random between...
-    particleSystem.minLifeTime = 0.1;
-    particleSystem.maxLifeTime = 5;
-
-    // Emission rate
+    particleSystem.minSize = 5;
+    particleSystem.maxSize = 40;
+    particleSystem.minLifeTime = 0.5;
+    particleSystem.maxLifeTime = 1.5;
     particleSystem.emitRate = 1000;
-
-    // Set the gravity of all particles
-    particleSystem.gravity = new BABYLON.Vector3(0, 0, -10);
-
-    // Direction of each particle after it has been emitted
-    particleSystem.direction1 = new BABYLON.Vector3(0, 0, -1);
-    particleSystem.direction2 = new BABYLON.Vector3(0, 0, -1);
-
-    // Angular speed, in radians
-    particleSystem.minAngularSpeed = 0;
-    particleSystem.maxAngularSpeed = 10;
-
-    // Speed
+    particleSystem.gravity = new BABYLON.Vector3(0, 0, 0);
+    particleSystem.direction1 = new BABYLON.Vector3(0, 0, 1);
+    particleSystem.direction2 = new BABYLON.Vector3(0, 0, 1);
     particleSystem.minEmitPower = 1;
-    particleSystem.maxEmitPower = 10;
-    particleSystem.updateSpeed = 0.005;
+    particleSystem.maxEmitPower = 5;
+    particleSystem.updateSpeed = 0.01;
 
-    // Start the particle system
     particleSystem.start();
   },
+
   getPlane() {
     return plane;
-  },
+  }
 };
