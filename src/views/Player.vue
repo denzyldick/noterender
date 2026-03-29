@@ -197,11 +197,24 @@
             <!-- Export -->
             <v-tab-item>
               <div class="pa-6">
-                <v-checkbox v-model="removeWatermark" label="Remove Watermark" dense color="primary"></v-checkbox>
-                <v-checkbox v-model="highQuality" label="8Mbps High Bitrate" dense color="primary" class="mb-8"></v-checkbox>
-                <v-btn block color="primary" x-large @click="togglePlay" class="rounded-lg font-weight-bold elevation-4">
-                  <v-icon left>{{ playing ? 'mdi-record' : 'mdi-stop' }}</v-icon>
-                  {{ playing ? 'Start Recording' : 'Stop & Save' }}
+                <!-- Browser Recording Warning -->
+                <v-alert
+                  dense
+                  type="info"
+                  color="warning"
+                  class="mb-6 mb-4 text-caption"
+                  style="border-left: 4px solid #ff9800; background-color: rgba(255, 152, 0, 0.1) !important;"
+                >
+                  <strong class="d-block mb-1">Warning: Browser Export</strong>
+                  Video quality depends on your machine's performance. <strong>Do not resize the window</strong> while recording, as it will change the video resolution mid-render.
+                </v-alert>
+
+                <v-checkbox v-model="removeWatermarkCheckbox" label="Remove Watermark (Pro Only)" dense color="primary"></v-checkbox>
+                <v-checkbox v-model="highQuality" label="8Mbps High Bitrate" dense color="primary" class="mb-4"></v-checkbox>
+                
+                <v-btn block color="primary" x-large @click="handleExport" class="rounded-lg font-weight-bold elevation-4">
+                  <v-icon left>{{ isExporting ? 'mdi-stop' : 'mdi-export' }}</v-icon>
+                  {{ isExporting ? 'Stop & Save' : 'Export Video' }}
                 </v-btn>
               </div>
             </v-tab-item>
@@ -228,9 +241,13 @@
     <!-- Floating Transport HUD -->
     <v-main class="pa-0 fill-height">
       <div class="transport-container">
-        <v-card class="transport-bar d-flex align-center px-6 rounded-pill elevation-24" color="rgba(20, 20, 20, 0.85)">
-          <v-btn icon color="white" x-large @click="togglePlay" :class="{ 'recording-active': !playing }">
-            <v-icon size="44">{{ playing ? 'mdi-play-circle-outline' : 'mdi-stop-circle' }}</v-icon>
+        <v-card class="transport-bar d-flex align-center px-4 rounded-pill elevation-24" color="rgba(20, 20, 20, 0.85)" style="height: 64px">
+          <v-btn icon color="white" large @click="togglePlayLocal" :class="{ 'recording-active': isExporting }">
+            <v-icon size="40">{{ playing ? 'mdi-play-circle-outline' : 'mdi-stop-circle' }}</v-icon>
+          </v-btn>
+          <v-btn color="primary" rounded class="ml-4 font-weight-bold elevation-4 px-6" style="height: 36px" @click="handleExport">
+            <v-icon left size="18">{{ isExporting ? 'mdi-stop' : 'mdi-export' }}</v-icon> 
+            {{ isExporting ? 'Stop & Save' : 'Export' }}
           </v-btn>
           <v-divider vertical class="mx-6 grey darken-3 my-4"></v-divider>
           <div class="d-none d-sm-block mr-2" style="min-width: 120px">
@@ -242,6 +259,8 @@
     </v-main>
 
     <audio style="display: none" id="audio" :src="soundFile"></audio>
+
+    <PaywallModal v-model="showPaywall" />
   </v-app>
 </template>
 
@@ -251,6 +270,7 @@ import audio from "../js/Audio";
 import "babylonjs-loaders";
 import Recording from "./../js/Recording";
 import Templates from "./Templates.vue";
+import PaywallModal from "@/components/PaywallModal.vue";
 import TEXT from "@/js/templates/components/text";
 import Effects from "@/js/Effects";
 
@@ -265,7 +285,7 @@ import tunnel from "../js/templates/tunnel";
 
 export default {
   name: "Player",
-  components: { Templates },
+  components: { Templates, PaywallModal },
   data() {
     return {
       drawer: null,
@@ -284,7 +304,10 @@ export default {
       lightColorHex: "#00E5FF",
       templates: {
         city, terrain, nebulacore, trap, solaris, infinity, tunnel
-      }
+      },
+      isPro: false,
+      showPaywall: false,
+      isExporting: false
     };
   },
   computed: {
@@ -300,7 +323,11 @@ export default {
     cameraMove: { get() { return this.$store.state.options.camera.move; }, set(val) { this.$store.dispatch("toggleCamera", val); } },
     microphone: { get() { return this.$store.state.microphone; }, set(val) { this.$store.dispatch("toggleMicrophone", val); } },
     highQuality: { get() { return this.$store.state.highQuality; }, set(val) { this.$store.dispatch("toggleHighQuality", val); } },
-    removeWatermark: { get() { return this.$store.state.removeWatermark; }, set(val) { this.$store.dispatch("toggleRemoveWatermark", val); } },
+    removeWatermarkCheckbox: { 
+      get() { return this.removeWatermark; }, 
+      set(val) { if(this.isPro) { this.$store.dispatch("toggleRemoveWatermark", val); } else { this.showPaywall = true; } } 
+    },
+    removeWatermark() { return this.isPro && this.$store.state.removeWatermark; },
     activeEffects() { return this.$store.state.activeEffects; },
     sensitivity() { return this.$store.state.sensitivity; },
     fftSmoothing: {
@@ -370,9 +397,41 @@ export default {
       return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
     },
 
-    togglePlay() {
-      if (this.playing) this.startVisualizer();
-      else this.stopVisualizer();
+    togglePlayLocal() {
+      if (this.playing) {
+        this.reCreate(); // Re-initialize disposed scene
+        this.startVisualizer(false);
+      } else {
+        this.stopVisualizer();
+      }
+    },
+
+    handleExport() {
+      if (!this.isPro) {
+        this.showPaywall = true;
+        return;
+      }
+
+      if (this.isExporting) {
+        this.stopVisualizer();
+        return;
+      }
+
+      if (!this.playing) {
+        // Stop current preview, then start recording
+        if (this.audio) {
+          this.audio.stop(() => {
+            this.reCreate(); // Rebuild scene from 0
+            this.playing = true;
+            this.isExporting = true;
+            this.startVisualizer(true);
+          });
+        }
+      } else {
+        this.reCreate(); // Rebuild from stopped state
+        this.isExporting = true;
+        this.startVisualizer(true);
+      }
     },
 
     reCreate() {
@@ -392,31 +451,44 @@ export default {
         this.audio.stop(() => {
           if (this.scene) this.scene.dispose();
           if (this.engine) this.engine.stopRenderLoop();
-          Recording.stop();
+          if (this.isExporting) {
+            Recording.stop();
+            this.isExporting = false;
+          }
           this.playing = true;
         });
       }
     },
 
-    startVisualizer() {
-      this.$store.dispatch("toggleRecording", true);
+    startVisualizer(record = false) {
+      this.$store.dispatch("toggleRecording", record);
       setTimeout(() => {
         this.playing = false;
+        // 8 Mbps (High) or 2.5 Mbps (Standard)
         const bitrate = this.highQuality ? 8000000 : 2500000;
         if (this.microphone) {
           this.audio.useMicrophone().then(() => {
-             Recording.start(this.canvas.captureStream(), this.audio.getStream(), bitrate);
+             if (record) { 
+                 const stream = this.canvas.captureStream ? this.canvas.captureStream(30) : this.canvas.mozCaptureStream(30);
+                 Recording.start(stream, this.audio.getStream(), bitrate); 
+             }
           });
         } else {
           this.audio.nodes();
           this.audio.play(() => {
-            Recording.start(this.canvas.captureStream(), this.audio.getStream(), bitrate);
+             if (record) { 
+                 const stream = this.canvas.captureStream ? this.canvas.captureStream(30) : this.canvas.mozCaptureStream(30);
+                 Recording.start(stream, this.audio.getStream(), bitrate); 
+             }
           });
         }
       }, 500);
     },
 
     async mountScene() {
+      if (this.isMounting) return;
+      this.isMounting = true;
+      
       if (!this.audio) this.audio = new audio(128);
       this.canvas = this.$refs.renderCanvas;
       if (!this.engine) {
@@ -431,13 +503,16 @@ export default {
               }
           } catch (e) {
               console.warn("Falling back to WebGL Engine:", e.message);
-              this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true });
+              this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true });
           }
-          window.addEventListener("resize", () => this.engine.resize());
+          this.engine.setHardwareScalingLevel(1 / (window.devicePixelRatio || 1));
+          window.addEventListener("resize", () => { if (this.engine) this.engine.resize(); });
       }
       this.createScene();
       this.initTemplate(this.scene, this.config);
       this.engine.runRenderLoop(() => this.render());
+      
+      this.isMounting = false;
     },
 
     createScene() {
@@ -456,10 +531,11 @@ export default {
     },
 
     initTemplate(scene, config) {
-      if (!this.camera) {
-        this.camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, 500, BABYLON.Vector3.Zero(), scene);
-        this.camera.attachControl(this.canvas, true);
+      if (this.camera) {
+        this.camera.dispose();
       }
+      this.camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, 500, BABYLON.Vector3.Zero(), scene);
+      this.camera.attachControl(this.canvas, true);
       
       const t = this.templates[this.template];
       if (t) {
@@ -475,7 +551,7 @@ export default {
     },
 
     render() {
-      if (!this.scene || !this.camera) return;
+      if (!this.scene || !this.scene.activeCamera || !this.camera) return;
       
       this.scene.render();
       const fft = this.audio ? this.audio.getFtt() : null;
@@ -488,6 +564,15 @@ export default {
     }
   },
   mounted() {
+    // Check Pro Status from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+      this.isPro = true;
+      this.$store.dispatch("toggleRemoveWatermark", true);
+      // Optional: Clear URL params to clean up
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     this.mountScene();
     this.title = this.$store.state.title;
     this.subtitle = this.$store.state.subtitle;

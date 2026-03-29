@@ -116,7 +116,7 @@ class Audio {
     if (this.stream) {
       return this.stream;
     }
-    return this.audioElement.captureStream();
+    return this.audioElement.captureStream ? this.audioElement.captureStream() : this.audioElement.mozCaptureStream();
   }
 
   /**

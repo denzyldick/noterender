@@ -3,10 +3,11 @@ let mediaRecorder;
 let recordedBlobs;
 
 function handleDataAvailable(event) {
-  console.log("handleDataAvailable", event);
+  console.error("handleDataAvailable TRIGGERED! Size:", event.data ? event.data.size : "NO DATA");
   if (event.data && event.data.size > 0) {
     recordedBlobs.push(event.data);
   }
+  console.error("recordedBlobs array length is now:", recordedBlobs.length);
 }
 
 const recording = {
@@ -18,47 +19,55 @@ const recording = {
   record: async function (videoStream, audioStream, bitrate) {
     recordedBlobs = [];
     debugger;
-    let options = { mimeType: "video/mp4", extension: "mp4" };
-    if (bitrate) {
-      options.videoBitsPerSecond = bitrate;
-    }
+    const supportedTypes = [
+      { mimeType: "video/mp4", extension: "mp4" },
+      { mimeType: "video/webm;codecs=h264", extension: "webm" },
+      { mimeType: "video/webm", extension: "webm" }
+    ];
 
-    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-      console.error(`${options.mimeType} is not supported`);
-      options = { mimeType: "video/webm;codecs=h264", extension: "webm" };
-      if (bitrate) options.videoBitsPerSecond = bitrate;
-
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        console.error(`${options.mimeType} is not supported`);
-        options = { mimeType: "video/webm", extension: "webm" };
-        if (bitrate) options.videoBitsPerSecond = bitrate;
-
-        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-          console.error(`${options.mimeType} is not supported`);
-          options = { mimeType: "", extension: "webm" };
-          if (bitrate) options.videoBitsPerSecond = bitrate;
-        }
+    let chosenMime = "";
+    let chosenExt = "webm";
+    for (const type of supportedTypes) {
+      if (MediaRecorder.isTypeSupported(type.mimeType)) {
+        chosenMime = type.mimeType;
+        chosenExt = type.extension;
+        break;
       }
     }
-    this.options = options; // Store for download
+
+    let options = {};
+    if (chosenMime) options.mimeType = chosenMime;
+
+    if (bitrate) {
+      options.videoBitsPerSecond = bitrate;
+      options.audioBitsPerSecond = 128000;
+    }
 
     try {
       const combined = new MediaStream([
         ...videoStream.getTracks(),
         ...audioStream.getTracks(),
       ]);
-      // let recorder = new MediaRecorder(combined);
       mediaRecorder = new MediaRecorder(combined, options);
     } catch (e) {
       console.error("Exception while creating MediaRecorder:", e);
-      return;
+      const combined = new MediaStream([
+        ...videoStream.getTracks(),
+        ...audioStream.getTracks(),
+      ]);
+      mediaRecorder = new MediaRecorder(combined);
     }
+
+    this.options = {
+      mimeType: (mediaRecorder.mimeType || chosenMime).split(';')[0] || "video/webm",
+      extension: chosenExt
+    };
 
     console.log(
       "Created MediaRecorder",
       mediaRecorder,
       "with options",
-      options,
+      this.options,
     );
     mediaRecorder.onstop = (event) => {
       console.log("Recorder stopped: ", event);
@@ -68,14 +77,14 @@ const recording = {
 
     mediaRecorder.ondataavailable = handleDataAvailable;
     mediaRecorder.start();
-    console.log("MediaRecorder started", mediaRecorder);
+    console.error("MediaRecorder started! (Buffered natively structure)");
   },
   start: async function (videoStream, audioStream, bitrate) {
     this.record(videoStream, audioStream, bitrate);
   },
   download: function () {
     const blob = new Blob(recordedBlobs, {
-      type: "video/webm;codecs=h264",
+      type: this.options.mimeType || "video/webm",
     });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
