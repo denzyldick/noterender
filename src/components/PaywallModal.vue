@@ -98,16 +98,21 @@ export default {
     async payNow() {
       this.loadingPay = true;
       try {
-        const response = await fetch("http://localhost:8000/api/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" }
+        const API_BASE = process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '';
+        const response = await fetch(`${API_BASE}/api/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item: 'pro_export' })
         });
-        const data = await response.json();
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          alert('Failed to initialize checkout');
+        
+        const session = await response.json();
+        
+        if (session.error) {
+          throw new Error(session.error);
         }
+        
+        // Redirect to Stripe checkout page
+        window.location.href = session.url;
       } catch (err) {
         console.error(err);
         alert('Payment service unavailable');
@@ -119,9 +124,10 @@ export default {
       if (!this.email) return;
       this.loadingWaitlist = true;
       try {
-        await fetch("http://localhost:8000/api/waitlist", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const API_BASE = process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '';
+        await fetch(`${API_BASE}/api/waitlist`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: this.email })
         });
         this.joined = true;
