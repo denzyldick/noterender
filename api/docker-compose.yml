@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  noterender-api:
+    build: .
+    container_name: noterender_api
+    ports:
+      - "8000:80"
+    volumes:
+      # We mount the 'data' directory securely to the host machine so SQLite doesn't wipe on rebuild!
+      - ./data:/app/data
+      # We pass through the environment override for local testing keys
+      - ./.env.local:/app/.env.local
+    environment:
+      - APP_ENV=prod
+      - SERVER_NAME=:80
+      # Point internal Symfony ORM to the physically mounted database volume
+      - DATABASE_URL=sqlite:///%kernel.project_dir%/data/data.db
+    restart: unless-stopped

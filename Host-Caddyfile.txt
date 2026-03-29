@@ -1,0 +1,17 @@
+# Example Host Caddyfile for NoteRender Production
+
+noterender.denzyl.io {
+    # 1. Serve the compiled Vue frontend natively utilizing extreme speed
+    # Run `yarn build` in the main folder to generate the dist/ folder!
+    root * /home/denzyl/Projects/noterender/dist
+    file_server
+
+    # Fallback to index.html for Vue SPA Router to take over
+    try_files {path} /index.html
+
+    # 2. Reverse Proxy ALL backend /api requests smoothly to the dedicated FrankenPHP Docker Container
+    # This automatically intercepts /api/checkout and /api/waitlist from the frontend
+    handle /api/* {
+        reverse_proxy localhost:8000
+    }
+}
