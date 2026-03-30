@@ -101,14 +101,19 @@ class Audio {
 
   /**
    * Start playing the sound.
-   * @param resolver
-   * @returns {Promise<unknown>}
+   * @returns {Promise<void>}
    */
-  play(resolver) {
-    this.audioElement.play();
-    this.audioElement.currentTime = 0;
-    this.nodes();
-    return new Promise(resolver);
+  async play() {
+    if (!this.audioElement) return;
+    
+    try {
+      this.nodes();
+      this.audioElement.currentTime = 0;
+      return await this.audioElement.play();
+    } catch (e) {
+      console.warn("Autoplay prevented:", e.message);
+      throw e;
+    }
   }
 
   /**

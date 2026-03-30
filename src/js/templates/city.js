@@ -1,5 +1,6 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
+import CAMERA_PHYSICS from "@/js/templates/components/camera";
 
 let buildings = [];
 let roadSegments = [];
@@ -15,9 +16,15 @@ let buildingMat;
 
 let t = 0;
 let globalZ = 0; 
-let totalDepth = 0;
+let totalDepth = 3200;
 let currentScene;
 let currentCamera;
+
+// Pre-allocated objects
+const _tempVec3 = new BABYLON.Vector3();
+const _tempTarget = new BABYLON.Vector3();
+const _primaryColor = new BABYLON.Color3();
+const _accentColor = new BABYLON.Color3();
 
 const CONFIG = {
     rows: 100, 
@@ -30,7 +37,8 @@ const CONFIG = {
 };
 
 const getPath = (z) => {
-    const freq = (2 * Math.PI) / totalDepth;
+    const depth = totalDepth || 3200;
+    const freq = (2 * Math.PI) / depth;
     
     const xAmp1 = 180, xAmp2 = 80, xAmp3 = 40;
     const x = Math.sin(z * freq) * xAmp1 + 
@@ -48,11 +56,11 @@ const getPath = (z) => {
     const dy = -freq * yAmp1 * Math.sin(z * freq) + 
                 freq * 2.5 * yAmp2 * Math.cos(z * freq * 2.5);
 
-    const yaw = Math.atan(dx);
-    const pitch = Math.atan(dy);
-    const bank = -dx * 0.45; 
+    const yaw = Math.atan(dx) || 0;
+    const pitch = Math.atan(dy) || 0;
+    const bank = -dx * 0.45 || 0; 
 
-    return { x, y, dx, dy, yaw, pitch, bank };
+    return { x: x || 0, y: y || 0, dx: dx || 0, dy: dy || 0, yaw, pitch, bank };
 };
 
 const template = {
@@ -60,18 +68,45 @@ const template = {
         currentScene = scene;
         currentCamera = camera;
         globalZ = 0;
-        totalDepth = CONFIG.rows * (CONFIG.blockSize + CONFIG.gap);
+        t = 0;
+        
+        // EXCLUSIVELY claim the camera to prevent orbit logic from crashing it
+        CAMERA_PHYSICS.lock();
+
+        totalDepth = CONFIG.rows * (CONFIG.blockSize + CONFIG.gap) || 3200;
 
         scene.clearColor = CONFIG.skyColor;
         scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
         scene.fogDensity = 0.004;
         scene.fogColor = new BABYLON.Color3(0.01, 0, 0.02);
 
-        const primary = new BABYLON.Color3(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
-        const accent = new BABYLON.Color3(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
+        _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
 
         // --- Camera Setup ---
-        camera.position = new BABYLON.Vector3(0, 30, -120);
+        if (camera) {
+            if (camera.upVector) camera.upVector.set(0, 1, 0);
+            
+            // Get path position for Z=0 (Plane) and Z=-120 (Camera) to match render start
+            const pPlaneStart = getPath(0);
+            const pCamStart = getPath(-120);
+            
+            // HARD RESET all camera properties to ensure it's not "stuck" from previous templates
+            camera.alpha = Math.PI / 2;
+            camera.beta = Math.PI / 2;
+            camera.radius = 120;
+            camera.inertialAlphaOffset = 0;
+            camera.inertialBetaOffset = 0;
+            camera.inertialRadiusOffset = 0;
+            camera.panningInertia = 0;
+            
+            // Set initial position and target based on road path
+            _tempTarget.set(pPlaneStart.x, pPlaneStart.y + 35, 0); 
+            _tempVec3.set(pCamStart.x, pCamStart.y + 22, -120);
+            
+            camera.setTarget(_tempTarget);
+            camera.setPosition(_tempVec3);
+        }
 
         // --- Plane (Logo) ---
         PLANE.setScale(45, 45);
@@ -82,14 +117,14 @@ const template = {
         glitchGrid = BABYLON.MeshBuilder.CreateGround("glitchGrid", { width: 10000, height: 10000, subdivisions: 60 }, scene);
         const gridMat = new BABYLON.StandardMaterial("gridMat", scene);
         gridMat.wireframe = true;
-        gridMat.emissiveColor = primary.scale(0.2);
+        gridMat.emissiveColor = _primaryColor.scale(0.2);
         gridMat.disableLighting = true;
         glitchGrid.material = gridMat;
 
         // --- Retro Sun ---
         sun = BABYLON.MeshBuilder.CreateDisc("sun", { radius: 300, tessellation: 64 }, scene);
         sunMat = new BABYLON.StandardMaterial("sunMat", scene);
-        sunMat.emissiveColor = primary;
+        sunMat.emissiveColor.copyFrom(_primaryColor);
         sunMat.disableLighting = true;
         sun.material = sunMat;
 
@@ -102,11 +137,11 @@ const template = {
 
         // --- Road & Center Lines ---
         roadMat = new BABYLON.StandardMaterial("roadMat", scene);
-        roadMat.emissiveColor = primary.scale(0.12);
+        roadMat.emissiveColor = _primaryColor.scale(0.12);
         roadMat.disableLighting = true;
 
         lineMat = new BABYLON.StandardMaterial("lineMat", scene);
-        lineMat.emissiveColor = accent;
+        lineMat.emissiveColor.copyFrom(_accentColor);
         lineMat.disableLighting = true;
 
         roadSegments = [];
@@ -133,7 +168,7 @@ const template = {
         // --- Buildings & Trees ---
         buildingMat = new BABYLON.StandardMaterial("bMat", scene);
         buildingMat.disableLighting = true;
-        buildingMat.emissiveColor = BABYLON.Color3.White();
+        buildingMat.emissiveColor.set(1, 1, 1);
 
         const baseBox = BABYLON.MeshBuilder.CreateBox("baseBox", { size: 1 }, scene);
         baseBox.isVisible = false;
@@ -157,7 +192,7 @@ const template = {
                 const isTree = Math.random() > 0.7;
                 const mesh = isTree ? baseTree.createInstance("t"+row+"_"+col) : baseBox.createInstance("b"+row+"_"+col);
                 
-                mesh.instancedBuffers.color = new BABYLON.Color4(primary.r, primary.g, primary.b, 1);
+                mesh.instancedBuffers.color = new BABYLON.Color4(_primaryColor.r, _primaryColor.g, _primaryColor.b, 1);
                 
                 buildings.push({
                     mesh,
@@ -194,6 +229,7 @@ const template = {
     },
 
     render(fft, config) {
+        if (!fft) fft = new Uint8Array(256).fill(0);
         t += 0.012;
         PLANE.render(fft, config);
 
@@ -202,51 +238,72 @@ const template = {
         let bass = 0;
         for (let i = 0; i < 8; i++) bass += fft[i];
         bass = ((bass / 8) / 255) * boost;
+        if (isNaN(bass)) bass = 0;
 
-        const primary = config.dynamicColors ? 
-            new BABYLON.Color3(0.2, 0.3 + bass * 0.4, 0.9) : 
-            new BABYLON.Color3(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
-        
-        const accent = config.dynamicColors ? 
-            new BABYLON.Color3(1.0, 0.2, 0.6 + bass * 0.4) : 
-            new BABYLON.Color3(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        if (config.dynamicColors) {
+            _primaryColor.set(0.2, 0.3 + bass * 0.4, 0.9);
+            _accentColor.set(1.0, 0.2, 0.6 + bass * 0.4);
+        } else {
+            _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
+            _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        }
 
         globalZ += CONFIG.speed * (1 + bass * 1.5);
         if (globalZ > totalDepth) {
-            globalZ -= totalDepth;
+            globalZ %= totalDepth;
         }
+        if (isNaN(globalZ)) globalZ = 0;
 
         const camZ = globalZ - 120;
         const pCam = getPath(camZ);
 
-        if (currentCamera) {
-            currentCamera.position.set(pCam.x, pCam.y + 20 + bass * 8, camZ);
+        if (currentCamera && !currentCamera.isDisposed) {
+            // Constant distance: Plane is exactly 120 units ahead of camera
+            const planeZ = camZ + 120; 
+            const pPlane = getPath(planeZ);
             
-            const lookZ = camZ + 180;
-            const pLook = getPath(lookZ);
-            currentCamera.setTarget(new BABYLON.Vector3(pLook.x, pLook.y + 15, lookZ));
+            // 1. Calculate base camera position - STRICTLY ON ROAD AT FIXED HEIGHT
+            _tempVec3.set(pCam.x, pCam.y + 22, camZ);
             
-            const camBank = pCam.bank * 0.7;
-            currentCamera.upVector = new BABYLON.Vector3(Math.sin(camBank), Math.cos(camBank), 0);
-            currentCamera.fov = 0.85 + bass * 0.1;
+            // 2. Target the plane exactly to keep it centered on screen
+            _tempTarget.set(pPlane.x, pPlane.y + 35, planeZ);
+
+            try {
+                // Force target and position every frame to prevent camera from getting "stuck"
+                currentCamera.setTarget(_tempTarget);
+                currentCamera.setPosition(_tempVec3);
+                
+                // Stable FOV and UpVector based on road banking
+                currentCamera.fov = 0.85;
+                const camBank = pCam.bank * 0.8;
+                if (currentCamera.upVector) {
+                    currentCamera.upVector.set(Math.sin(camBank), Math.cos(camBank), 0);
+                }
+                
+                // Reset inertias every frame to prevent any control drift
+                currentCamera.inertialAlphaOffset = 0;
+                currentCamera.inertialBetaOffset = 0;
+                currentCamera.inertialRadiusOffset = 0;
+            } catch (e) {
+                console.warn("City camera update failed", e);
+            }
         }
 
         const planeMesh = PLANE.getPlane();
         if (planeMesh) {
-            const planeZ = camZ + 80;
+            const planeZ = camZ + 120; // Match camera's target Z exactly
             const pPlane = getPath(planeZ);
             
             planeMesh.position.set(pPlane.x, pPlane.y + 35, planeZ);
             
             planeMesh.rotation.y = pPlane.yaw;
             planeMesh.rotation.x = -pPlane.pitch;
-            planeMesh.rotation.z += pPlane.bank; 
+            planeMesh.rotation.z = pPlane.bank; 
         }
 
         const updateMesh = (item, isBuilding) => {
             let relZ = item.baseZ - globalZ;
-            while(relZ < -200) relZ += totalDepth;
-            while(relZ > totalDepth - 200) relZ -= totalDepth;
+            relZ = ((relZ + 200) % totalDepth + totalDepth) % totalDepth - 200;
             
             const evalZ = globalZ + relZ;
             const p = getPath(evalZ);
@@ -261,6 +318,7 @@ const template = {
                 const yShift = lateral * Math.sin(p.bank);
                 
                 let val = (fft[item.fftIdx % fft.length] / 255) * boost;
+                if (isNaN(val)) val = 0;
                 const currentHeight = item.heightMult * (0.4 + val * 1.6);
                 
                 item.mesh.scaling.set(item.widthMult, currentHeight, item.widthMult);
@@ -273,15 +331,17 @@ const template = {
                 
                 item.mesh.rotation.set(item.isTree ? -p.pitch : 0, p.yaw, p.bank * 0.6);
                 
-                const baseCol = item.isTree ? accent : primary;
+                const baseCol = item.isTree ? _accentColor : _primaryColor;
                 const intensity = item.isTree ? 0.6 + val : 0.3 + val * 0.7;
-                const finalCol = baseCol.scale(intensity);
-                item.mesh.instancedBuffers.color = new BABYLON.Color4(finalCol.r, finalCol.g, finalCol.b, 1);
+                
+                if (item.mesh.instancedBuffers && item.mesh.instancedBuffers.color) {
+                    item.mesh.instancedBuffers.color.set(baseCol.r * intensity, baseCol.g * intensity, baseCol.b * intensity, 1);
+                }
             }
         };
 
         if (roadMat) {
-            roadMat.emissiveColor.set(primary.r * 0.12, primary.g * 0.12, primary.b * 0.12);
+            roadMat.emissiveColor.set(_primaryColor.r * 0.12, _primaryColor.g * 0.12, _primaryColor.b * 0.12);
         }
         
         roadSegments.forEach(rs => {
@@ -290,7 +350,7 @@ const template = {
         });
 
         if (lineMat) {
-            lineMat.emissiveColor.set(accent.r * (0.5+bass), accent.g * (0.5+bass), accent.b * (0.5+bass));
+            lineMat.emissiveColor.set(_accentColor.r * (0.5+bass), _accentColor.g * (0.5+bass), _accentColor.b * (0.5+bass));
         }
 
         roadLines.forEach(line => {
@@ -302,11 +362,10 @@ const template = {
 
         lightStreaks.forEach(s => {
             s.baseZ += CONFIG.speed * s.speedMult;
-            if (s.baseZ > totalDepth) s.baseZ -= totalDepth;
+            if (s.baseZ > totalDepth) s.baseZ %= totalDepth;
             
             let relZ = s.baseZ - globalZ;
-            while(relZ < -200) relZ += totalDepth;
-            while(relZ > totalDepth - 200) relZ -= totalDepth;
+            relZ = ((relZ + 200) % totalDepth + totalDepth) % totalDepth - 200;
             
             const evalZ = globalZ + relZ;
             const p = getPath(evalZ);
@@ -324,7 +383,7 @@ const template = {
 
         if (sunMat) {
             sun.scaling.setAll(1.0 + bass * 0.1);
-            sunMat.emissiveColor.set(primary.r * (0.7 + bass), primary.g * (0.5 + bass), primary.b * (0.7 + bass));
+            sunMat.emissiveColor.set(_primaryColor.r * (0.7 + bass), _primaryColor.g * (0.5 + bass), _primaryColor.b * (0.7 + bass));
             
             sun.position.z = globalZ + 4000;
             sun.position.x = pCam.x * 0.2;
@@ -336,6 +395,15 @@ const template = {
             glitchGrid.position.x = pCam.x;
             glitchGrid.position.y = pCam.y - 120;
         }
+    },
+
+    dispose() {
+        currentCamera = null;
+        currentScene = null;
+        buildings = [];
+        roadSegments = [];
+        roadLines = [];
+        lightStreaks = [];
     }
 };
 

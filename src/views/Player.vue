@@ -43,7 +43,7 @@
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-video-3d</v-icon><span class="tab-text ml-2">Camera</span></v-tab>
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-auto-fix</v-icon><span class="tab-text ml-2">Effects</span></v-tab>
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-text-recognition</v-icon><span class="tab-text ml-2">Branding</span></v-tab>
-            <v-tab class="justify-center px-4"><v-icon size="22">mdi-movie-filter</v-icon><span class="tab-text ml-2">Export</span></v-tab>
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-movie-filter</v-icon><span class="tab-text ml-2">Render</span></v-tab>
           </div>
 
           <v-tabs-items v-model="activeTab" class="transparent-bg studio-tab-content no-scrollbar">
@@ -267,13 +267,53 @@
       top
       left
       color="rgba(30, 30, 30, 0.8)"
-      small
+      large
+      elevation="12"
       class="mt-4 ml-4 sidebar-toggle"
       @click="drawer = !drawer"
-      style="z-index: 100; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1)"
+      style="z-index: 100; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2)"
     >
       <v-icon color="white">{{ drawer ? 'mdi-chevron-left' : 'mdi-tune-vertical' }}</v-icon>
     </v-btn>
+
+    <!-- Help Icon (Top-Right) -->
+    <v-btn
+      fab
+      fixed
+      top
+      right
+      color="rgba(30, 30, 30, 0.8)"
+      small
+      elevation="12"
+      class="mt-4 mr-4"
+      @click="showHelp = true"
+      style="z-index: 100; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2)"
+    >
+      <v-icon color="white">mdi-help</v-icon>
+    </v-btn>
+
+    <!-- Shortcut Help Dialog -->
+    <v-dialog v-model="showHelp" max-width="400">
+      <v-card color="rgba(15, 15, 15, 0.95)" style="backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.1)">
+        <v-card-title class="headline primary--text font-weight-black letter-spacing-2">SHORTCUTS</v-card-title>
+        <v-card-text class="pa-6">
+          <v-list dark dense flat class="transparent">
+            <v-list-item v-for="s in shortcuts" :key="s.key" class="px-0">
+              <v-list-item-content>
+                <v-list-item-title class="grey--text text--lighten-1">{{ s.desc }}</v-list-item-title>
+              </v-list-item-content>
+              <v-list-item-action>
+                <v-chip label small outlined color="primary" class="font-weight-black">{{ s.key }}</v-chip>
+              </v-list-item-action>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+        <v-card-actions class="pa-6">
+          <v-spacer></v-spacer>
+          <v-btn color="primary" text @click="showHelp = false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- Floating Transport HUD -->
     <v-main class="pa-0 fill-height">
@@ -310,6 +350,7 @@ import Templates from "./Templates.vue";
 import PaywallModal from "@/components/PaywallModal.vue";
 import TEXT from "@/js/templates/components/text";
 import Effects from "@/js/Effects";
+import CAMERA from "@/js/templates/components/camera";
 
 // Visualizer Engines
 import city from "../js/templates/city";
@@ -344,7 +385,20 @@ export default {
       },
       isPro: false,
       showPaywall: false,
-      isExporting: false
+      isExporting: false,
+      isTransitioning: false,
+      activeTemplateName: "",
+      showHelp: false,
+      shortcuts: [
+        { key: 'j / k', desc: 'Next / Previous Tab' },
+        { key: 'h / l', desc: 'Toggle Sidebar' },
+        { key: '[ / ]', desc: 'Next / Previous Template' },
+        { key: '1 - 7', desc: 'Jump to Tab' },
+        { key: 'm', desc: 'Toggle Microphone' },
+        { key: 'c', desc: 'Toggle Camera Motion' },
+        { key: 'Space', desc: 'Play / Pause' },
+        { key: '?', desc: 'Show Shortcuts' }
+      ]
     };
   },
   computed: {
@@ -383,7 +437,16 @@ export default {
     }
   },
   watch: {
-    template() { this.reCreate(); },
+    template: {
+      handler(newVal, oldVal) {
+        if (oldVal) {
+          const prev = this.templates[oldVal];
+          if (prev && prev.dispose) prev.dispose();
+        }
+        this.reCreate();
+      },
+      immediate: false
+    },
     logoStyle() { this.reCreate(); },
     emblem() { this.reCreate(); },
     storeTitle(val) { TEXT.update(val, this.storeSubtitle, !this.removeWatermark); },
@@ -458,6 +521,65 @@ export default {
       }
     },
 
+    handleKeyDown(e) {
+      const tag = e.target.tagName.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+
+      const key = e.key.toLowerCase();
+      
+      // j/k - Tab Navigation
+      if (key === 'j') {
+        this.activeTab = (this.activeTab + 1) % 7;
+      } else if (key === 'k') {
+        this.activeTab = (this.activeTab - 1 + 7) % 7;
+      }
+      
+      // h/l - Sidebar Toggle
+      if (key === 'h' || key === 'l') {
+        this.drawer = !this.drawer;
+      }
+
+      // [ / ] - Template Navigation
+      if (key === '[' || key === ']') {
+        const templates = this.$store.state.templates;
+        const currentIndex = templates.findIndex(t => t.name === this.template);
+        let nextIndex;
+        if (key === '[') {
+          nextIndex = (currentIndex - 1 + templates.length) % templates.length;
+        } else {
+          nextIndex = (currentIndex + 1) % templates.length;
+        }
+        this.$store.commit('templateSelected', templates[nextIndex].name);
+      }
+
+      // 1-7 - Direct Tab Jump
+      if (key >= '1' && key <= '7') {
+        this.activeTab = parseInt(key) - 1;
+        if (!this.drawer) this.drawer = true;
+      }
+
+      // m - Microphone
+      if (key === 'm') {
+        this.microphone = !this.microphone;
+      }
+
+      // c - Camera
+      if (key === 'c') {
+        this.cameraMove = !this.cameraMove;
+      }
+
+      // Space - Play/Pause
+      if (e.code === 'Space') {
+        e.preventDefault();
+        this.togglePlayLocal();
+      }
+
+      // ? - Help
+      if (key === '?' || key === '/') {
+        this.showHelp = !this.showHelp;
+      }
+    },
+
     handleExport() {
       if (!this.isPro) {
         this.showPaywall = true;
@@ -492,9 +614,11 @@ export default {
     },
 
     reCreate() {
+      this.isTransitioning = true;
       if (this.engine) {
         this.engine.stopRenderLoop();
       }
+      
       if (this.scene) { 
         this.scene.dispose(); 
         this.scene = null; 
@@ -519,25 +643,26 @@ export default {
 
     startVisualizer(record = false) {
       this.$store.dispatch("toggleRecording", record);
-      setTimeout(() => {
+      setTimeout(async () => {
         this.playing = false;
         // 8 Mbps (High) or 2.5 Mbps (Standard)
         const bitrate = this.highQuality ? 8000000 : 2500000;
-        if (this.microphone) {
-          this.audio.useMicrophone().then(() => {
-             if (record) { 
-                 const stream = this.canvas.captureStream ? this.canvas.captureStream(30) : this.canvas.mozCaptureStream(30);
-                 Recording.start(stream, this.audio.getStream(), bitrate); 
-             }
-          });
-        } else {
-          this.audio.nodes();
-          this.audio.play(() => {
-             if (record) { 
-                 const stream = this.canvas.captureStream ? this.canvas.captureStream(30) : this.canvas.mozCaptureStream(30);
-                 Recording.start(stream, this.audio.getStream(), bitrate); 
-             }
-          });
+        
+        try {
+          if (this.microphone) {
+            await this.audio.useMicrophone();
+          } else {
+            this.audio.nodes(); // Ensure analyzer nodes are created
+            await this.audio.play();
+          }
+
+          if (record) {
+            const stream = this.canvas.captureStream ? this.canvas.captureStream(30) : this.canvas.mozCaptureStream(30);
+            Recording.start(stream, this.audio.getStream(), bitrate);
+          }
+        } catch (e) {
+          console.warn("Visualizer start audio error:", e);
+          this.playing = true; // Revert play state on failure
         }
       }, 500);
     },
@@ -592,35 +717,64 @@ export default {
       this.engine.resize();
     },
 
-    async mountScene() {
+    mountScene() {
       if (this.isMounting) return;
       this.isMounting = true;
       
       if (!this.audio) this.audio = new audio(512);
       this.canvas = this.$refs.renderCanvas;
+      this.emptyFft = new Uint8Array(512).fill(0);
+
       if (!this.engine) {
           try {
-              const webgpuSupported = await BABYLON.WebGPUEngine.IsSupportedAsync;
-              if (webgpuSupported) {
-                  this.engine = new BABYLON.WebGPUEngine(this.canvas, { antialias: true });
-                  await this.engine.initAsync();
-                  console.log("WebGPU Engine Initialized");
-              } else {
-                  throw new Error("WebGPU not supported");
-              }
+              BABYLON.WebGPUEngine.IsSupportedAsync.then((supported) => {
+                  if (supported) {
+                      this.engine = new BABYLON.WebGPUEngine(this.canvas, { antialias: true });
+                      this.engine.initAsync().then(() => {
+                          this.setupEngine();
+                      });
+                  } else {
+                      this.setupWebGL();
+                  }
+              }).catch(() => this.setupWebGL());
           } catch (e) {
-              console.warn("Falling back to WebGL Engine:", e.message);
-              this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true });
+              this.setupWebGL();
           }
-          this.engine.setHardwareScalingLevel(1 / (window.devicePixelRatio || 1));
-          window.addEventListener("resize", () => { this.resizeCanvas(); });
+      } else {
+        this.setupEngine();
       }
+    },
+
+    setupWebGL() {
+      this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true });
+      this.setupEngine();
+    },
+
+    async setupEngine() {
+      console.log("Setting up engine...");
+      this.engine.setHardwareScalingLevel(1 / (window.devicePixelRatio || 1));
+      window.addEventListener("resize", () => { this.resizeCanvas(); });
       this.resizeCanvas();
-      await this.createScene();
-      this.initTemplate(this.scene, this.config);
-      this.engine.runRenderLoop(() => this.render());
+      
+      try {
+        console.log("Creating scene...");
+        await this.createScene();
+        console.log("Initializing template:", this.template);
+        this.initTemplate(this.scene, this.config);
+        
+        this.activeTemplateName = this.template;
+        this.isTransitioning = false;
+        
+        console.log("Starting render loop...");
+        this.engine.runRenderLoop(() => this.babylonRender());
+      } catch (e) {
+        console.error("Engine setup failed:", e);
+        this.isTransitioning = false;
+      }
       
       this.isMounting = false;
+      const loader = document.getElementById("globalLoader");
+      if (loader) loader.style.display = "none";
     },
 
     async createScene() {
@@ -629,25 +783,35 @@ export default {
       new BABYLON.PointLight("Omni", new BABYLON.Vector3(0, 0, 100), this.scene);
       this.scene.createDefaultLight();
       
+      const width = this.canvas ? this.canvas.width : 1080;
+      const height = this.canvas ? this.canvas.height : 1080;
+      
+      console.log("Initializing UI Text...");
       try {
-          const width = this.canvas ? this.canvas.width : 1080;
-          const height = this.canvas ? this.canvas.height : 1080;
           await TEXT.init(this.scene, this.config.title || "noterender", this.config.subtitle || "visualizer", width, height);
           TEXT.update(this.config.title || "noterender", this.config.subtitle || "visualizer", !this.removeWatermark);
-      } catch (e) { console.error(e); }
+      } catch (e) { 
+          console.error("TEXT init failed:", e); 
+      }
 
+      console.log("Initializing Effects...");
       Effects.init(this.scene);
 
-      this.scene.registerBeforeRender(() => { this.alpha += this.multiplierValue; });
+      this.scene.registerBeforeRender(() => { 
+          this.alpha += this.multiplierValue; 
+      });
     },
 
     initTemplate(scene, config) {
       if (this.camera) {
         this.camera.dispose();
       }
-      this.camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, 500, BABYLON.Vector3.Zero(), scene);
+      this.camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, 320, BABYLON.Vector3.Zero(), scene);
       this.camera.attachControl(this.canvas, true);
       
+      // Initialize Camera Physics Component BEFORE template so template can override it or lock it
+      CAMERA.init(this.camera, config);
+
       const t = this.templates[this.template];
       if (t) {
         const width = this.canvas ? this.canvas.width : 1080;
@@ -655,29 +819,27 @@ export default {
         try {
           t.init(this.camera, this.engine, 10, scene, width, height, 1080, config);
         } catch (e) { 
-          console.warn("Template init retry", e);
-          t.init(scene, config); 
+          console.error("Template init failed:", e);
         }
       }
 
       Effects.update(this.$store.state.activeEffects);
     },
 
-    render() {
-      if (!this.scene || !this.scene.activeCamera || !this.camera) return;
+    babylonRender() {
+      if (this.isTransitioning || !this.scene || !this.scene.activeCamera || !this.camera) return;
       
       this.scene.render();
       
-      // Get FFT or fallback to empty array to keep animations (time 't') moving
-      let fft = this.audio ? this.audio.getFtt() : null;
-      if (!fft) {
-          fft = new Uint8Array(256).fill(0);
-      }
+      // Get FFT or fallback to pre-allocated empty array
+      let fft = this.audio ? this.audio.getFtt() : this.emptyFft;
+      if (!fft) fft = this.emptyFft;
       
       TEXT.render();
+      CAMERA.render(fft);
 
-      if (this.templates[this.template]) {
-        this.templates[this.template].render(fft, this.config);
+      if (this.templates[this.activeTemplateName]) {
+        this.templates[this.activeTemplateName].render(fft, this.config);
       }
       Effects.render(fft, this.config);
     }
@@ -696,6 +858,8 @@ export default {
     this.title = this.$store.state.title;
     this.subtitle = this.$store.state.subtitle;
 
+    window.addEventListener("keydown", this.handleKeyDown);
+
     // Play the audio muted in the background for a "wow" visual preview.
     // The play button remains visible (playing=true) so the user can natively press "Play"
     const audioEl = document.getElementById("audio");
@@ -703,9 +867,13 @@ export default {
       audioEl.muted = true;
     }
     if (this.audio) {
-      this.audio.nodes();
-      this.audio.play(() => {});
+      this.audio.play().catch(() => {
+        // Silently fail mount autoplay - the visualizer will still run with emptyFft
+      });
     }
+  },
+  beforeDestroy() {
+    window.removeEventListener("keydown", this.handleKeyDown);
   }
 };
 </script>

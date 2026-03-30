@@ -1,5 +1,6 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
+import CAMERA_PHYSICS from "@/js/templates/components/camera";
 
 let t = 0;
 let bars = [];
@@ -7,34 +8,45 @@ let barsInner = [];
 let particles;
 let sceneRef;
 let glowLayer;
-let flare;
 let blueSquare;
 let hyperSpace;
+let currentCamera;
+
+// Pre-allocated objects
+const _primaryColor = new BABYLON.Color3();
+const _accentColor = new BABYLON.Color3();
+const _tempVec3 = new BABYLON.Vector3();
 
 const template = {
     init(camera, renderer, nb, scene, width, height, depth, config) {
         sceneRef = scene;
+        currentCamera = camera;
+        t = 0;
+        
+        // Claim the camera exclusively
+        CAMERA_PHYSICS.lock();
+
         scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
 
-        const primary = new BABYLON.Color3(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
-        const accent = new BABYLON.Color3(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
+        _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
 
         // --- Camera Setup ---
-        camera.setPosition(new BABYLON.Vector3(0, 0, -550));
-        camera.setTarget(BABYLON.Vector3.Zero());
-        if (config.options.camera) config.options.camera.move = false;
+        if (camera) {
+            camera.setTarget(BABYLON.Vector3.Zero());
+            camera.setPosition(new BABYLON.Vector3(0, 0, -320));
+        }
 
         // --- Logo ---
         PLANE.setScale(210, 210);
         PLANE.setCoordinates(0, 0, 0);
         PLANE.init(scene, config);
 
-        // --- Blue Square Border (Trap Nation Style) ---
+        // --- Blue Square Border ---
         blueSquare = BABYLON.MeshBuilder.CreatePlane("blueSquare", { size: 1 }, scene);
         const squareMat = new BABYLON.StandardMaterial("squareMat", scene);
-        squareMat.emissiveColor = primary;
+        squareMat.emissiveColor.copyFrom(_primaryColor);
         squareMat.disableLighting = true;
-        // Create a simple square texture with a border
         const dt = new BABYLON.DynamicTexture("squareTex", { width: 512, height: 512 }, scene);
         const ctx = dt.getContext();
         ctx.strokeStyle = `rgb(${config.colors.r}, ${config.colors.g}, ${config.colors.b})`;
@@ -46,14 +58,14 @@ const template = {
         blueSquare.position.z = 5;
         blueSquare.scaling.set(240, 240, 1);
 
-        // --- Hyper-Space Background (Math Driven) ---
+        // --- Hyper-Space Background ---
         hyperSpace = new BABYLON.SolidParticleSystem("hyperSpace", scene);
         const lineShape = BABYLON.MeshBuilder.CreateBox("l", { width: 0.2, height: 0.2, depth: 50 }, scene);
         hyperSpace.addShape(lineShape, 800);
         lineShape.dispose();
         const hyperMesh = hyperSpace.buildMesh();
         hyperMesh.material = new BABYLON.StandardMaterial("hyperMat", scene);
-        hyperMesh.material.emissiveColor = accent;
+        hyperMesh.material.emissiveColor.copyFrom(_accentColor);
         hyperMesh.material.disableLighting = true;
 
         hyperSpace.initParticles = () => {
@@ -65,16 +77,14 @@ const template = {
         hyperSpace.initParticles();
         hyperSpace.setParticles();
 
-        // --- High-Density Spectrum ---
+        // --- Spectrum Bars ---
         bars = [];
         barsInner = [];
         const barCount = 256; 
         const radius = 225;
-        
         const barMat = new BABYLON.StandardMaterial("barMat", scene);
-        barMat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+        barMat.emissiveColor.set(1, 1, 1);
         barMat.disableLighting = true;
-
         const baseBar = BABYLON.MeshBuilder.CreatePlane("baseBar", { width: 1.5, height: 1 }, scene);
         baseBar.material = barMat;
         baseBar.isVisible = false;
@@ -103,7 +113,7 @@ const template = {
         poly.dispose();
         const partMesh = particles.buildMesh();
         partMesh.material = new BABYLON.StandardMaterial("partMat", scene);
-        partMesh.material.emissiveColor = new BABYLON.Color3(1, 1, 1);
+        partMesh.material.emissiveColor.set(1, 1, 1);
         partMesh.material.disableLighting = true;
 
         particles.initParticles = () => {
@@ -138,52 +148,53 @@ const template = {
     },
 
     render(fft, config) {
+        if (!fft) fft = new Uint8Array(256).fill(0);
         t += 0.01;
         let bass = 0;
-        for (let i = 0; i < 6; i++) bass += fft[i];
-        bass = (bass / 6) / 255;
+        const bassEnd = Math.min(fft.length, 6);
+        for (let i = 0; i < bassEnd; i++) bass += fft[i];
+        bass = (bass / bassEnd) / 255;
 
         let treble = 0;
-        for (let i = fft.length - 20; i < fft.length; i++) treble += fft[i];
+        const trebleStart = Math.max(0, fft.length - 20);
+        for (let i = trebleStart; i < fft.length; i++) treble += fft[i];
         treble = (treble / 20) / 255;
 
         PLANE.render(fft, config);
 
-        let primary, accent;
         if (config.dynamicColors) {
             const baseHue = (t * 0.15) % 1; 
             const pRGB = this.hslToRgb(baseHue, 0.85, 0.4 + bass * 0.3);
             const aRGB = this.hslToRgb((baseHue + 0.3) % 1, 0.9, 0.5 + treble * 0.3);
-            primary = new BABYLON.Color3(pRGB.r, pRGB.g, pRGB.b);
-            accent = new BABYLON.Color3(aRGB.r, aRGB.g, aRGB.b);
+            _primaryColor.set(pRGB.r, pRGB.g, pRGB.b);
+            _accentColor.set(aRGB.r, aRGB.g, aRGB.b);
         } else {
-            primary = new BABYLON.Color3(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
-            accent = new BABYLON.Color3(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+            _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
+            _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
         }
 
-        // --- Blue Square Pulse ---
         if (blueSquare) {
             const squareScale = 240 + bass * 120;
             blueSquare.scaling.set(squareScale, squareScale, 1);
             blueSquare.rotation.z += 0.01 + bass * 0.05;
-            blueSquare.material.emissiveColor = primary;
+            blueSquare.material.emissiveColor.copyFrom(_primaryColor);
         }
 
-        // --- Update Hyper-Space ---
         if (hyperSpace) {
+            const boost = 1 + bass * 5;
             for (let p = 0; p < hyperSpace.nbParticles; p++) {
                 const particle = hyperSpace.particles[p];
-                particle.position.z -= particle.velocity * (1 + bass * 5);
+                particle.position.z -= particle.velocity * boost;
                 if (particle.position.z < -500) this.resetHyperParticle(particle);
             }
             hyperSpace.setParticles();
-            hyperSpace.mesh.material.emissiveColor = accent;
+            hyperSpace.mesh.material.emissiveColor.copyFrom(_accentColor);
         }
 
-        // --- Symmetrical Spectrum ---
-        const half = bars.length / 2;
-        for (let i = 0; i < bars.length; i++) {
-            const index = i < half ? i : bars.length - i;
+        const barLen = bars.length;
+        const half = barLen / 2;
+        for (let i = 0; i < barLen; i++) {
+            const index = i < half ? i : barLen - i;
             const fftVal = fft[Math.floor((index / half) * 120)] || 0;
             const targetScale = 2 + (fftVal / 255) * 300;
             bars[i].scaling.y += (targetScale - bars[i].scaling.y) * 0.5;
@@ -192,24 +203,29 @@ const template = {
             barsInner[i].scaling.y += (1 + (innerVal / 255) * 50 - barsInner[i].scaling.y) * 0.3;
         }
 
-        // --- Camera & Effects ---
-        const cam = sceneRef.activeCamera;
-        if (cam) {
-            const targetRadius = 550 - bass * 150;
-            cam.radius += (targetRadius - cam.radius) * 0.4;
-            if (bass > 0.8) {
-                cam.position.x += (Math.random() - 0.5) * 20;
-                cam.position.y += (Math.random() - 0.5) * 20;
+        if (currentCamera) {
+            currentCamera.setTarget(BABYLON.Vector3.Zero());
+            
+            if (config.options && config.options.camera && config.options.camera.move) {
+                const orbitRadius = 20 * bass;
+                const orbitSpeed = t * 0.2;
+                currentCamera.position.x = Math.cos(orbitSpeed) * orbitRadius;
+                currentCamera.position.y = Math.sin(orbitSpeed) * orbitRadius;
+                
+                if (bass > 0.85) {
+                    currentCamera.position.addInPlace(new BABYLON.Vector3((Math.random()-0.5)*10, (Math.random()-0.5)*10, 0));
+                }
             } else {
-                cam.position.x *= 0.85; cam.position.y *= 0.85;
+                currentCamera.position.x = 0;
+                currentCamera.position.y = 0;
             }
         }
 
-        // --- Update Dust ---
         if (particles) {
+            const boost = 1 + bass * 10;
             for (let p = 0; p < particles.nbParticles; p++) {
                 const particle = particles.particles[p];
-                particle.position.z -= particle.velocity * (1 + bass * 10);
+                particle.position.z -= particle.velocity * boost;
                 if (particle.position.z < -200) this.resetDustParticle(particle);
             }
             particles.setParticles();
@@ -220,12 +236,9 @@ const template = {
 
     hslToRgb(h, s, l) {
         let r, g, b;
-        if (s === 0) {
-            r = g = b = l;
-        } else {
+        if (s === 0) { r = g = b = l; } else {
             const hue2rgb = (p, q, t) => {
-                if (t < 0) t += 1;
-                if (t > 1) t -= 1;
+                if (t < 0) t += 1; if (t > 1) t -= 1;
                 if (t < 1 / 6) return p + (q - p) * 6 * t;
                 if (t < 1 / 2) return q;
                 if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
@@ -233,11 +246,16 @@ const template = {
             };
             const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
             const p = 2 * l - q;
-            r = hue2rgb(p, q, h + 1 / 3);
-            g = hue2rgb(p, q, h);
-            b = hue2rgb(p, q, h - 1 / 3);
+            r = hue2rgb(p, q, h + 1 / 3); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1 / 3);
         }
         return { r, g, b };
+    },
+
+    dispose() {
+        currentCamera = null;
+        sceneRef = null;
+        bars = [];
+        barsInner = [];
     }
 };
 

@@ -3,11 +3,9 @@ let mediaRecorder;
 let recordedBlobs;
 
 function handleDataAvailable(event) {
-  console.error("handleDataAvailable TRIGGERED! Size:", event.data ? event.data.size : "NO DATA");
   if (event.data && event.data.size > 0) {
     recordedBlobs.push(event.data);
   }
-  console.error("recordedBlobs array length is now:", recordedBlobs.length);
 }
 
 const recording = {
@@ -18,7 +16,6 @@ const recording = {
   },
   record: async function (videoStream, audioStream, bitrate) {
     recordedBlobs = [];
-    debugger;
     const supportedTypes = [
       { mimeType: "video/mp4", extension: "mp4" },
       { mimeType: "video/webm;codecs=h264", extension: "webm" },

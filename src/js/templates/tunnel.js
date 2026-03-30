@@ -1,5 +1,6 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
+import CAMERA_PHYSICS from "@/js/templates/components/camera";
 
 let t = 0;
 let piles = [];
@@ -7,10 +8,22 @@ let sceneRef;
 let tunnelGroup;
 let starField;
 let energyLines = [];
+let currentCamera;
+
+// Pre-allocated for performance
+const _primaryColor = new BABYLON.Color3();
+const _accentColor = new BABYLON.Color3();
+const _tempVec3 = new BABYLON.Vector3();
 
 const template = {
     init(camera, renderer, nb, scene, width, height, depth, config) {
         sceneRef = scene;
+        currentCamera = camera;
+        t = 0;
+        
+        // EXCLUSIVELY claim the camera to prevent orbit logic from crashing it
+        CAMERA_PHYSICS.lock();
+
         scene.clearColor = new BABYLON.Color4(0, 0, 0.02, 1);
         
         // --- Fog for Depth ---
@@ -18,12 +31,14 @@ const template = {
         scene.fogDensity = 0.0012;
         scene.fogColor = new BABYLON.Color3(0, 0, 0.05);
 
-        const primary = new BABYLON.Color3(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
-        const accent = new BABYLON.Color3(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
+        _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
 
-        // --- Camera ---
-        camera.setPosition(new BABYLON.Vector3(0, 0, -200));
-        camera.setTarget(new BABYLON.Vector3(0, 0, 1000));
+        // --- Camera Setup ---
+        if (camera) {
+            camera.setTarget(new BABYLON.Vector3(0, 0, 400));
+            camera.setPosition(new BABYLON.Vector3(0, 0, -200));
+        }
 
         // --- Logo ---
         PLANE.setScale(120, 120);
@@ -69,7 +84,7 @@ const template = {
                 }
 
                 const mat = new BABYLON.StandardMaterial(`pileMat_${i}_${j}`, scene);
-                mat.emissiveColor = primary.clone();
+                mat.emissiveColor = _primaryColor.clone();
                 mat.disableLighting = true;
                 pile.material = mat;
                 pile.parent = tunnelGroup;
@@ -97,7 +112,7 @@ const template = {
             if(i === 3) line.position.set(-offset, -offset, 1500);
             
             const lineMat = new BABYLON.StandardMaterial(`lineMat_${i}`, scene);
-            lineMat.emissiveColor = accent;
+            lineMat.emissiveColor.copyFrom(_accentColor);
             lineMat.disableLighting = true;
             line.material = lineMat;
             line.renderingGroupId = 0;
@@ -111,7 +126,7 @@ const template = {
         p.dispose();
         const starMesh = starField.buildMesh();
         starMesh.material = new BABYLON.StandardMaterial("starMat", scene);
-        starMesh.material.emissiveColor = accent;
+        starMesh.material.emissiveColor.copyFrom(_accentColor);
         starMesh.material.disableLighting = true;
         starMesh.renderingGroupId = 0;
 
@@ -140,7 +155,8 @@ const template = {
     },
 
     render(fft, config) {
-        t += 0.02;
+        if (!fft) fft = new Uint8Array(256).fill(0);
+        t += 0.01; 
         
         let bass = 0;
         for (let i = 0; i < 10; i++) bass += fft[i];
@@ -156,54 +172,44 @@ const template = {
 
         PLANE.render(fft, config);
 
-        const primary = config.dynamicColors ? 
-            new BABYLON.Color3(bass, mid * 0.3, 1 - bass) : 
-            new BABYLON.Color3(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
-        
-        const accent = config.dynamicColors ? 
-            new BABYLON.Color3(1 - treble, 0.5, treble) : 
-            new BABYLON.Color3(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        if (config.dynamicColors) {
+            _primaryColor.set(bass, mid * 0.3, 1 - bass);
+            _accentColor.set(1 - treble, 0.5, treble);
+        } else {
+            _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
+            _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        }
 
         // --- Tunnel Animation ---
         const tunnelSpeed = 8 * (1 + bass * 4);
         piles.forEach((p) => {
             p.mesh.position.z -= tunnelSpeed;
-            
-            if (p.mesh.position.z < -300) {
-                p.mesh.position.z += 25 * 80;
-            }
+            if (p.mesh.position.z < -300) p.mesh.position.z += 25 * 80;
 
-            // Audio-reactive coloring
             const freqVal = fft[p.index * 4 % fft.length] / 255;
             const intensity = 0.3 + freqVal * 1.5;
-            p.mesh.material.emissiveColor.set(
-                primary.r * intensity,
-                primary.g * intensity,
-                primary.b * intensity
-            );
+            p.mesh.material.emissiveColor.set(_primaryColor.r * intensity, _primaryColor.g * intensity, _primaryColor.b * intensity);
 
-            // Reactive scaling (piles grow inwards)
             const scale = 1 + freqVal * 4 * (1 + bass);
             if (p.side === 0) { // Top
                 p.mesh.scaling.y = scale;
-                p.mesh.position.y = (500/2) - (scale * 7.5) + 7.5;
+                p.mesh.position.y = 250 - (scale * 7.5) + 7.5;
             } else if (p.side === 1) { // Bottom
                 p.mesh.scaling.y = scale;
-                p.mesh.position.y = (-500/2) + (scale * 7.5) - 7.5;
+                p.mesh.position.y = -250 + (scale * 7.5) - 7.5;
             } else if (p.side === 2) { // Left
                 p.mesh.scaling.x = scale;
-                p.mesh.position.x = (-500/2) + (scale * 7.5) - 7.5;
+                p.mesh.position.x = -250 + (scale * 7.5) - 7.5;
             } else if (p.side === 3) { // Right
                 p.mesh.scaling.x = scale;
-                p.mesh.position.x = (500/2) - (scale * 7.5) + 7.5;
+                p.mesh.position.x = 250 - (scale * 7.5) + 7.5;
             }
         });
 
         // --- Energy Lines ---
         energyLines.forEach(line => {
-            line.material.emissiveColor = accent;
-            line.scaling.x = 1 + bass * 2;
-            line.scaling.y = 1 + bass * 2;
+            line.material.emissiveColor.copyFrom(_accentColor);
+            line.scaling.set(1 + bass * 2, 1 + bass * 2, 1);
         });
 
         // --- Stars ---
@@ -214,17 +220,38 @@ const template = {
                 if (part.position.z < -300) this.resetStar(part);
             }
             starField.setParticles();
-            starField.mesh.material.emissiveColor = accent;
+            starField.mesh.material.emissiveColor.copyFrom(_accentColor);
         }
 
-        // --- Camera Dynamics ---
-        const cam = sceneRef.activeCamera;
-        if (cam) {
-            cam.position.x = Math.sin(t * 0.4) * 30 * bass;
-            cam.position.y = Math.cos(t * 0.4) * 30 * bass;
-            cam.rotation.z = Math.sin(t * 0.15) * 0.15;
-            cam.fov = 0.8 + bass * 0.2;
+        // --- CUSTOM TUNNEL CAMERA MOTION ---
+        if (currentCamera) {
+            // Look at the centered plane
+            currentCamera.setTarget(new BABYLON.Vector3(0, 0, 400));
+
+            if (config.options && config.options.camera && config.options.camera.move) {
+                const orbitRadius = 80 + (bass * 40); // Pulse radius with bass
+                const orbitSpeed = t * 0.5; // Constant slow rotation
+                
+                _tempVec3.set(Math.cos(orbitSpeed) * orbitRadius, Math.sin(orbitSpeed) * orbitRadius, -200);
+                currentCamera.setPosition(_tempVec3);
+                
+                // Add a slight "banking" roll
+                currentCamera.rotation.z = -orbitSpeed * 0.5;
+            } else {
+                _tempVec3.set(0, 0, -200);
+                currentCamera.setPosition(_tempVec3);
+                currentCamera.rotation.z = 0;
+            }
+            
+            currentCamera.fov = 0.8 + bass * 0.15;
         }
+    },
+
+    dispose() {
+        currentCamera = null;
+        sceneRef = null;
+        piles = [];
+        energyLines = [];
     }
 };
 
