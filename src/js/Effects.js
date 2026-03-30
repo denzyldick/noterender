@@ -46,36 +46,65 @@ class EffectsManager {
     }
 
     initSmoke() {
-        const smokeSystem = new BABYLON.ParticleSystem("smoke", 2000, this.scene);
+        const smokeSystem = new BABYLON.ParticleSystem("smoke", 1500, this.scene);
         smokeSystem.particleTexture = new BABYLON.Texture("/img/templates/Smoke30Frames.png", this.scene);
-        smokeSystem.emitter = new BABYLON.Vector3(0, -250, 0);
-        smokeSystem.minEmitBox = new BABYLON.Vector3(-500, 0, -500);
-        smokeSystem.maxEmitBox = new BABYLON.Vector3(500, 0, 500);
+        
+        // Use STANDARD for more solid visibility against dark backgrounds
+        smokeSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_STANDARD;
+        
+        smokeSystem.isAnimationSheetEnabled = true;
+        smokeSystem.startSpriteCellID = 0;
+        smokeSystem.endSpriteCellID = 29;
+        smokeSystem.spriteCellWidth = 128;
+        smokeSystem.spriteCellHeight = 128;
+        smokeSystem.spriteCellChangeSpeed = 0.8;
 
-        smokeSystem.color1 = new BABYLON.Color4(0.1, 0.1, 0.1, 0.5);
-        smokeSystem.color2 = new BABYLON.Color4(0.2, 0.2, 0.2, 0.2);
-        smokeSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0);
+        smokeSystem.emitter = new BABYLON.Vector3(0, -200, 0);
+        smokeSystem.minEmitBox = new BABYLON.Vector3(-1000, 0, -800);
+        smokeSystem.maxEmitBox = new BABYLON.Vector3(1000, 0, 800);
 
-        smokeSystem.minSize = 50;
-        smokeSystem.maxSize = 200;
-        smokeSystem.minLifeTime = 2;
-        smokeSystem.maxLifeTime = 5;
-        smokeSystem.emitRate = 100;
-        smokeSystem.gravity = new BABYLON.Vector3(0, 10, 0);
-        smokeSystem.direction1 = new BABYLON.Vector3(-1, 1, -1);
-        smokeSystem.direction2 = new BABYLON.Vector3(1, 1, 1);
-        smokeSystem.minEmitPower = 1;
-        smokeSystem.maxEmitPower = 3;
-        smokeSystem.updateSpeed = 0.01;
+        // Size: Start visible, grow, then stay large
+        smokeSystem.addSizeGradient(0, 150, 200);
+        smokeSystem.addSizeGradient(0.5, 350, 500);
+        smokeSystem.addSizeGradient(1.0, 400, 600);
+
+        smokeSystem.addVelocityGradient(0, 0.8, 1.2);
+        smokeSystem.addVelocityGradient(1, 0.2, 0.4);
+
+        smokeSystem.minAngularSpeed = -0.3;
+        smokeSystem.maxAngularSpeed = 0.3;
+        smokeSystem.minInitialRotation = 0;
+        smokeSystem.maxInitialRotation = Math.PI * 2;
+
+        smokeSystem.minLifeTime = 5;
+        smokeSystem.maxLifeTime = 10;
+        smokeSystem.emitRate = 80; 
+        
+        smokeSystem.gravity = new BABYLON.Vector3(0, 3, 0);
+        smokeSystem.direction1 = new BABYLON.Vector3(-0.2, 1, -0.2);
+        smokeSystem.direction2 = new BABYLON.Vector3(0.2, 1, 0.2);
+        
+        smokeSystem.minEmitPower = 0.3;
+        smokeSystem.maxEmitPower = 1.0;
+        smokeSystem.updateSpeed = 0.008;
 
         return smokeSystem;
     }
 
     renderSmoke(bass, treble, config) {
         const system = this.systems.smoke;
-        system.emitRate = 50 + bass * 500;
+        system.emitRate = 60 + bass * 200;
+        
         const color = config.colors;
-        system.color1 = new BABYLON.Color4(color.r/255, color.g/255, color.b/255, 0.1 + bass * 0.3);
+        const primary = new BABYLON.Color3(color.r/255, color.g/255, color.b/255);
+        
+        // Increased opacity for clear visibility
+        const peakOpacity = 0.12 + bass * 0.25;
+        
+        system.addColorGradient(0, new BABYLON.Color4(primary.r, primary.g, primary.b, 0));
+        system.addColorGradient(0.2, new BABYLON.Color4(primary.r, primary.g, primary.b, peakOpacity));
+        system.addColorGradient(0.8, new BABYLON.Color4(primary.r * 0.5, primary.g * 0.5, primary.b * 0.5, peakOpacity * 0.4));
+        system.addColorGradient(1.0, new BABYLON.Color4(0, 0, 0, 0));
     }
 
     initThunder() {

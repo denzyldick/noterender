@@ -41,6 +41,9 @@ class Audio {
       this.analyzer.connect(this.context.destination);
       this.initialized = true;
     }
+    if (this.context && this.context.state === "suspended") {
+      this.context.resume();
+    }
   }
 
   async useMicrophone() {

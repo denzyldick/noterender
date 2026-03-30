@@ -154,7 +154,7 @@ const template = {
         for (let i = fft.length - 30; i < fft.length; i++) treble += fft[i];
         treble = (treble / 30) / 255;
 
-        PLANE.render(fft);
+        PLANE.render(fft, config);
 
         const primary = config.dynamicColors ? 
             new BABYLON.Color3(bass, mid * 0.3, 1 - bass) : 

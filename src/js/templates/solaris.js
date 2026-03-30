@@ -82,7 +82,7 @@ const template = {
         for (let i = fft.length - 20; i < fft.length; i++) treble += fft[i];
         treble = (treble / 20) / 255;
 
-        PLANE.render(fft);
+        PLANE.render(fft, config);
 
         let primary, accent;
         if (config.dynamicColors) {

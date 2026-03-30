@@ -195,7 +195,7 @@ const template = {
 
     render(fft, config) {
         t += 0.012;
-        PLANE.render(fft);
+        PLANE.render(fft, config);
 
         const boost = config.sensitivity ? config.sensitivity.bassBoost : 1.0;
 

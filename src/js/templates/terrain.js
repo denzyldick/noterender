@@ -20,8 +20,8 @@ const template = {
         scene.fogColor = new BABYLON.Color3(0.1, 0, 0.2);
 
         // --- Logo ---
-        PLANE.setScale(40, 40);
-        PLANE.setCoordinates(0, 25, 40);
+        PLANE.setScale(80, 80);
+        PLANE.setCoordinates(0, 70, 40);
         PLANE.init(scene, config);
 
         // --- Digital Aurora Background ---
@@ -47,6 +47,7 @@ const template = {
 
         // --- Giant Retro Sun ---
         sun = BABYLON.MeshBuilder.CreateDisc("sun", { radius: 120, tessellation: 64 }, scene);
+        sun.isVisible = false; 
         sun.position.z = 600;
         sun.position.y = 100;
         sunMat = new BABYLON.StandardMaterial("sunMat", scene);
@@ -55,11 +56,11 @@ const template = {
         sun.material = sunMat;
 
         // --- Camera ---
-        camera.setPosition(new BABYLON.Vector3(0, 35, -150));
-        camera.setTarget(new BABYLON.Vector3(0, 10, 50));
+        camera.setPosition(new BABYLON.Vector3(0, 60, -120));
+        camera.setTarget(new BABYLON.Vector3(0, 45, 50));
 
         // --- Moving Terrain ---
-        ground = BABYLON.MeshBuilder.CreateGround("g", { width: 1500, height: 1500, subdivisions: 64, updatable: true }, scene);
+        ground = BABYLON.MeshBuilder.CreateGround("g", { width: 3000, height: 3000, subdivisions: 256, updatable: true }, scene);
         const mat = new BABYLON.StandardMaterial("m", scene);
         mat.wireframe = true;
         mat.emissiveColor = primary;
@@ -68,22 +69,33 @@ const template = {
         if (!scene.glowLayer) new BABYLON.GlowLayer("glow", scene);
     },
 
+    getFFT(fft, idx) {
+        if (!fft || fft.length === 0) return 0;
+        const i = Math.min(Math.floor(idx), fft.length - 1);
+        return fft[i] || 0;
+    },
+
     render(fft, config) {
+        if (!fft) fft = new Uint8Array(256).fill(0);
         t += 0.005;
-        PLANE.render(fft);
+        PLANE.render(fft, config);
 
         let bass = 0;
-        for (let i = 0; i < 10; i++) bass += fft[i];
+        for (let i = 0; i < 10; i++) bass += this.getFFT(fft, i);
         bass = (bass / 10) / 255;
 
         let treble = 0;
-        for (let i = fft.length - 20; i < fft.length; i++) treble += fft[i];
+        const tStart = fft.length - 20;
+        for (let i = 0; i < 20; i++) treble += this.getFFT(fft, tStart + i);
         treble = (treble / 20) / 255;
 
         let primary, accent;
         if (config.dynamicColors) {
-            primary = new BABYLON.Color3(1 - bass, 0.4, bass);
-            accent = new BABYLON.Color3(0.3, treble, 1 - treble);
+            const baseHue = (t * 0.1) % 1; 
+            const pRGB = this.hslToRgb(baseHue, 0.8, 0.5 + bass * 0.2);
+            const aRGB = this.hslToRgb((baseHue + 0.4) % 1, 0.9, 0.4 + treble * 0.3);
+            primary = new BABYLON.Color3(pRGB.r, pRGB.g, pRGB.b);
+            accent = new BABYLON.Color3(aRGB.r, aRGB.g, aRGB.b);
         } else {
             primary = new BABYLON.Color3(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
             accent = new BABYLON.Color3(config.light.r / 255, config.light.g / 255, config.light.b / 255);
@@ -107,17 +119,51 @@ const template = {
 
         const positions = ground.getVerticesData(BABYLON.VertexBuffer.PositionKind);
         for (let i = 0; i < positions.length; i += 3) {
-            const x = positions[i];
-            const z = positions[i + 2];
-            const zMod = (z + t * 500) % 1500 - 750;
-            let y = Math.sin(x * 0.02) * Math.cos(zMod * 0.02) * 40;
-            const musicImpact = (fft[i % 64] / 255) * 60;
-            y += musicImpact;
-            if (y > 20) y += bass * 30;
+            const xVal = positions[i];
+            const zVal = positions[i + 2];
+            const zMod = (zVal + t * 400) % 3000 - 1500;
+            
+            let fftIndex = 0;
+            let waveFreq = 0.02;
+            let waveSpeed = 2;
+            let baseAmp = 40;
+
+            if (xVal < -400) {
+                fftIndex = Math.floor(Math.abs(xVal / 100)) % 15; 
+                waveFreq = 0.012; waveSpeed = 1.2; baseAmp = 55;
+            } else if (xVal > 400) {
+                fftIndex = 80 + (Math.floor(Math.abs(xVal / 20)) % 40);
+                waveFreq = 0.06; waveSpeed = 4; baseAmp = 25;
+            } else {
+                fftIndex = 20 + (Math.floor(Math.abs(xVal / 40)) % 50);
+                waveFreq = 0.03; waveSpeed = 2.5; baseAmp = 38;
+            }
+            
+            const amplitude = this.getFFT(fft, fftIndex) / 255;
+            let y = Math.sin(xVal * waveFreq + t * waveSpeed) * Math.cos(zMod * waveFreq) * amplitude * baseAmp;
+            y += bass * 15;
+            y = Math.min(y, 45);
             positions[i + 1] = y;
         }
         ground.updateVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
         ground.material.emissiveColor.set(primary.r * (0.5+bass), primary.g * (0.5+bass), primary.b * (0.5+bass));
+    },
+
+    hslToRgb(h, s, l) {
+        let r, g, b;
+        if (s === 0) { r = g = b = l; } else {
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1; if (t > 1) t -= 1;
+                if (t < 1 / 6) return p + (q - p) * 6 * t;
+                if (t < 1 / 2) return q;
+                if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                return p;
+            };
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1 / 3); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1 / 3);
+        }
+        return { r, g, b };
     }
 };
 

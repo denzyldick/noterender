@@ -115,24 +115,6 @@ const template = {
         particles.initParticles();
         particles.setParticles();
 
-        // --- Center Glow ---
-        flare = BABYLON.MeshBuilder.CreatePlane("flare", { size: 800 }, scene);
-        const flareMat = new BABYLON.StandardMaterial("flareMat", scene);
-        flareMat.emissiveColor = accent;
-        // Create procedural glow texture instead of missing simple.png
-        const glowTex = new BABYLON.DynamicTexture("glowTex", 512, scene);
-        const glowCtx = glowTex.getContext();
-        const grad = glowCtx.createRadialGradient(256, 256, 0, 256, 256, 256);
-        grad.addColorStop(0, "white");
-        grad.addColorStop(1, "transparent");
-        glowCtx.fillStyle = grad;
-        glowCtx.fillRect(0, 0, 512, 512);
-        glowTex.update();
-        flareMat.opacityTexture = glowTex;
-        flareMat.disableLighting = true;
-        flare.material = flareMat;
-        flare.position.z = 20;
-
         if (!scene.glowLayer) {
             glowLayer = new BABYLON.GlowLayer("glow", scene);
             glowLayer.blurKernelSize = 48;
@@ -165,12 +147,15 @@ const template = {
         for (let i = fft.length - 20; i < fft.length; i++) treble += fft[i];
         treble = (treble / 20) / 255;
 
-        PLANE.render(fft);
+        PLANE.render(fft, config);
 
         let primary, accent;
         if (config.dynamicColors) {
-            primary = new BABYLON.Color3(bass, 0.5, 1 - bass);
-            accent = new BABYLON.Color3(1 - treble, treble, 0.5 + treble * 0.5);
+            const baseHue = (t * 0.15) % 1; 
+            const pRGB = this.hslToRgb(baseHue, 0.85, 0.4 + bass * 0.3);
+            const aRGB = this.hslToRgb((baseHue + 0.3) % 1, 0.9, 0.5 + treble * 0.3);
+            primary = new BABYLON.Color3(pRGB.r, pRGB.g, pRGB.b);
+            accent = new BABYLON.Color3(aRGB.r, aRGB.g, aRGB.b);
         } else {
             primary = new BABYLON.Color3(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
             accent = new BABYLON.Color3(config.light.r / 255, config.light.g / 255, config.light.b / 255);
@@ -220,11 +205,6 @@ const template = {
             }
         }
 
-        if (flare) {
-            flare.scaling.setAll(1.0 + bass * 0.4);
-            flare.material.emissiveColor.set(accent.r * (0.5 + bass), accent.g * (0.5 + bass), accent.b * (0.5 + bass));
-        }
-
         // --- Update Dust ---
         if (particles) {
             for (let p = 0; p < particles.nbParticles; p++) {
@@ -236,6 +216,28 @@ const template = {
         }
 
         if (glowLayer) glowLayer.intensity = 0.8 + bass * 2.0;
+    },
+
+    hslToRgb(h, s, l) {
+        let r, g, b;
+        if (s === 0) {
+            r = g = b = l;
+        } else {
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1 / 6) return p + (q - p) * 6 * t;
+                if (t < 1 / 2) return q;
+                if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                return p;
+            };
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1 / 3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1 / 3);
+        }
+        return { r, g, b };
     }
 };
 

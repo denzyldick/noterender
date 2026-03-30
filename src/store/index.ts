@@ -6,7 +6,7 @@ Vue.use(Vuex);
 //Socket.start();
 export default new Vuex.Store({
   state: {
-    template: "city",
+    template: "terrain",
     templates: [
       {
         name: "trap",
@@ -68,30 +68,35 @@ export default new Vuex.Store({
     ],
     sizes: [
       {
-        name: "Story",
-        size: {
-          x: 1080,
-          y: 1920,
-        },
+        name: "Auto",
+        size: { x: null, y: null },
       },
       {
-        name: "Post",
-        size: {
-          x: 1080,
-          y: 1080,
-        },
+        name: "YouTube / Desktop (16:9)",
+        size: { x: 1920, y: 1080 },
       },
       {
-        name: "Custom",
-        size: {
-          x: null,
-          y: null,
-        },
+        name: "Instagram Post (1:1)",
+        size: { x: 1080, y: 1080 },
+      },
+      {
+        name: "TikTok / Story / Reel (9:16)",
+        size: { x: 1080, y: 1920 },
+      },
+      {
+        name: "Instagram Portrait (4:5)",
+        size: { x: 1080, y: 1350 },
+      },
+      {
+        name: "Twitter / Landscape (16:9)",
+        size: { x: 1280, y: 720 },
       },
     ],
+    selectedSize: "Auto",
+    logoStyle: "Liquid",
     file: "/default_audio.mp3",
-    title: "Noterender.io",
-    subtitle: "Visualizing the Beat",
+    title: "Noterender",
+    subtitle: "Elevate Your Sound",
     microphone: false,
     emblem: "/img/logo.png",
     colors: {
@@ -104,7 +109,7 @@ export default new Vuex.Store({
       g: 229,
       b: 255,
     },
-    dynamicColors: false,
+    dynamicColors: true,
     options: {
       emblem: {
         x: 500,
@@ -124,7 +129,7 @@ export default new Vuex.Store({
     visualizer: true,
     dialog: true,
     recording: false,
-    activeEffects: [],
+    activeEffects: ["smoke", "thunder", "birds"],
     soundFile: null,
     highQuality: false,
     removeWatermark: false,
@@ -134,6 +139,12 @@ export default new Vuex.Store({
     },
   },
   mutations: {
+    setLogoStyle: function (state, style) {
+      state.logoStyle = style;
+    },
+    setSize: function (state, sizeName) {
+      state.selectedSize = sizeName;
+    },
     setSensitivity: function (state, sensitivity) {
       state.sensitivity = { ...state.sensitivity, ...sensitivity };
     },
@@ -320,6 +331,12 @@ export default new Vuex.Store({
     },
     setSensitivity: function (context, sensitivity) {
       context.commit("setSensitivity", sensitivity);
+    },
+    setSize: function (context, sizeName) {
+      context.commit("setSize", sizeName);
+    },
+    setLogoStyle: function (context, style) {
+      context.commit("setLogoStyle", style);
     },
     applySensitivityPreset: function (context, presetName) {
       const presets = {

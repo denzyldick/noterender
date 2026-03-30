@@ -90,7 +90,7 @@ const template = {
 
     render(fft, config) {
         t += 0.01;
-        PLANE.render(fft);
+        PLANE.render(fft, config);
         CAMERA.render(fft[0]);
 
         let bass = 0;

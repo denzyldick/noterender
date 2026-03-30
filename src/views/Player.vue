@@ -13,6 +13,7 @@
       color="rgba(10, 10, 10, 0.95)"
       class="studio-sidebar no-scrollbar"
       floating
+      disable-resize-watcher
       style="backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.05)"
     >
       <div class="d-flex flex-column fill-height">
@@ -36,6 +37,7 @@
           hide-slider
         >
           <div class="tabs-scroll-area no-scrollbar">
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-aspect-ratio</v-icon><span class="tab-text ml-2">Canvas</span></v-tab>
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-palette-swatch</v-icon><span class="tab-text ml-2">Style</span></v-tab>
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-sine-wave</v-icon><span class="tab-text ml-2">Sound</span></v-tab>
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-video-3d</v-icon><span class="tab-text ml-2">Camera</span></v-tab>
@@ -45,6 +47,25 @@
           </div>
 
           <v-tabs-items v-model="activeTab" class="transparent-bg studio-tab-content no-scrollbar">
+            <!-- Canvas -->
+            <v-tab-item>
+              <div class="pa-6">
+                <div class="text-overline mb-4 primary--text">Dimensions</div>
+                <v-list dark dense flat class="transparent">
+                  <v-list-item-group v-model="selectedSize" color="primary">
+                    <v-list-item v-for="s in sizes" :key="s.name" :value="s.name" @click="setSize(s.name)">
+                      <v-list-item-icon><v-icon>{{ s.name === 'Auto' ? 'mdi-auto-fix' : 'mdi-crop-free' }}</v-icon></v-list-item-icon>
+                      <v-list-item-content>
+                        <v-list-item-title>{{ s.name }}</v-list-item-title>
+                        <v-list-item-subtitle v-if="s.size.x">{{ s.size.x }} x {{ s.size.y }}</v-list-item-subtitle>
+                        <v-list-item-subtitle v-else>Adapts to screen</v-list-item-subtitle>
+                      </v-list-item-content>
+                    </v-list-item>
+                  </v-list-item-group>
+                </v-list>
+              </div>
+            </v-tab-item>
+
             <!-- Style -->
             <v-tab-item>
               <div class="pa-6">
@@ -155,6 +176,22 @@
                 <v-text-field v-model="title" label="Title Text" outlined dense @input="updateTitle" class="mb-2"></v-text-field>
                 <v-text-field v-model="subtitle" label="Subtitle" outlined dense @input="updateSubtitle" class="mb-6"></v-text-field>
                 
+                <div class="text-overline mb-4 primary--text">Visualizer Style</div>
+                <div class="d-flex flex-wrap mb-6" style="gap: 8px">
+                  <v-chip
+                    v-for="s in ['Liquid', 'None']"
+                    :key="s"
+                    small
+                    label
+                    :color="logoStyle === s ? 'primary' : ''"
+                    outlined
+                    @click="setLogoStyle(s)"
+                    class="preset-chip"
+                  >
+                    {{ s }}
+                  </v-chip>
+                </div>
+
                 <div class="text-overline mb-2 primary--text">Color Presets</div>
                 <div class="d-flex flex-wrap mb-6" style="gap: 8px">
                   <v-chip
@@ -258,7 +295,7 @@
       </div>
     </v-main>
 
-    <audio style="display: none" id="audio" :src="soundFile"></audio>
+    <audio style="display: none" id="audio" :src="soundFile" loop></audio>
 
     <PaywallModal v-model="showPaywall" />
   </v-app>
@@ -288,7 +325,7 @@ export default {
   components: { Templates, PaywallModal },
   data() {
     return {
-      drawer: null,
+      drawer: false,
       activeTab: 0,
       playing: true,
       audio: null,
@@ -330,6 +367,12 @@ export default {
     removeWatermark() { return this.isPro && this.$store.state.removeWatermark; },
     activeEffects() { return this.$store.state.activeEffects; },
     sensitivity() { return this.$store.state.sensitivity; },
+    sizes() { return this.$store.state.sizes; },
+    logoStyle() { return this.$store.state.logoStyle; },
+    selectedSize: {
+      get() { return this.$store.state.selectedSize; },
+      set(val) { this.$store.dispatch("setSize", val); }
+    },
     fftSmoothing: {
       get() { return this.sensitivity.fftSmoothing; },
       set(val) { this.$store.dispatch("setSensitivity", { fftSmoothing: val }); }
@@ -341,11 +384,13 @@ export default {
   },
   watch: {
     template() { this.reCreate(); },
+    logoStyle() { this.reCreate(); },
     emblem() { this.reCreate(); },
-    storeTitle(val) { TEXT.update(val, this.storeSubtitle); },
-    storeSubtitle(val) { TEXT.update(this.storeTitle, val); },
-    removeWatermark() { this.reCreate(); },
+    storeTitle(val) { TEXT.update(val, this.storeSubtitle, !this.removeWatermark); },
+    storeSubtitle(val) { TEXT.update(this.storeTitle, val, !this.removeWatermark); },
+    removeWatermark(val) { TEXT.update(this.storeTitle, this.storeSubtitle, !val); },
     activeEffects(val) { Effects.update(val); },
+    selectedSize() { this.resizeCanvas(); },
     "sensitivity.fftSmoothing"(val) {
       if (this.audio) {
         this.audio.setSmoothing(val);
@@ -367,6 +412,8 @@ export default {
     updateSubtitle(val) { this.$store.dispatch("changeSubtitle", val); },
     soundSelected(file) { if (file) this.$store.dispatch("setSound", file); },
     emblemSelected(file) { if (file) this.$store.dispatch("setEmblem", file); },
+    setSize(name) { this.selectedSize = name; },
+    setLogoStyle(style) { this.$store.dispatch("setLogoStyle", style); },
     
     applyPreset(preset) {
       this.$store.dispatch("applyPreset", preset);
@@ -398,6 +445,11 @@ export default {
     },
 
     togglePlayLocal() {
+      const audioEl = document.getElementById("audio");
+      if (audioEl && audioEl.muted) {
+        audioEl.muted = false;
+      }
+
       if (this.playing) {
         this.reCreate(); // Re-initialize disposed scene
         this.startVisualizer(false);
@@ -415,6 +467,11 @@ export default {
       if (this.isExporting) {
         this.stopVisualizer();
         return;
+      }
+
+      const audioEl = document.getElementById("audio");
+      if (audioEl && audioEl.muted) {
+        audioEl.muted = false;
       }
 
       if (!this.playing) {
@@ -485,11 +542,61 @@ export default {
       }, 500);
     },
 
+    resizeCanvas() {
+      if (!this.engine || !this.canvas) return;
+
+      const container = this.canvas.parentElement;
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+
+      let targetWidth = containerWidth;
+      let targetHeight = containerHeight;
+
+      let sizeConfig = this.sizes.find(s => s.name === this.selectedSize);
+
+      if (this.selectedSize === "Auto") {
+        const currentAspect = containerWidth / containerHeight;
+        let bestMatch = this.sizes[1]; // Use YouTube as default fallback
+        let minDiff = Infinity;
+
+        // Find closest aspect ratio among predefined sizes
+        for (let i = 1; i < this.sizes.length; i++) {
+          const s = this.sizes[i];
+          const aspect = s.size.x / s.size.y;
+          const diff = Math.abs(currentAspect - aspect);
+          if (diff < minDiff) {
+            minDiff = diff;
+            bestMatch = s;
+          }
+        }
+        sizeConfig = bestMatch;
+      }
+
+      if (sizeConfig && sizeConfig.size.x) {
+        const aspect = sizeConfig.size.x / sizeConfig.size.y;
+        if (containerWidth / containerHeight > aspect) {
+          targetHeight = containerHeight;
+          targetWidth = containerHeight * aspect;
+        } else {
+          targetWidth = containerWidth;
+          targetHeight = containerWidth / aspect;
+        }
+      }
+
+      this.canvas.style.width = `${targetWidth}px`;
+      this.canvas.style.height = `${targetHeight}px`;
+      
+      // Scale text based on current dimensions
+      TEXT.resize(targetWidth, targetHeight);
+      
+      this.engine.resize();
+    },
+
     async mountScene() {
       if (this.isMounting) return;
       this.isMounting = true;
       
-      if (!this.audio) this.audio = new audio(128);
+      if (!this.audio) this.audio = new audio(512);
       this.canvas = this.$refs.renderCanvas;
       if (!this.engine) {
           try {
@@ -506,23 +613,27 @@ export default {
               this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true });
           }
           this.engine.setHardwareScalingLevel(1 / (window.devicePixelRatio || 1));
-          window.addEventListener("resize", () => { if (this.engine) this.engine.resize(); });
+          window.addEventListener("resize", () => { this.resizeCanvas(); });
       }
-      this.createScene();
+      this.resizeCanvas();
+      await this.createScene();
       this.initTemplate(this.scene, this.config);
       this.engine.runRenderLoop(() => this.render());
       
       this.isMounting = false;
     },
 
-    createScene() {
+    async createScene() {
       this.scene = new BABYLON.Scene(this.engine);
       this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
       new BABYLON.PointLight("Omni", new BABYLON.Vector3(0, 0, 100), this.scene);
       this.scene.createDefaultLight();
       
       try {
-          TEXT.init(this.scene, this.config.title || "noterender", this.removeWatermark ? "" : (this.config.subtitle || "visualizer"));
+          const width = this.canvas ? this.canvas.width : 1080;
+          const height = this.canvas ? this.canvas.height : 1080;
+          await TEXT.init(this.scene, this.config.title || "noterender", this.config.subtitle || "visualizer", width, height);
+          TEXT.update(this.config.title || "noterender", this.config.subtitle || "visualizer", !this.removeWatermark);
       } catch (e) { console.error(e); }
 
       Effects.init(this.scene);
@@ -539,8 +650,10 @@ export default {
       
       const t = this.templates[this.template];
       if (t) {
+        const width = this.canvas ? this.canvas.width : 1080;
+        const height = this.canvas ? this.canvas.height : 1080;
         try {
-          t.init(this.camera, this.engine, 10, scene, 1080, 1080, 1080, config);
+          t.init(this.camera, this.engine, 10, scene, width, height, 1080, config);
         } catch (e) { 
           console.warn("Template init retry", e);
           t.init(scene, config); 
@@ -554,13 +667,19 @@ export default {
       if (!this.scene || !this.scene.activeCamera || !this.camera) return;
       
       this.scene.render();
-      const fft = this.audio ? this.audio.getFtt() : null;
-      if (fft) {
-        if (this.templates[this.template]) {
-          this.templates[this.template].render(fft, this.config);
-        }
-        Effects.render(fft, this.config);
+      
+      // Get FFT or fallback to empty array to keep animations (time 't') moving
+      let fft = this.audio ? this.audio.getFtt() : null;
+      if (!fft) {
+          fft = new Uint8Array(256).fill(0);
       }
+      
+      TEXT.render();
+
+      if (this.templates[this.template]) {
+        this.templates[this.template].render(fft, this.config);
+      }
+      Effects.render(fft, this.config);
     }
   },
   mounted() {
@@ -576,6 +695,17 @@ export default {
     this.mountScene();
     this.title = this.$store.state.title;
     this.subtitle = this.$store.state.subtitle;
+
+    // Play the audio muted in the background for a "wow" visual preview.
+    // The play button remains visible (playing=true) so the user can natively press "Play"
+    const audioEl = document.getElementById("audio");
+    if (audioEl) {
+      audioEl.muted = true;
+    }
+    if (this.audio) {
+      this.audio.nodes();
+      this.audio.play(() => {});
+    }
   }
 };
 </script>
@@ -613,13 +743,15 @@ export default {
   position: absolute;
   inset: 0;
   z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #050505;
 }
 
 #renderCanvas {
-  width: 100%;
-  height: 100%;
-  display: block;
   outline: none;
+  box-shadow: 0 0 100px rgba(0,0,0,0.5);
 }
 
 .studio-sidebar {
