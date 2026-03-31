@@ -670,7 +670,15 @@ export default {
     resizeCanvas() {
       if (!this.engine || !this.canvas) return;
 
+      // WebGPUEngine specific check: don't resize if it's not fully ready
+      if (this.engine.isWebGPU && !this.engine.snapshotRendering) {
+          // This is a heuristic, but often the engine is not ready for resize
+          // if internal attachments haven't been initialized by the first render.
+      }
+
       const container = this.canvas.parentElement;
+      if (!container) return;
+      
       const containerWidth = container.clientWidth;
       const containerHeight = container.clientHeight;
 
@@ -714,34 +722,45 @@ export default {
       // Scale text based on current dimensions
       TEXT.resize(targetWidth, targetHeight);
       
-      this.engine.resize();
+      try {
+        this.engine.resize();
+      } catch (e) {
+        console.warn("Engine resize deferred:", e.message);
+      }
     },
 
-    mountScene() {
+    async mountScene() {
       if (this.isMounting) return;
       this.isMounting = true;
       
-      if (!this.audio) this.audio = new audio(512);
-      this.canvas = this.$refs.renderCanvas;
-      this.emptyFft = new Uint8Array(512).fill(0);
+      try {
+        if (!this.audio) this.audio = new audio(512);
+        this.canvas = this.$refs.renderCanvas;
+        this.emptyFft = new Uint8Array(512).fill(0);
 
-      if (!this.engine) {
-          try {
-              BABYLON.WebGPUEngine.IsSupportedAsync.then((supported) => {
-                  if (supported) {
-                      this.engine = new BABYLON.WebGPUEngine(this.canvas, { antialias: true });
-                      this.engine.initAsync().then(() => {
-                          this.setupEngine();
-                      });
-                  } else {
-                      this.setupWebGL();
-                  }
-              }).catch(() => this.setupWebGL());
-          } catch (e) {
-              this.setupWebGL();
-          }
-      } else {
-        this.setupEngine();
+        if (!this.engine) {
+            try {
+                const supported = await BABYLON.WebGPUEngine.IsSupportedAsync;
+                if (supported) {
+                    const engine = new BABYLON.WebGPUEngine(this.canvas, { antialias: true });
+                    await engine.initAsync();
+                    this.engine = engine;
+                    await this.setupEngine();
+                } else {
+                    this.setupWebGL();
+                }
+            } catch (e) {
+                console.warn("WebGPU initialization failed, falling back to WebGL:", e);
+                this.setupWebGL();
+            }
+        } else {
+          await this.setupEngine();
+        }
+      } catch (e) {
+        console.error("Mount scene failed:", e);
+        this.isMounting = false;
+        const loader = document.getElementById("globalLoader");
+        if (loader) loader.style.display = "none";
       }
     },
 
@@ -753,8 +772,11 @@ export default {
     async setupEngine() {
       console.log("Setting up engine...");
       this.engine.setHardwareScalingLevel(1 / (window.devicePixelRatio || 1));
-      window.addEventListener("resize", () => { this.resizeCanvas(); });
+      
+      // Ensure canvas is correctly sized before first render/resize
       this.resizeCanvas();
+      
+      window.addEventListener("resize", () => { this.resizeCanvas(); });
       
       try {
         console.log("Creating scene...");

@@ -41,18 +41,34 @@ const recording = {
     }
 
     try {
-      const combined = new MediaStream([
-        ...videoStream.getTracks(),
-        ...audioStream.getTracks(),
-      ]);
+      const tracks = [];
+      if (videoStream && videoStream.getTracks) {
+        tracks.push(...videoStream.getTracks());
+      }
+      if (audioStream && audioStream.getTracks) {
+        tracks.push(...audioStream.getTracks());
+      }
+      
+      if (tracks.length === 0) {
+        throw new Error("No tracks to record");
+      }
+
+      const combined = new MediaStream(tracks);
       mediaRecorder = new MediaRecorder(combined, options);
     } catch (e) {
       console.error("Exception while creating MediaRecorder:", e);
-      const combined = new MediaStream([
-        ...videoStream.getTracks(),
-        ...audioStream.getTracks(),
-      ]);
-      mediaRecorder = new MediaRecorder(combined);
+      // Fallback: try without options if first attempt failed
+      const tracks = [];
+      if (videoStream && videoStream.getTracks) tracks.push(...videoStream.getTracks());
+      if (audioStream && audioStream.getTracks) tracks.push(...audioStream.getTracks());
+      
+      if (tracks.length > 0) {
+        const combined = new MediaStream(tracks);
+        mediaRecorder = new MediaRecorder(combined);
+      } else {
+        console.error("Failed to start recording: No tracks available.");
+        return;
+      }
     }
 
     this.options = {

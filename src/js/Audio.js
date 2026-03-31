@@ -20,7 +20,8 @@ class Audio {
 
   nodes() {
     if (this.initialized === false) {
-      this.context = new AudioContext();
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      this.context = new AudioContextClass();
       const elementsByTagNameElement =
         document.getElementsByTagName("audio")[0];
       this.audioElement = elementsByTagNameElement;
@@ -47,7 +48,8 @@ class Audio {
   }
 
   async useMicrophone() {
-    this.context = new AudioContext();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    this.context = new AudioContextClass();
     this.analyzer = this.context.createAnalyser();
     this.analyzer.fftSize = this.fftSize;
     this.analyzer.smoothingTimeConstant = this.smoothingTimeConstant;
@@ -118,13 +120,23 @@ class Audio {
 
   /**
    * Get the audio stream.
-   * @returns {MediaStream}
+   * @returns {MediaStream|null}
    */
   getStream() {
     if (this.stream) {
       return this.stream;
     }
-    return this.audioElement.captureStream ? this.audioElement.captureStream() : this.audioElement.mozCaptureStream();
+    if (!this.audioElement) return null;
+    
+    if (this.audioElement.captureStream) {
+      return this.audioElement.captureStream();
+    } else if (this.audioElement.mozCaptureStream) {
+      return this.audioElement.mozCaptureStream();
+    } else if (this.audioElement.webkitCaptureStream) {
+      return this.audioElement.webkitCaptureStream();
+    }
+    
+    return null;
   }
 
   /**
