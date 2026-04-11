@@ -136,7 +136,7 @@ export default {
         window.location.href = session.url;
       } catch (err) {
         console.error(err);
-        alert("Payment service unavailable");
+        alert(`Payment error: ${err.message || "Something went wrong"}`);
       } finally {
         this.loadingPay = false;
       }

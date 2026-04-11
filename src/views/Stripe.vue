@@ -13,7 +13,7 @@ export default {
     StripeCheckout,
   },
   data() {
-    this.publishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
+    this.publishableKey = process.env.VUE_APP_STRIPE_PUBLISHABLE_KEY;
     return {
       loading: false,
       lineItems: [
