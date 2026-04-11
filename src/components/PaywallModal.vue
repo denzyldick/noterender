@@ -1,12 +1,23 @@
 <template>
   <v-dialog v-model="dialog" max-width="500" persistent>
-    <v-card class="pa-4 bg-dark text-white rounded-xl" style="background-color: #121212;">
-      <v-card-title class="text-h5 font-weight-bold mb-2 primary--text text-center w-100 d-block">
+    <v-card
+      class="pa-4 bg-dark text-white rounded-xl"
+      style="background-color: #121212"
+    >
+      <v-card-title
+        class="text-h5 font-weight-bold mb-2 primary--text text-center w-100 d-block"
+      >
         Unlock Premium Export
       </v-card-title>
-      
+
       <v-card-text>
-        <div class="mb-6 pa-4 rounded-lg" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+        <div
+          class="mb-6 pa-4 rounded-lg"
+          style="
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          "
+        >
           <div class="d-flex align-center mb-2">
             <v-icon color="success" class="mr-2">mdi-check-circle</v-icon>
             <span class="text-subtitle-1">High-Quality Browser Export</span>
@@ -15,11 +26,11 @@
             <v-icon color="success" class="mr-2">mdi-check-circle</v-icon>
             <span class="text-subtitle-1">No Watermarks</span>
           </div>
-          
-          <v-btn 
-            block 
-            color="primary" 
-            x-large 
+
+          <v-btn
+            block
+            color="primary"
+            x-large
             class="font-weight-bold"
             @click="payNow"
             :loading="loadingPay"
@@ -28,11 +39,16 @@
           </v-btn>
         </div>
 
-        <v-divider class="my-6" style="border-color: rgba(255,255,255,0.1) !important;"></v-divider>
-        
+        <v-divider
+          class="my-6"
+          style="border-color: rgba(255, 255, 255, 0.1) !important"
+        ></v-divider>
+
         <div class="text-center mb-2">
           <h4 class="text-h6 mb-1">Want Unlimited Cloud Rendering?</h4>
-          <p class="text-caption grey--text">Join the waitlist for our upcoming Pro Server-based subscription.</p>
+          <p class="text-caption grey--text">
+            Join the waitlist for our upcoming Pro Server-based subscription.
+          </p>
         </div>
 
         <v-form @submit.prevent="joinWaitlist" class="mt-4">
@@ -45,19 +61,21 @@
             :disabled="joined"
             placeholder="name@example.com"
           ></v-text-field>
-          <v-btn 
-            block 
-            color="secondary" 
-            type="submit" 
-            :loading="loadingWaitlist" 
+          <v-btn
+            block
+            color="secondary"
+            type="submit"
+            :loading="loadingWaitlist"
             :disabled="joined || !email"
           >
-            {{ joined ? 'Added to waitlist!' : 'Join Waitlist' }}
+            {{ joined ? "Added to waitlist!" : "Join Waitlist" }}
           </v-btn>
         </v-form>
-        
+
         <div class="mt-6 text-center">
-          <v-btn text small color="grey" @click="closeModal">Cancel & Go Back</v-btn>
+          <v-btn text small color="grey" @click="closeModal"
+            >Cancel & Go Back</v-btn
+          >
         </div>
       </v-card-text>
     </v-card>
@@ -70,15 +88,15 @@ export default {
   props: {
     value: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   data() {
     return {
       email: "",
       loadingPay: false,
       loadingWaitlist: false,
-      joined: false
+      joined: false,
     };
   },
   computed: {
@@ -87,9 +105,9 @@ export default {
         return this.value;
       },
       set(val) {
-        this.$emit('input', val);
-      }
-    }
+        this.$emit("input", val);
+      },
+    },
   },
   methods: {
     closeModal() {
@@ -98,24 +116,27 @@ export default {
     async payNow() {
       this.loadingPay = true;
       try {
-        const API_BASE = process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '';
+        const API_BASE =
+          process.env.NODE_ENV === "development"
+            ? "http://localhost:8000"
+            : process.env.VUE_APP_API_BASE;
         const response = await fetch(`${API_BASE}/api/checkout`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ item: 'pro_export' })
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ item: "pro_export" }),
         });
-        
+
         const session = await response.json();
-        
+
         if (session.error) {
           throw new Error(session.error);
         }
-        
+
         // Redirect to Stripe checkout page
         window.location.href = session.url;
       } catch (err) {
         console.error(err);
-        alert('Payment service unavailable');
+        alert("Payment service unavailable");
       } finally {
         this.loadingPay = false;
       }
@@ -124,11 +145,14 @@ export default {
       if (!this.email) return;
       this.loadingWaitlist = true;
       try {
-        const API_BASE = process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '';
+        const API_BASE =
+          process.env.NODE_ENV === "development"
+            ? "http://localhost:8000"
+            : process.env.VUE_APP_API_BASE;
         await fetch(`${API_BASE}/api/waitlist`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: this.email })
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: this.email }),
         });
         this.joined = true;
         this.email = "";
@@ -137,7 +161,7 @@ export default {
       } finally {
         this.loadingWaitlist = false;
       }
-    }
-  }
+    },
+  },
 };
 </script>
