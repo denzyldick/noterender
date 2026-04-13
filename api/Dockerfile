@@ -20,6 +20,7 @@ COPY composer.json composer.lock ./
 
 # Install PHP dependencies without dev dependencies for production
 ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV APP_ENV=prod
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
 # Copy the rest of the application Source

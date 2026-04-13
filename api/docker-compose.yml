@@ -10,7 +10,7 @@ services:
       # We mount the 'data' directory securely to the host machine so SQLite doesn't wipe on rebuild!
       - ./data:/app/data
       # We pass through the environment override for local testing keys
-      - ./.env.local:/app/.env.local
+      - ../env.local.file:/app/.env.local
     environment:
       - APP_ENV=prod
       - SERVER_NAME=:80
