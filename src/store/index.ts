@@ -14,7 +14,14 @@ export default new Vuex.Store({
         description: "Bass-heavy circular spectrum with camera shake.",
         price: "0",
         priceId: null,
-        configuration: {},
+        configuration: {
+          bars: { type: "slider", min: 64, max: 512, step: 1, default: 256, label: "Total Bars" },
+          radius: { type: "slider", min: 100, max: 400, step: 1, default: 225, label: "Circle Radius" },
+          barWidth: { type: "slider", min: 0.1, max: 5, step: 0.1, default: 1.5, label: "Bar Thickness" },
+          hyperspace: { type: "slider", min: 0, max: 2000, step: 10, default: 800, label: "Star Density" },
+          glow: { type: "slider", min: 0, max: 100, step: 1, default: 48, label: "Glow Intensity" }
+        },
+        currentConfig: { bars: 256, radius: 225, barWidth: 1.5, hyperspace: 800, glow: 48 }
       },
       {
         name: "solaris",
@@ -22,7 +29,13 @@ export default new Vuex.Store({
         description: "A pulsing star with volumetric rays and asteroid belt.",
         price: "0",
         priceId: null,
-        configuration: {},
+        configuration: {
+          sunSize: { type: "slider", min: 50, max: 300, step: 1, default: 120, label: "Sun Diameter" },
+          asteroids: { type: "slider", min: 50, max: 1000, step: 1, default: 300, label: "Asteroid Count" },
+          rayIntensity: { type: "slider", min: 0.1, max: 2.0, step: 0.1, default: 0.8, label: "Ray Weight" },
+          orbitSpeed: { type: "slider", min: 0.1, max: 5.0, step: 0.1, default: 1.0, label: "Orbit Speed" }
+        },
+        currentConfig: { sunSize: 120, asteroids: 300, rayIntensity: 0.8, orbitSpeed: 1.0 }
       },
       {
         name: "infinity",
@@ -30,7 +43,11 @@ export default new Vuex.Store({
         description: "An infinite reactive tunnel of light and geometry.",
         price: "0",
         priceId: null,
-        configuration: {},
+        configuration: {
+          speed: { type: "slider", min: 0.1, max: 10.0, step: 0.1, default: 1.0, label: "Speed" },
+          fov: { type: "slider", min: 0.5, max: 2.0, step: 0.1, default: 1.0, label: "Field of View" }
+        },
+        currentConfig: { speed: 1.0, fov: 1.0 }
       },
       {
         name: "tunnel",
@@ -38,7 +55,10 @@ export default new Vuex.Store({
         description: "A square tunnel of reactive piles with dynamic backgrounds.",
         price: "0",
         priceId: null,
-        configuration: {},
+        configuration: {
+          repetition: { type: "slider", min: 1, max: 10, step: 1, default: 5, label: "Tunnel Depth" }
+        },
+        currentConfig: { repetition: 5 }
       },
       {
         name: "city",
@@ -46,7 +66,10 @@ export default new Vuex.Store({
         description: "3D City flight visualization.",
         price: "0",
         priceId: null,
-        configuration: {},
+        configuration: {
+          height: { type: "slider", min: 50, max: 500, step: 10, default: 200, label: "Building Height" }
+        },
+        currentConfig: { height: 200 }
       },
       {
         name: "nebulacore",
@@ -54,9 +77,21 @@ export default new Vuex.Store({
         description: "Immersive cosmic vortex with reactive rings.",
         price: "0",
         priceId: null,
-        configuration: {},
+        configuration: {
+          rings: { type: "slider", min: 1, max: 20, step: 1, default: 10, label: "Ring Count" }
+        },
+        currentConfig: { rings: 10 }
       },
-      { name: "terrain", preview: "", description: "Wireframe landscape.", price: "0", configuration: {} },
+      { 
+        name: "terrain", 
+        preview: "", 
+        description: "Wireframe landscape.", 
+        price: "0", 
+        configuration: {
+          roughness: { type: "slider", min: 0, max: 200, step: 1, default: 50, label: "Terrain Height" }
+        },
+        currentConfig: { roughness: 50 }
+      },
     ],
     presets: [
       { name: "Dynamic", dynamic: true, colors: { r: 0, g: 229, b: 255 }, light: { r: 255, g: 255, b: 255 } },
@@ -98,6 +133,7 @@ export default new Vuex.Store({
     title: "Noterender",
     subtitle: "Elevate Your Sound",
     microphone: false,
+    audioSource: "system",
     emblem: "/img/logo.png",
     colors: {
       r: 0,
@@ -133,6 +169,8 @@ export default new Vuex.Store({
     soundFile: null,
     highQuality: false,
     removeWatermark: false,
+    livePro: false,
+    trialStartedAt: null,
     sensitivity: {
       fftSmoothing: 0.8,
       bassBoost: 1.0,
@@ -201,8 +239,20 @@ export default new Vuex.Store({
     setRemoveWatermark: function (state, val) {
       state.removeWatermark = val;
     },
+    setLivePro: function (state, val) {
+      state.livePro = val;
+    },
+    setTrial: function (state, timestamp) {
+      state.trialStartedAt = timestamp;
+    },
     templateSelected: function (state, template) {
       state.template = template;
+    },
+    updateTemplateConfig: function (state, { templateName, config }) {
+      const template = state.templates.find(t => t.name === templateName);
+      if (template) {
+        template.currentConfig = { ...template.currentConfig, ...config };
+      }
     },
     disableCamera: function (state) {
       state.options.camera.move = false;
@@ -223,8 +273,18 @@ export default new Vuex.Store({
     setSoundFile: function (state, file) {
       state.soundFile = file;
     },
+    setAudioSource: function (state, source) {
+      state.audioSource = source;
+      state.microphone = source !== "file";
+    },
     setMicrophone: function (state, val) {
       state.microphone = val;
+      if (val) {
+        // When toggling 'live' on, prefer system audio over mic if not already set
+        state.audioSource = state.audioSource === "file" ? "system" : state.audioSource;
+      } else {
+        state.audioSource = "file";
+      }
     },
   },
   actions: {
@@ -328,6 +388,9 @@ export default new Vuex.Store({
     },
     toggleMicrophone: function (context, val) {
       context.commit("setMicrophone", val);
+    },
+    setAudioSource: function (context, source) {
+      context.commit("setAudioSource", source);
     },
     setSensitivity: function (context, sensitivity) {
       context.commit("setSensitivity", sensitivity);

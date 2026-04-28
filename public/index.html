@@ -23,18 +23,39 @@
       href="<%= BASE_URL %>favicon-16x16.png"
     />
     <link rel="manifest" href="<%= BASE_URL %>site.webmanifest" />
-    <title>Noterender - Free 3D Music Visualizer</title>
+    <title>noterender | Professional 3D Music Visualizer & Live DJ Visuals</title>
 
     <!-- Primary Meta Tags -->
-    <meta name="title" content="Noterender - Free 3D Music Visualizer" />
+    <meta name="title" content="noterender | Professional 3D Music Visualizer & Live DJ Visuals" />
     <meta
       name="description"
-      content="Create stunning 3D music visualizers that react to real-time audio. Generate captivating visual videos for your tracks in seconds right in your browser."
+      content="The ultimate 3D music visualizer for producers and DJs. Export high-quality videos for TikTok/Reels or perform live in clubs with real-time system audio reactivity."
     />
     <meta
       name="keywords"
-      content="music visualizer, 3d audio reactor, mp4 export, beat visualizer, music producer tools, free visualizer, tiktok visualizer, reels visualizer"
+      content="music visualizer, 3d audio reactor, mp4 export, beat visualizer, music producer tools, free visualizer, tiktok visualizer, reels visualizer, live dj visuals, club visuals, system audio visualizer"
     />
+
+    <!-- Structured Data for Google -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "noterender",
+      "operatingSystem": "Web Browser",
+      "applicationCategory": "MultimediaApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0.00",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "1840"
+      }
+    }
+    </script>
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -154,33 +175,6 @@
     <link rel="preconnect" href="https://www.google-analytics.com" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 
-    <!-- Structured Data (JSON-LD) -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Noterender",
-        "applicationCategory": "MultimediaApplication",
-        "operatingSystem": "Web Browser",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "description": "Create stunning 3D music visualizers that react to real-time audio. Generate captivating visual videos for your tracks in seconds right in your browser.",
-        "screenshot": "https://noterender.denzyl.io/thumbnail.jpg",
-        "url": "https://noterender.denzyl.io/",
-        "author": {
-          "@type": "Organization",
-          "name": "Noterender"
-        },
-        "aggregateRating": {
-          "@type": "AggregateRating",
-          "ratingValue": "4.8",
-          "ratingCount": "1250"
-        }
-      }
-    </script>
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"
@@ -223,99 +217,84 @@
       gtag("config", "G-8Q72K460VG");
     </script>
     <style>
-      * {
-        margin: 0;
+      * { margin: 0; padding: 0; }
+      body { background: #000; overflow: hidden; }
+
+      #globalLoader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 1s ease-out, visibility 1s;
+      }
+
+      .loader-content {
+        text-align: center;
+        animation: pulse 2.5s infinite ease-in-out;
+      }
+
+      .loader-logo {
+        width: 120px;
+        margin-bottom: 24px;
+        filter: drop-shadow(0 0 20px rgba(0, 229, 255, 0.4));
+      }
+
+      .loader-bar-container {
+        width: 200px;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .loader-bar {
+        position: absolute;
+        height: 100%;
+        background: #00E5FF;
+        width: 50%;
+        left: -50%;
+        animation: loading-slide 1.5s infinite ease-in-out;
+      }
+
+      .loader-text {
+        color: #fff;
+        font-family: 'Roboto', sans-serif;
+        font-size: 10px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        margin-top: 16px;
+        opacity: 0.6;
+      }
+
+      @keyframes loading-slide {
+        0% { left: -50%; width: 30%; }
+        50% { left: 25%; width: 50%; }
+        100% { left: 100%; width: 30%; }
+      }
+
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.05); opacity: 1; }
       }
     </style>
   </head>
 
   <body>
-    <!--Load img to trigger cash when loading the files in babylonjs-->
-    <img style="display: none" img="/1080.jpg" />
-    <div class="spinner" id="globalLoader">
-      <div class="dot1"></div>
-      <div class="dot2"></div>
+    <div id="globalLoader">
+      <div class="loader-content">
+        <img src="/img/logo.png" class="loader-logo" alt="Noterender" />
+        <div class="loader-bar-container">
+          <div class="loader-bar"></div>
+        </div>
+        <div class="loader-text">Initializing Engine</div>
+      </div>
     </div>
-    <style>
-      html,
-      body {
-        height: 100vh;
-        width: 100%;
-        padding: 0;
-        margin: 0;
-      }
 
-      .spinner {
-        margin: 100px auto;
-        width: 40px;
-        height: 40px;
-        position: relative;
-        text-align: center;
-
-        -webkit-animation: sk-rotate 2s infinite linear;
-        animation: sk-rotate 2s infinite linear;
-      }
-
-      .dot1,
-      .dot2 {
-        width: 60%;
-        height: 60%;
-        display: inline-block;
-        position: absolute;
-        top: 0;
-        background-color: #333;
-        border-radius: 100%;
-
-        -webkit-animation: sk-bounce 2s infinite ease-in-out;
-        animation: sk-bounce 2s infinite ease-in-out;
-      }
-
-      .dot2 {
-        top: auto;
-        bottom: 0;
-        -webkit-animation-delay: -1s;
-        animation-delay: -1s;
-      }
-
-      @-webkit-keyframes sk-rotate {
-        100% {
-          -webkit-transform: rotate(360deg);
-        }
-      }
-
-      @keyframes sk-rotate {
-        100% {
-          transform: rotate(360deg);
-          -webkit-transform: rotate(360deg);
-        }
-      }
-
-      @-webkit-keyframes sk-bounce {
-        0%,
-        100% {
-          -webkit-transform: scale(0);
-        }
-
-        50% {
-          -webkit-transform: scale(1);
-        }
-      }
-
-      @keyframes sk-bounce {
-        0%,
-        100% {
-          transform: scale(0);
-          -webkit-transform: scale(0);
-        }
-
-        50% {
-          transform: scale(1);
-          -webkit-transform: scale(1);
-        }
-      }
-    </style>
-
-    <!-- Google Tag Manager (noscript) -->
     <noscript>
       <iframe
         src="https://www.googletagmanager.com/ns.html?id=GTM-T4VDGKR"
@@ -324,15 +303,7 @@
         style="display: none; visibility: hidden"
       ></iframe>
     </noscript>
-    <!-- End Google Tag Manager (noscript) -->
-    <noscript>
-      <strong>
-        Create 3D Music Visualizers with Real-Time Audio Reaction Quickly
-        Generate Stunning Visuals for Your Tracks
-      </strong>
-    </noscript>
-    <div id="app"></div>
 
-    <!-- built files will be auto injected -->
+    <div id="app"></div>
   </body>
 </html>

@@ -10,6 +10,16 @@ const routes = [
     component: () => import("../views/Player.vue"),
   },
   {
+    path: "/blog",
+    name: "blog",
+    component: () => import("../views/Blog.vue"),
+  },
+  {
+    path: "/legal",
+    name: "legal",
+    component: () => import("../views/Legal.vue"),
+  },
+  {
     path: "*",
     redirect: "/",
   }

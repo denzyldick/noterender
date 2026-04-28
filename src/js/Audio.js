@@ -69,6 +69,39 @@ class Audio {
     }
   }
 
+  async useSystemAudio() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    this.context = new AudioContextClass();
+    this.analyzer = this.context.createAnalyser();
+    this.analyzer.fftSize = this.fftSize;
+    this.analyzer.smoothingTimeConstant = this.smoothingTimeConstant;
+    const bufferLength = this.analyzer.frequencyBinCount;
+    this.fft = new Uint8Array(bufferLength);
+
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+      });
+      this.stream = stream;
+      
+      // We only want the audio track
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        throw new Error("No system audio track found. Make sure to check 'Share audio'.");
+      }
+
+      this.mediaSource = this.context.createMediaStreamSource(stream);
+      this.mediaSource.connect(this.analyzer);
+      // Do not connect to destination to avoid feedback/loops
+      this.initialized = true;
+      this.context.resume();
+    } catch (e) {
+      console.error("System audio access denied", e);
+      throw e;
+    }
+  }
+
   getFrequency() {
     if (this.analyzer !== null) {
       return this.analyzer.getByteFrequencyData(this.fft);

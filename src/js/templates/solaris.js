@@ -19,6 +19,8 @@ const template = {
         currentCamera = camera;
         t = 0;
         
+        const c = config.templates.find(t => t.name === 'solaris').currentConfig;
+
         // Claim the camera exclusively
         CAMERA_PHYSICS.lock();
 
@@ -44,7 +46,7 @@ const template = {
         }
 
         // --- Central Sun ---
-        sun = BABYLON.MeshBuilder.CreateSphere("sun", { segments: 32, diameter: 120 }, scene);
+        sun = BABYLON.MeshBuilder.CreateSphere("sun", { segments: 32, diameter: c.sunSize || 120 }, scene);
         const sunMat = new BABYLON.StandardMaterial("sunMat", scene);
         sunMat.emissiveColor.copyFrom(_primaryColor);
         sunMat.disableLighting = true;
@@ -55,13 +57,13 @@ const template = {
         vls = new BABYLON.VolumetricLightScatteringPostProcess('vls', 1.0, camera, sun, 100, BABYLON.Texture.BILINEAR_SAMPLINGMODE, renderer, false);
         vls.exposure = 0.2;
         vls.decay = 0.95;
-        vls.weight = 0.8;
+        vls.weight = c.rayIntensity || 0.8;
         vls.density = 0.5;
 
         // --- Asteroid Belt ---
         asteroids = new BABYLON.SolidParticleSystem("asteroids", scene);
         const rock = BABYLON.MeshBuilder.CreatePolyhedron("rock", { type: 1, size: 5 }, scene);
-        asteroids.addShape(rock, 300);
+        asteroids.addShape(rock, c.asteroids || 300);
         rock.dispose();
         const asterMesh = asteroids.buildMesh();
         asterMesh.material = new BABYLON.StandardMaterial("asterMat", scene);
@@ -76,7 +78,7 @@ const template = {
                 const radius = 280 + Math.random() * 180;
                 part.position.set(Math.cos(angle) * radius, (Math.random() - 0.5) * 80, Math.sin(angle) * radius);
                 part.rotation.set(Math.random(), Math.random(), Math.random());
-                part.props = { angle, radius, speed: 0.002 + Math.random() * 0.005 };
+                part.props = { angle, radius, speed: (0.002 + Math.random() * 0.005) * (c.orbitSpeed || 1.0) };
             }
         };
         asteroids.initParticles();
@@ -87,11 +89,14 @@ const template = {
 
     render(fft, config) {
         if (!fft) fft = new Uint8Array(256).fill(0);
+        const c = config.templates.find(t => t.name === 'solaris').currentConfig;
         t += 0.005;
+
         let bass = 0;
         const bassEnd = Math.min(fft.length, 10);
         for (let i = 0; i < bassEnd; i++) bass += fft[i];
         bass = (bass / bassEnd) / 255;
+        const punchBass = Math.pow(bass, 1.2);
 
         let treble = 0;
         const trebleStart = Math.max(0, fft.length - 20);
@@ -101,7 +106,7 @@ const template = {
         PLANE.render(fft, config);
 
         if (config.dynamicColors) {
-            _primaryColor.set(bass, 0.4, 1 - bass);
+            _primaryColor.set(punchBass, 0.4, 1 - punchBass);
             _accentColor.set(1 - treble, treble, 0.5);
         } else {
             _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
@@ -109,17 +114,18 @@ const template = {
         }
 
         if (sun) {
-            const s = 1.0 + bass * 0.4;
+            // Artist Algorithm: Sub-bass "Gravitational" Warp
+            const s = 1.0 + punchBass * 0.5 + Math.sin(t * 10) * 0.05;
             sun.scaling.set(s, s, s);
-            sun.material.emissiveColor.set(_primaryColor.r * (0.8 + bass * 0.2), _primaryColor.g * (0.8 + bass * 0.2), _primaryColor.b * (0.8 + bass * 0.2));
-            vls.exposure = 0.05 + bass * 0.3;
+            sun.material.emissiveColor.set(_primaryColor.r * (0.8 + punchBass * 0.2), _primaryColor.g * (0.8 + punchBass * 0.2), _primaryColor.b * (0.8 + punchBass * 0.2));
+            vls.exposure = 0.05 + punchBass * 0.4;
         }
 
         if (currentCamera) {
             currentCamera.setTarget(BABYLON.Vector3.Zero());
             
             if (config.options && config.options.camera && config.options.camera.move) {
-                const orbitRadius = 15 * bass;
+                const orbitRadius = 15 * punchBass;
                 const orbitSpeed = t * 0.3;
                 currentCamera.position.x = Math.cos(orbitSpeed) * orbitRadius;
                 currentCamera.position.y = Math.sin(orbitSpeed) * orbitRadius;
@@ -132,15 +138,17 @@ const template = {
         if (asteroids) {
             for (let p = 0; p < asteroids.nbParticles; p++) {
                 const part = asteroids.particles[p];
-                part.props.angle += part.props.speed * (1 + bass * 8);
+                part.props.angle += part.props.speed * (1 + punchBass * 10);
                 part.position.x = Math.cos(part.props.angle) * part.props.radius;
                 part.position.z = Math.sin(part.props.angle) * part.props.radius;
                 part.rotation.y += 0.01 * (1 + treble * 5);
-                const pScale = 1 + bass * 1.5;
+                
+                // Pulsing size based on treble
+                const pScale = 1 + treble * 2.0;
                 part.scaling.set(pScale, pScale, pScale);
             }
             asteroids.setParticles();
-            asteroids.mesh.material.emissiveColor.set(_accentColor.r * (0.5 + bass), _accentColor.g * (0.5 + bass), _accentColor.b * (0.5 + bass));
+            asteroids.mesh.material.emissiveColor.set(_accentColor.r * (0.5 + punchBass), _accentColor.g * (0.5 + punchBass), _accentColor.b * (0.5 + punchBass));
         }
     },
 

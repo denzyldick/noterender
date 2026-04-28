@@ -23,6 +23,8 @@ const template = {
         currentCamera = camera;
         t = 0;
         
+        const c = config.templates.find(t => t.name === 'trap').currentConfig;
+
         // Claim the camera exclusively
         CAMERA_PHYSICS.lock();
 
@@ -61,7 +63,7 @@ const template = {
         // --- Hyper-Space Background ---
         hyperSpace = new BABYLON.SolidParticleSystem("hyperSpace", scene);
         const lineShape = BABYLON.MeshBuilder.CreateBox("l", { width: 0.2, height: 0.2, depth: 50 }, scene);
-        hyperSpace.addShape(lineShape, 800);
+        hyperSpace.addShape(lineShape, c.hyperspace || 800);
         lineShape.dispose();
         const hyperMesh = hyperSpace.buildMesh();
         hyperMesh.material = new BABYLON.StandardMaterial("hyperMat", scene);
@@ -80,12 +82,13 @@ const template = {
         // --- Spectrum Bars ---
         bars = [];
         barsInner = [];
-        const barCount = 256; 
-        const radius = 225;
+        const barCount = c.bars || 256; 
+        const radius = c.radius || 225;
+        const barWidth = c.barWidth || 1.5;
         const barMat = new BABYLON.StandardMaterial("barMat", scene);
         barMat.emissiveColor.set(1, 1, 1);
         barMat.disableLighting = true;
-        const baseBar = BABYLON.MeshBuilder.CreatePlane("baseBar", { width: 1.5, height: 1 }, scene);
+        const baseBar = BABYLON.MeshBuilder.CreatePlane("baseBar", { width: barWidth, height: 1 }, scene);
         baseBar.material = barMat;
         baseBar.isVisible = false;
 
@@ -127,8 +130,8 @@ const template = {
 
         if (!scene.glowLayer) {
             glowLayer = new BABYLON.GlowLayer("glow", scene);
-            glowLayer.blurKernelSize = 48;
         }
+        glowLayer.blurKernelSize = c.glow || 48;
     },
 
     resetHyperParticle(particle) {
@@ -149,11 +152,16 @@ const template = {
 
     render(fft, config) {
         if (!fft) fft = new Uint8Array(256).fill(0);
+        const c = config.templates.find(t => t.name === 'trap').currentConfig;
         t += 0.01;
+
         let bass = 0;
         const bassEnd = Math.min(fft.length, 6);
         for (let i = 0; i < bassEnd; i++) bass += fft[i];
         bass = (bass / bassEnd) / 255;
+        
+        // Artist Hack: Boost bass reactivity exponentially for "punch"
+        const punchBass = Math.pow(bass, 1.5);
 
         let treble = 0;
         const trebleStart = Math.max(0, fft.length - 20);
@@ -164,7 +172,7 @@ const template = {
 
         if (config.dynamicColors) {
             const baseHue = (t * 0.15) % 1; 
-            const pRGB = this.hslToRgb(baseHue, 0.85, 0.4 + bass * 0.3);
+            const pRGB = this.hslToRgb(baseHue, 0.85, 0.4 + punchBass * 0.3);
             const aRGB = this.hslToRgb((baseHue + 0.3) % 1, 0.9, 0.5 + treble * 0.3);
             _primaryColor.set(pRGB.r, pRGB.g, pRGB.b);
             _accentColor.set(aRGB.r, aRGB.g, aRGB.b);
@@ -174,14 +182,14 @@ const template = {
         }
 
         if (blueSquare) {
-            const squareScale = 240 + bass * 120;
+            const squareScale = (c.radius || 240) * 1.1 + punchBass * 120;
             blueSquare.scaling.set(squareScale, squareScale, 1);
-            blueSquare.rotation.z += 0.01 + bass * 0.05;
+            blueSquare.rotation.z += 0.01 + punchBass * 0.05;
             blueSquare.material.emissiveColor.copyFrom(_primaryColor);
         }
 
         if (hyperSpace) {
-            const boost = 1 + bass * 5;
+            const boost = 1 + punchBass * 5;
             for (let p = 0; p < hyperSpace.nbParticles; p++) {
                 const particle = hyperSpace.particles[p];
                 particle.position.z -= particle.velocity * boost;
@@ -193,27 +201,37 @@ const template = {
 
         const barLen = bars.length;
         const half = barLen / 2;
+        
+        // Artist Algorithm: Kaleidoscopic Symmetry
+        // Instead of linear mapping, we fold the spectrum to create complex patterns
         for (let i = 0; i < barLen; i++) {
-            const index = i < half ? i : barLen - i;
-            const fftVal = fft[Math.floor((index / half) * 120)] || 0;
-            const targetScale = 2 + (fftVal / 255) * 300;
-            bars[i].scaling.y += (targetScale - bars[i].scaling.y) * 0.5;
+            // Symmetry fold (try 4-fold symmetry)
+            const fold = 4;
+            const segment = barLen / fold;
+            const subIdx = i % segment;
+            const mirroredIdx = subIdx < segment/2 ? subIdx : segment - subIdx;
             
-            const innerVal = fft[index + 20] || 0;
-            barsInner[i].scaling.y += (1 + (innerVal / 255) * 50 - barsInner[i].scaling.y) * 0.3;
+            const fftIdx = Math.floor((mirroredIdx / (segment/2)) * 120);
+            const fftVal = fft[fftIdx] || 0;
+            
+            const targetScale = 2 + (fftVal / 255) * 350 * (1 + punchBass * 0.5);
+            bars[i].scaling.y += (targetScale - bars[i].scaling.y) * 0.6;
+            
+            const innerVal = fft[mirroredIdx + 10] || 0;
+            barsInner[i].scaling.y += (1 + (innerVal / 255) * 80 - barsInner[i].scaling.y) * 0.4;
         }
 
         if (currentCamera) {
             currentCamera.setTarget(BABYLON.Vector3.Zero());
             
             if (config.options && config.options.camera && config.options.camera.move) {
-                const orbitRadius = 20 * bass;
+                const orbitRadius = 25 * punchBass;
                 const orbitSpeed = t * 0.2;
                 currentCamera.position.x = Math.cos(orbitSpeed) * orbitRadius;
                 currentCamera.position.y = Math.sin(orbitSpeed) * orbitRadius;
                 
-                if (bass > 0.85) {
-                    currentCamera.position.addInPlace(new BABYLON.Vector3((Math.random()-0.5)*10, (Math.random()-0.5)*10, 0));
+                if (punchBass > 0.85) {
+                    currentCamera.position.addInPlace(new BABYLON.Vector3((Math.random()-0.5)*15, (Math.random()-0.5)*15, 0));
                 }
             } else {
                 currentCamera.position.x = 0;
@@ -222,7 +240,7 @@ const template = {
         }
 
         if (particles) {
-            const boost = 1 + bass * 10;
+            const boost = 1 + punchBass * 10;
             for (let p = 0; p < particles.nbParticles; p++) {
                 const particle = particles.particles[p];
                 particle.position.z -= particle.velocity * boost;
@@ -231,7 +249,7 @@ const template = {
             particles.setParticles();
         }
 
-        if (glowLayer) glowLayer.intensity = 0.8 + bass * 2.0;
+        if (glowLayer) glowLayer.intensity = 0.5 + punchBass * 2.5;
     },
 
     hslToRgb(h, s, l) {

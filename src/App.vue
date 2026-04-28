@@ -18,7 +18,7 @@ export default {
 html, body {
   margin: 0;
   padding: 0;
-  overflow: hidden !important;
   background-color: #000;
+  min-height: 100vh;
 }
 </style>

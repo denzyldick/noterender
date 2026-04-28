@@ -1,5 +1,5 @@
 <template>
-  <v-app dark class="studio-app">
+  <v-app dark class="studio-app" :class="{ 'hide-cursor': !drawer && !isMouseMoving }">
     <!-- Background Visualizer -->
     <div class="visualizer-container">
       <canvas id="renderCanvas" ref="renderCanvas"></canvas>
@@ -22,7 +22,27 @@
           <div class="logo-wrapper mb-3 pa-4 rounded-xl d-inline-block">
             <img src="/img/logo.png" width="80" alt="Noterender logo" />
           </div>
-          <div class="text-caption grey--text text--lighten-2 font-weight-black letter-spacing-2">STUDIO ENGINE</div>
+          <div class="text-caption grey--text text--lighten-2 font-weight-black letter-spacing-2">NOTERENDER V2.4</div>
+        </div>
+
+        <!-- Mode Switcher -->
+        <div class="px-6 mb-4">
+          <v-btn-toggle
+            v-model="appMode"
+            mandatory
+            class="mode-toggle w-100 rounded-lg overflow-hidden border-thin"
+            background-color="transparent"
+            color="primary"
+          >
+            <v-btn value="studio" block class="flex-grow-1" height="44">
+              <v-icon left size="20">mdi-pencil-ruler</v-icon>
+              Studio
+            </v-btn>
+            <v-btn value="live" block class="flex-grow-1" height="44">
+              <v-icon left size="20">mdi-broadcast</v-icon>
+              Live
+            </v-btn>
+          </v-btn-toggle>
         </div>
 
         <v-divider class="mx-8 opacity-10"></v-divider>
@@ -43,7 +63,7 @@
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-video-3d</v-icon><span class="tab-text ml-2">Camera</span></v-tab>
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-auto-fix</v-icon><span class="tab-text ml-2">Effects</span></v-tab>
             <v-tab class="justify-center px-4"><v-icon size="22">mdi-text-recognition</v-icon><span class="tab-text ml-2">Branding</span></v-tab>
-            <v-tab class="justify-center px-4"><v-icon size="22">mdi-movie-filter</v-icon><span class="tab-text ml-2">Render</span></v-tab>
+            <v-tab v-if="appMode === 'studio'" class="justify-center px-4"><v-icon size="22">mdi-movie-filter</v-icon><span class="tab-text ml-2">Render</span></v-tab>
           </div>
 
           <v-tabs-items v-model="activeTab" class="transparent-bg studio-tab-content no-scrollbar">
@@ -68,19 +88,65 @@
 
             <!-- Style -->
             <v-tab-item>
-              <div class="pa-6">
-                <div class="text-overline mb-4 primary--text">Templates</div>
-                <Templates />
+              <div class="pa-0">
+                <div class="pa-6 pb-0">
+                  <div class="text-overline mb-4 primary--text">Templates</div>
+                  <Templates />
+                </div>
+                <v-divider class="mx-6 my-2 opacity-10"></v-divider>
+                <TemplateConfig />
               </div>
             </v-tab-item>
 
             <!-- Sound -->
             <v-tab-item>
               <div class="pa-6">
-                <div class="text-overline mb-4 primary--text">Audio Input</div>
-                <v-switch v-model="microphone" label="Live Microphone" color="primary" inset></v-switch>
-                <v-file-input v-if="!microphone" label="Choose Audio" outlined dense @change="soundSelected" prepend-inner-icon="mdi-music-circle" class="mt-4"></v-file-input>
+                <div class="text-overline mb-4 primary--text">Audio Source</div>
+                <v-list dark dense flat class="transparent">
+                  <v-list-item-group v-model="audioSource" color="primary" mandatory>
+                    <v-list-item value="file" v-if="appMode === 'studio'">
+                      <v-list-item-icon><v-icon>mdi-file-music</v-icon></v-list-item-icon>
+                      <v-list-item-content>
+                        <v-list-item-title>Local File</v-list-item-title>
+                        <v-list-item-subtitle>Upload an MP3/WAV</v-list-item-subtitle>
+                      </v-list-item-content>
+                    </v-list-item>
+                    <v-list-item value="mic">
+                      <v-list-item-icon><v-icon>mdi-microphone</v-icon></v-list-item-icon>
+                      <v-list-item-content>
+                        <v-list-item-title>Microphone</v-list-item-title>
+                        <v-list-item-subtitle>Live room audio</v-list-item-subtitle>
+                      </v-list-item-content>
+                    </v-list-item>
+                    <v-list-item value="system">
+                      <v-list-item-icon><v-icon>mdi-monitor-speaker</v-icon></v-list-item-icon>
+                      <v-list-item-content>
+                        <v-list-item-title>System Audio</v-list-item-title>
+                        <v-list-item-subtitle>Capture from PC</v-list-item-subtitle>
+                      </v-list-item-content>
+                    </v-list-item>
+                  </v-list-item-group>
+                </v-list>
+
+                <v-alert v-if="audioSource === 'system'" dense text type="info" class="mt-4 text-caption">
+                  Tip: When the browser asks to share your screen, go to the <strong>"Tab"</strong> or <strong>"Window"</strong> section and ensure <strong>"Also share system audio"</strong> is checked.
+                </v-alert>
+
+                <v-file-input v-if="audioSource === 'file' && appMode === 'studio'" label="Choose Audio" outlined dense @change="soundSelected" prepend-inner-icon="mdi-music-circle" class="mt-4"></v-file-input>
                 
+                <div v-if="appMode === 'live'">
+                  <div class="text-overline mt-6 mb-4 primary--text">Performance</div>
+                  <v-btn block color="error" x-large @click="goLive" class="rounded-lg font-weight-bold">
+                    <v-icon left>mdi-broadcast</v-icon>
+                    START LIVE SESSION
+                  </v-btn>
+                  
+                  <v-btn block text color="primary" class="mt-2" @click="toggleFullscreen">
+                    <v-icon left>mdi-fullscreen</v-icon>
+                    Toggle Fullscreen
+                  </v-btn>
+                </div>
+
                 <div class="text-overline mt-6 mb-4 primary--text">Sensitivity Presets</div>
                 <div class="d-flex flex-wrap mb-6" style="gap: 8px">
                   <v-chip
@@ -257,6 +323,21 @@
             </v-tab-item>
           </v-tabs-items>
         </v-tabs>
+
+        <!-- Company Footer -->
+        <div class="pa-6 mt-auto flex-shrink-0" style="background: rgba(0,0,0,0.2)">
+          <div class="d-flex align-center mb-4">
+            <div class="status-dot mr-2"></div>
+            <span class="text-caption grey--text font-weight-bold">ENGINE STATUS: <span class="success--text">ACTIVE</span></span>
+          </div>
+          
+          <v-row no-gutters>
+            <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" to="/about">Our Story</v-btn></v-col>
+            <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" to="/blog">Blog</v-btn></v-col>
+            <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" to="/legal">Legal</v-btn></v-col>
+            <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" href="mailto:support@noterender.com">Support</v-btn></v-col>
+          </v-row>
+        </div>
       </div>
     </v-navigation-drawer>
 
@@ -322,9 +403,17 @@
           <v-btn icon color="white" large @click="togglePlayLocal" :class="{ 'recording-active': isExporting }">
             <v-icon size="40">{{ playing ? 'mdi-play-circle-outline' : 'mdi-stop-circle' }}</v-icon>
           </v-btn>
-          <v-btn color="primary" rounded class="ml-4 font-weight-bold elevation-4 px-6" style="height: 36px" @click="handleExport">
+          <v-btn-toggle v-model="appMode" mandatory background-color="transparent" color="primary" dense class="ml-4 border-thin rounded-pill px-2">
+            <v-btn value="studio" small text class="rounded-pill px-4">Studio</v-btn>
+            <v-btn value="live" small text class="rounded-pill px-4">Live</v-btn>
+          </v-btn-toggle>
+          <v-btn v-if="appMode === 'studio'" color="primary" rounded class="ml-4 font-weight-bold elevation-4 px-6" style="height: 36px" @click="handleExport">
             <v-icon left size="18">{{ isExporting ? 'mdi-stop' : 'mdi-export' }}</v-icon> 
             {{ isExporting ? 'Stop & Save' : 'Export' }}
+          </v-btn>
+          <v-btn v-else color="error" rounded class="ml-4 font-weight-bold elevation-4 px-6 pulse-red" style="height: 36px" @click="goLive">
+            <v-icon left size="18">mdi-broadcast</v-icon> 
+            START LIVE
           </v-btn>
           <v-divider vertical class="mx-6 grey darken-3 my-4"></v-divider>
           <div class="d-none d-sm-block mr-2" style="min-width: 120px">
@@ -337,7 +426,7 @@
 
     <audio style="display: none" id="audio" :src="soundFile" loop></audio>
 
-    <PaywallModal v-model="showPaywall" />
+    <PaywallModal v-model="showPaywall" :mode="paywallMode" @trial-started="startLiveAfterTrial" />
   </v-app>
 </template>
 
@@ -347,6 +436,7 @@ import audio from "../js/Audio";
 import "babylonjs-loaders";
 import Recording from "./../js/Recording";
 import Templates from "./Templates.vue";
+import TemplateConfig from "./TemplateConfig.vue";
 import PaywallModal from "@/components/PaywallModal.vue";
 import TEXT from "@/js/templates/components/text";
 import Effects from "@/js/Effects";
@@ -363,7 +453,7 @@ import tunnel from "../js/templates/tunnel";
 
 export default {
   name: "Player",
-  components: { Templates, PaywallModal },
+  components: { Templates, TemplateConfig, PaywallModal },
   data() {
     return {
       drawer: false,
@@ -389,12 +479,17 @@ export default {
       isTransitioning: false,
       activeTemplateName: "",
       showHelp: false,
+      mouseTimer: null,
+      isMouseMoving: true,
+      appMode: "studio", // 'studio' or 'live'
+      paywallMode: "export", // 'export' or 'live'
       shortcuts: [
         { key: 'j / k', desc: 'Next / Previous Tab' },
         { key: 'h / l', desc: 'Toggle Sidebar' },
         { key: '[ / ]', desc: 'Next / Previous Template' },
         { key: '1 - 7', desc: 'Jump to Tab' },
         { key: 'm', desc: 'Toggle Microphone' },
+        { key: 'f', desc: 'Toggle Fullscreen' },
         { key: 'c', desc: 'Toggle Camera Motion' },
         { key: 'Space', desc: 'Play / Pause' },
         { key: '?', desc: 'Show Shortcuts' }
@@ -404,6 +499,10 @@ export default {
   computed: {
     template() { return this.$store.state.template; },
     soundFile() { return this.$store.state.file; },
+    audioSource: {
+      get() { return this.$store.state.audioSource; },
+      set(val) { this.$store.dispatch("setAudioSource", val); }
+    },
     config() { return this.$store.state; },
     emblem() { return this.$store.state.emblem; },
     storeTitle() { return this.$store.state.title; },
@@ -413,6 +512,8 @@ export default {
     storeLight() { return this.$store.state.light; },
     cameraMove: { get() { return this.$store.state.options.camera.move; }, set(val) { this.$store.dispatch("toggleCamera", val); } },
     microphone: { get() { return this.$store.state.microphone; }, set(val) { this.$store.dispatch("toggleMicrophone", val); } },
+    livePro() { return this.$store.state.livePro; },
+    trialStartedAt() { return this.$store.state.trialStartedAt; },
     highQuality: { get() { return this.$store.state.highQuality; }, set(val) { this.$store.dispatch("toggleHighQuality", val); } },
     removeWatermarkCheckbox: { 
       get() { return this.removeWatermark; }, 
@@ -437,6 +538,14 @@ export default {
     }
   },
   watch: {
+    drawer(val) {
+      if (!val) {
+        this.resetMouseTimer();
+      } else {
+        this.isMouseMoving = true;
+        if (this.mouseTimer) clearTimeout(this.mouseTimer);
+      }
+    },
     template: {
       handler(newVal, oldVal) {
         if (oldVal) {
@@ -457,6 +566,16 @@ export default {
     "sensitivity.fftSmoothing"(val) {
       if (this.audio) {
         this.audio.setSmoothing(val);
+      }
+    },
+    appMode(val) {
+      if (val === 'live') {
+        if (this.audioSource === 'file') {
+          this.audioSource = 'mic'; // Switch away from file in live mode
+        }
+      } else {
+        // Reset tab if Render tab was selected and we switched away from studio
+        if (this.activeTab === 6 && val === 'live') this.activeTab = 0;
       }
     },
     storeColors: {
@@ -505,6 +624,49 @@ export default {
     },
     rgbToHex(r, g, b) {
       return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    },
+
+    toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    },
+
+    async goLive() {
+      // Check Trial/Pro Status
+      const isTrialActive = this.trialStartedAt && (Date.now() - this.trialStartedAt < 7 * 24 * 60 * 60 * 1000);
+      
+      if (!this.livePro && !isTrialActive) {
+        this.paywallMode = 'live';
+        this.showPaywall = true;
+        return;
+      }
+
+      this.audioSource = 'system';
+      this.drawer = false;
+      this.toggleFullscreen();
+      
+      // If already playing, we need to restart with new source
+      if (!this.playing) {
+        this.stopVisualizer();
+        setTimeout(() => {
+          this.reCreate();
+          this.startVisualizer(false);
+        }, 500);
+      } else {
+        this.reCreate();
+        this.startVisualizer(false);
+      }
+    },
+
+    startLiveAfterTrial() {
+      this.goLive();
     },
 
     togglePlayLocal() {
@@ -563,6 +725,10 @@ export default {
         this.microphone = !this.microphone;
       }
 
+      if (key === 'f') {
+        this.toggleFullscreen();
+      }
+
       // c - Camera
       if (key === 'c') {
         this.cameraMove = !this.cameraMove;
@@ -580,7 +746,22 @@ export default {
       }
     },
 
+    resetMouseTimer() {
+      this.isMouseMoving = true;
+      if (this.mouseTimer) clearTimeout(this.mouseTimer);
+      if (!this.drawer) {
+        this.mouseTimer = setTimeout(() => {
+          this.isMouseMoving = false;
+        }, 3000);
+      }
+    },
+
+    handleMouseMove() {
+      this.resetMouseTimer();
+    },
+
     handleExport() {
+      this.paywallMode = 'export';
       if (!this.isPro) {
         this.showPaywall = true;
         return;
@@ -649,8 +830,10 @@ export default {
         const bitrate = this.highQuality ? 8000000 : 2500000;
         
         try {
-          if (this.microphone) {
+          if (this.audioSource === "mic") {
             await this.audio.useMicrophone();
+          } else if (this.audioSource === "system") {
+            await this.audio.useSystemAudio();
           } else {
             this.audio.nodes(); // Ensure analyzer nodes are created
             await this.audio.play();
@@ -867,6 +1050,19 @@ export default {
     }
   },
   mounted() {
+    // Check Trial from LocalStorage
+    const trialStart = localStorage.getItem('noterender_trial_start');
+    if (trialStart) {
+      const start = parseInt(trialStart);
+      this.$store.commit('setTrial', start);
+      // Check if expired
+      if (Date.now() - start < 7 * 24 * 60 * 60 * 1000) {
+        this.$store.commit('setLivePro', true);
+      } else {
+        this.$store.commit('setLivePro', false);
+      }
+    }
+
     // Check Pro Status from URL
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') === 'true') {
@@ -881,6 +1077,7 @@ export default {
     this.subtitle = this.$store.state.subtitle;
 
     window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("mousemove", this.handleMouseMove);
 
     // Play the audio muted in the background for a "wow" visual preview.
     // The play button remains visible (playing=true) so the user can natively press "Play"
@@ -896,6 +1093,8 @@ export default {
   },
   beforeDestroy() {
     window.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("mousemove", this.handleMouseMove);
+    if (this.mouseTimer) clearTimeout(this.mouseTimer);
   }
 };
 </script>
@@ -911,6 +1110,46 @@ export default {
 .studio-app {
   background-color: #000 !important;
   overflow: hidden !important;
+}
+
+.studio-app.hide-cursor {
+  cursor: none !important;
+}
+
+.mode-toggle {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+.mode-toggle .v-btn {
+  border: none !important;
+  text-transform: none !important;
+  letter-spacing: 1px !important;
+  font-weight: 600 !important;
+}
+
+.pulse-red {
+  animation: pulse-red-animation 2s infinite;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #4CAF50;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+  animation: status-pulse 2s infinite;
+}
+
+@keyframes status-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+@keyframes pulse-red-animation {
+  0% { box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 82, 82, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 82, 82, 0); }
 }
 
 /* Hide scrollbars globally for studio elements */

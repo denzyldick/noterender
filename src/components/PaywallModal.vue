@@ -7,7 +7,7 @@
       <v-card-title
         class="text-h5 font-weight-bold mb-2 primary--text text-center w-100 d-block"
       >
-        Unlock Premium Export
+        {{ mode === 'export' ? 'Unlock Premium Export' : 'Unlock Live Performance' }}
       </v-card-title>
 
       <v-card-text>
@@ -18,25 +18,64 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
           "
         >
-          <div class="d-flex align-center mb-2">
-            <v-icon color="success" class="mr-2">mdi-check-circle</v-icon>
-            <span class="text-subtitle-1">High-Quality Browser Export</span>
-          </div>
-          <div class="d-flex align-center mb-4">
-            <v-icon color="success" class="mr-2">mdi-check-circle</v-icon>
-            <span class="text-subtitle-1">No Watermarks</span>
-          </div>
+          <template v-if="mode === 'export'">
+            <div class="d-flex align-center mb-2">
+              <v-icon color="success" class="mr-2">mdi-check-circle</v-icon>
+              <span class="text-subtitle-1">High-Quality Browser Export</span>
+            </div>
+            <div class="d-flex align-center mb-4">
+              <v-icon color="success" class="mr-2">mdi-check-circle</v-icon>
+              <span class="text-subtitle-1">No Watermarks</span>
+            </div>
 
-          <v-btn
-            block
-            color="primary"
-            x-large
-            class="font-weight-bold"
-            @click="payNow"
-            :loading="loadingPay"
-          >
-            Pay $0.99 to Export Now
-          </v-btn>
+            <v-btn
+              block
+              color="primary"
+              x-large
+              class="font-weight-bold"
+              @click="payNow('pro_export')"
+              :loading="loadingPay"
+            >
+              Pay $0.99 to Export Now
+            </v-btn>
+          </template>
+
+          <template v-else>
+            <div class="d-flex align-center mb-2">
+              <v-icon color="success" class="mr-2">mdi-check-circle</v-icon>
+              <span class="text-subtitle-1">System Audio Capture</span>
+            </div>
+            <div class="d-flex align-center mb-2">
+              <v-icon color="success" class="mr-2">mdi-check-circle</v-icon>
+              <span class="text-subtitle-1">Fullscreen Performance Mode</span>
+            </div>
+            <div class="d-flex align-center mb-4">
+              <v-icon color="success" class="mr-2">mdi-check-circle</v-icon>
+              <span class="text-subtitle-1">Auto-hiding UI Controls</span>
+            </div>
+
+            <v-btn
+              v-if="!hasUsedTrial"
+              block
+              color="success"
+              x-large
+              class="font-weight-bold mb-3"
+              @click="startTrial"
+            >
+              Start 7-Day Free Trial
+            </v-btn>
+            
+            <v-btn
+              block
+              color="primary"
+              x-large
+              class="font-weight-bold"
+              @click="payNow('live_pass')"
+              :loading="loadingPay"
+            >
+              {{ hasUsedTrial ? 'Get Live Pass - $4.99/mo' : 'Skip Trial - Buy Now' }}
+            </v-btn>
+          </template>
         </div>
 
         <v-divider
@@ -90,6 +129,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    mode: {
+      type: String,
+      default: 'export', // 'export' or 'live'
+    }
   },
   data() {
     return {
@@ -108,12 +151,24 @@ export default {
         this.$emit("input", val);
       },
     },
+    hasUsedTrial() {
+      return this.$store.state.trialStartedAt !== null;
+    }
   },
   methods: {
     closeModal() {
       this.dialog = false;
     },
-    async payNow() {
+    startTrial() {
+      const now = Date.now();
+      this.$store.commit('setTrial', now);
+      this.$store.commit('setLivePro', true);
+      localStorage.setItem('noterender_trial_start', now.toString());
+      this.closeModal();
+      // Notify parent to proceed
+      this.$emit('trial-started');
+    },
+    async payNow(item) {
       this.loadingPay = true;
       try {
         const API_BASE =
@@ -123,7 +178,7 @@ export default {
         const response = await fetch(`${API_BASE}/api/checkout`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ item: "pro_export" }),
+          body: JSON.stringify({ item: item }),
         });
 
         const session = await response.json();

@@ -29,10 +29,10 @@ const _accentColor = new BABYLON.Color3();
 const CONFIG = {
     rows: 100, 
     cols: 14,
-    streetWidth: 90,
+    streetWidth: 140, 
     blockSize: 16,
     gap: 16,
-    speed: 4.5,
+    speed: 6.0,
     skyColor: new BABYLON.Color4(0.01, 0.0, 0.02, 1),
 };
 
@@ -87,30 +87,30 @@ const template = {
         if (camera) {
             if (camera.upVector) camera.upVector.set(0, 1, 0);
             
-            // Get path position for Z=0 (Plane) and Z=-120 (Camera) to match render start
+            // Get path position for Z=0 (Plane) and Z=-80 (Camera)
             const pPlaneStart = getPath(0);
-            const pCamStart = getPath(-120);
+            const pCamStart = getPath(-80);
             
-            // HARD RESET all camera properties to ensure it's not "stuck" from previous templates
+            // HARD RESET
             camera.alpha = Math.PI / 2;
             camera.beta = Math.PI / 2;
-            camera.radius = 120;
+            camera.radius = 80;
             camera.inertialAlphaOffset = 0;
             camera.inertialBetaOffset = 0;
             camera.inertialRadiusOffset = 0;
             camera.panningInertia = 0;
             
-            // Set initial position and target based on road path
-            _tempTarget.set(pPlaneStart.x, pPlaneStart.y + 35, 0); 
-            _tempVec3.set(pCamStart.x, pCamStart.y + 22, -120);
+            // Set initial position and target - MUCH LOWER
+            _tempTarget.set(pPlaneStart.x, pPlaneStart.y + 10, 0); 
+            _tempVec3.set(pCamStart.x, pCamStart.y + 18, -80);
             
             camera.setTarget(_tempTarget);
             camera.setPosition(_tempVec3);
         }
 
         // --- Plane (Logo) ---
-        PLANE.setScale(45, 45);
-        PLANE.setCoordinates(0, 30, 60);
+        PLANE.setScale(40, 40);
+        PLANE.setCoordinates(0, 10, 0);
         PLANE.init(scene, config);
 
         // --- Terrain Grid ---
@@ -254,19 +254,19 @@ const template = {
         }
         if (isNaN(globalZ)) globalZ = 0;
 
-        const camZ = globalZ - 120;
+        const camZ = globalZ - 80;
         const pCam = getPath(camZ);
 
         if (currentCamera && !currentCamera.isDisposed) {
-            // Constant distance: Plane is exactly 120 units ahead of camera
-            const planeZ = camZ + 120; 
+            // Constant distance: Plane is exactly 80 units ahead of camera
+            const planeZ = camZ + 80; 
             const pPlane = getPath(planeZ);
             
-            // 1. Calculate base camera position - STRICTLY ON ROAD AT FIXED HEIGHT
-            _tempVec3.set(pCam.x, pCam.y + 22, camZ);
+            // 1. Calculate base camera position - STREETVIEW HEIGHT (approx 15 units above road)
+            _tempVec3.set(pCam.x, pCam.y + 15, camZ);
             
             // 2. Target the plane exactly to keep it centered on screen
-            _tempTarget.set(pPlane.x, pPlane.y + 35, planeZ);
+            _tempTarget.set(pPlane.x, pPlane.y + 10, planeZ);
 
             try {
                 // Force target and position every frame to prevent camera from getting "stuck"
@@ -274,7 +274,7 @@ const template = {
                 currentCamera.setPosition(_tempVec3);
                 
                 // Stable FOV and UpVector based on road banking
-                currentCamera.fov = 0.85;
+                currentCamera.fov = 1.1; // Wider FOV for more speed sensation
                 const camBank = pCam.bank * 0.8;
                 if (currentCamera.upVector) {
                     currentCamera.upVector.set(Math.sin(camBank), Math.cos(camBank), 0);
@@ -291,10 +291,10 @@ const template = {
 
         const planeMesh = PLANE.getPlane();
         if (planeMesh) {
-            const planeZ = camZ + 120; // Match camera's target Z exactly
+            const planeZ = camZ + 80; 
             const pPlane = getPath(planeZ);
             
-            planeMesh.position.set(pPlane.x, pPlane.y + 35, planeZ);
+            planeMesh.position.set(pPlane.x, pPlane.y + 10, planeZ);
             
             planeMesh.rotation.y = pPlane.yaw;
             planeMesh.rotation.x = -pPlane.pitch;
@@ -303,7 +303,9 @@ const template = {
 
         const updateMesh = (item, isBuilding) => {
             let relZ = item.baseZ - globalZ;
-            relZ = ((relZ + 200) % totalDepth + totalDepth) % totalDepth - 200;
+            // Loop items around the camera (at -80). 
+            // We want items to exist from roughly -100 to totalDepth-100
+            relZ = ((relZ + 100) % totalDepth + totalDepth) % totalDepth - 100;
             
             const evalZ = globalZ + relZ;
             const p = getPath(evalZ);
@@ -313,6 +315,7 @@ const template = {
                 item.mesh.rotation.set(-p.pitch, p.yaw, p.bank);
             } else {
                 const lateral = item.offsetX;
+                // Buildings should be sitting on the road level
                 const cosY = Math.cos(p.yaw);
                 const sinY = Math.sin(p.yaw);
                 const yShift = lateral * Math.sin(p.bank);
