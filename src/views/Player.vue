@@ -210,25 +210,11 @@
               <div class="pa-6">
                 <div class="text-overline mb-4 primary--text">Visual Enhancements</div>
                 <v-list dark dense flat class="transparent">
-                  <v-list-item @click="toggleEffect('smoke')">
-                    <v-list-item-action><v-checkbox :input-value="activeEffects.includes('smoke')" color="primary" hide-details></v-checkbox></v-list-item-action>
+                  <v-list-item v-for="effect in effectList" :key="effect.id" @click="toggleEffect(effect.id)">
+                    <v-list-item-action><v-checkbox :input-value="activeEffects.includes(effect.id)" color="primary" hide-details></v-checkbox></v-list-item-action>
                     <v-list-item-content>
-                      <v-list-item-title>Smoke Atmosphere</v-list-item-title>
-                      <v-list-item-subtitle>Reactive particle fog system</v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
-                  <v-list-item @click="toggleEffect('thunder')">
-                    <v-list-item-action><v-checkbox :input-value="activeEffects.includes('thunder')" color="primary" hide-details></v-checkbox></v-list-item-action>
-                    <v-list-item-content>
-                      <v-list-item-title>Dynamic Thunder</v-list-item-title>
-                      <v-list-item-subtitle>Bass-triggered lightning flashes</v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
-                  <v-list-item @click="toggleEffect('birds')">
-                    <v-list-item-action><v-checkbox :input-value="activeEffects.includes('birds')" color="primary" hide-details></v-checkbox></v-list-item-action>
-                    <v-list-item-content>
-                      <v-list-item-title>Flying Creatures</v-list-item-title>
-                      <v-list-item-subtitle>Abstract birds following the beat</v-list-item-subtitle>
+                      <v-list-item-title>{{ effect.name }}</v-list-item-title>
+                      <v-list-item-subtitle>{{ effect.desc }}</v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
                 </v-list>
@@ -483,6 +469,21 @@ export default {
       isMouseMoving: true,
       appMode: "studio", // 'studio' or 'live'
       paywallMode: "export", // 'export' or 'live'
+      effectList: [
+        { id: 'smoke', name: 'Smoke Atmosphere', desc: 'Reactive particle fog system' },
+        { id: 'thunder', name: 'Dynamic Thunder', desc: 'Bass-triggered lightning flashes' },
+        { id: 'birds', name: 'Flying Creatures', desc: 'Abstract birds following the beat' },
+        { id: 'glitch', name: 'Glitch Mode', desc: 'Digital distortion and chromatic shifts' },
+        { id: 'grid', name: 'Neon Grid', desc: 'Retro-futuristic pulsing floor grid' },
+        { id: 'fireflies', name: 'Organic Fireflies', desc: 'Wandering glowing light particles' },
+        { id: 'rain', name: 'Matrix Rain', desc: 'Vertical falling streaks of code-light' },
+        { id: 'shockwave', name: 'Bass Shockwaves', desc: 'Expanding rings on heavy sub-hits' },
+        { id: 'lasers', name: 'Scanning Lasers', desc: 'Volumetric beams sweeping the scene' },
+        { id: 'dust', name: 'Cosmic Dust', desc: 'Floating deep-space particles' },
+        { id: 'crystals', name: 'Floating Shards', desc: 'Rotating geometric glass crystals' },
+        { id: 'vignette', name: 'Cinematic Border', desc: 'Pulsing edge focus and framing' },
+        { id: 'bloom', name: 'Bloom Flash', desc: 'Intense brightness peaks on snare' }
+      ],
       shortcuts: [
         { key: 'j / k', desc: 'Next / Previous Tab' },
         { key: 'h / l', desc: 'Toggle Sidebar' },
