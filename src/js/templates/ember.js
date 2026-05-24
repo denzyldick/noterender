@@ -24,12 +24,12 @@ const template = {
         CAMERA_PHYSICS.lock();
         if (camera) {
             camera.detachControl();
-            camera.position.set(0, 0, 0);
-            camera.setTarget(new BABYLON.Vector3(0, 0, 100));
-            camera.radius = 1;
+            camera.position.set(0, 0, -300);
+            camera.setTarget(BABYLON.Vector3.Zero());
+            camera.radius = 300;
             camera.alpha = 0;
             camera.beta = 0;
-            camera.fov = 1.2;
+            camera.fov = 1.0;
         }
 
         scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
@@ -37,11 +37,9 @@ const template = {
         _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
         _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
 
-        PLANE.setScale(120, 120);
-        PLANE.setCoordinates(0, 0, 500);
+        PLANE.setScale(80, 80);
+        PLANE.setCoordinates(0, 0, 0);
         PLANE.init(scene, config);
-        const logoPlane = PLANE.getPlane();
-        if (logoPlane) logoPlane.renderingGroupId = 1;
 
         const box = BABYLON.MeshBuilder.CreateBox("s", { size: 1 }, scene);
         stars = new BABYLON.SolidParticleSystem("stars", scene, { updatable: true });
@@ -55,25 +53,24 @@ const template = {
         stars.initParticles = () => {
             for (let p = 0; p < stars.nbParticles; p++) {
                 const part = stars.particles[p];
-                this.resetStar(part, true);
+                this.resetStar(part);
             }
         };
         stars.initParticles();
         stars.setParticles();
     },
 
-    resetStar(part, initial) {
+    resetStar(part) {
         const angle = Math.random() * Math.PI * 2;
         const angle2 = Math.random() * Math.PI * 2;
         const dist = 100 + Math.random() * 2000;
         part.position.set(
             Math.cos(angle) * Math.sin(angle2) * dist,
             Math.sin(angle) * Math.sin(angle2) * dist,
-            (initial ? -1 : 1) * (300 + Math.random() * 2000)
+            500 + Math.random() * 2000
         );
         part.props = {
-            speed: 5 + Math.random() * 20,
-            angle: angle,
+            speed: 3 + Math.random() * 8,
             size: 1 + Math.random() * 4
         };
         part.scaling.setAll(part.props.size);
@@ -106,29 +103,29 @@ const template = {
         }
 
         if (stars) {
-            const speedMult = 1 + pBass * 8;
+            const speedMult = 1 + pBass * 5;
             for (let p = 0; p < stars.nbParticles; p++) {
                 const part = stars.particles[p];
-                part.position.z += part.props.speed * speedMult;
+                part.position.z -= part.props.speed * speedMult;
 
-                const fade = Math.min(1, (part.position.z + 300) / 1500);
+                const fade = Math.min(1, 1 - part.position.z / 2500);
                 part.color.set(
                     _accentColor.r * fade,
                     _accentColor.g * fade,
                     _accentColor.b * fade,
                     fade
                 );
-                part.scaling.setAll(part.props.size * (0.5 + fade * 0.5));
+                part.scaling.setAll(part.props.size * (0.3 + fade * 0.7));
 
-                if (part.position.z > 2500) {
-                    this.resetStar(part, false);
+                if (part.position.z < -100) {
+                    this.resetStar(part);
                 }
             }
             stars.setParticles();
         }
 
         if (currentCamera) {
-            currentCamera.fov = 1.2 + pBass * 0.4 + treble * 0.2;
+            currentCamera.fov = 1.0 + pBass * 0.2;
         }
     },
 
