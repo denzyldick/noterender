@@ -21,9 +21,63 @@ function api(path: string, options: any = {}) {
   });
 }
 
+const SAVE_KEY = "noterender_state";
+const PERSISTED_KEYS = [
+  "template", "templates", "activeEffects", "colors", "light",
+  "dynamicColors", "selectedSize", "logoStyle", "title", "subtitle",
+  "emblem", "sensitivity", "options", "audioSource", "highQuality",
+  "removeWatermark", "announcement"
+];
+
+function saveState(state) {
+  try {
+    const partial = {};
+    for (const key of PERSISTED_KEYS) {
+      partial[key] = JSON.parse(JSON.stringify(state[key]));
+    }
+    localStorage.setItem(SAVE_KEY, JSON.stringify(partial));
+  } catch (_) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+const persisted = loadState();
+
 export default new Vuex.Store({
+  plugins: [store => {
+    // Deep-merge persisted state into store
+    if (persisted.colors) {
+      for (const key of PERSISTED_KEYS) {
+        if (persisted[key] !== undefined) {
+          if (typeof persisted[key] === 'object' && !Array.isArray(persisted[key])) {
+            Object.assign(store.state[key], persisted[key]);
+          } else if (Array.isArray(persisted[key]) && key === 'activeEffects') {
+            store.state[key] = persisted[key];
+          } else if (Array.isArray(persisted[key]) && key === 'templates' && persisted[key].length) {
+            for (const saved of persisted[key]) {
+              const target = store.state.templates.find(t => t.name === saved.name);
+              if (target && saved.currentConfig) {
+                Object.assign(target.currentConfig, saved.currentConfig);
+              }
+            }
+          } else {
+            store.state[key] = persisted[key];
+          }
+        }
+      }
+    }
+    saveState(store.state);
+    store.subscribe(() => saveState(store.state));
+  }],
   state: {
-    template: "terrain",
+    template: persisted.template || "terrain",
     templates: [
       {
         name: "trap",
@@ -227,7 +281,7 @@ export default new Vuex.Store({
       },
     ],
     selectedSize: "Auto",
-    logoStyle: "Liquid",
+    logoStyle: "None",
     file: "/default_audio.mp3",
     title: "Noterender",
     subtitle: "Elevate Your Sound",
@@ -264,7 +318,7 @@ export default new Vuex.Store({
     visualizer: true,
     dialog: true,
     recording: false,
-    activeEffects: ["smoke", "thunder", "birds", "glitch", "grid", "fireflies", "rain", "shockwave", "lasers", "dust", "crystals", "vignette", "bloom"],
+    activeEffects: persisted.activeEffects || ["smoke", "thunder", "birds", "glitch", "grid", "fireflies", "rain", "shockwave", "lasers", "dust", "crystals", "vignette", "bloom"],
     soundFile: null,
     highQuality: false,
     removeWatermark: false,
