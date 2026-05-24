@@ -5,14 +5,14 @@ import CAMERA_PHYSICS from "@/js/templates/components/camera";
 let sceneRef;
 let currentCamera;
 let t = 0;
-let mirrorGroup;
-let mirrorMat;
+let spokes = [];
 let currentTemplateConfig = {};
+let spokeMat;
 
 const _primaryColor = new BABYLON.Color3();
 const _accentColor = new BABYLON.Color3();
-const _tempVec3 = new BABYLON.Vector3();
-const MIRROR_COUNT = 8;
+const SPOKE_COUNT = 48;
+const SEGMENTS = 64;
 
 const template = {
     init(camera, renderer, nb, scene, width, height, d, config) {
@@ -22,14 +22,13 @@ const template = {
 
         const templateData = config.templates.find(td => td.name === 'kaleid');
         currentTemplateConfig = templateData ? templateData.currentConfig : {};
-        const c = currentTemplateConfig;
 
         CAMERA_PHYSICS.lock();
         if (camera) {
             camera.detachControl();
-            camera.position.set(0, 0, -300);
+            camera.position.set(0, 0, -250);
             camera.setTarget(BABYLON.Vector3.Zero());
-            camera.radius = 300;
+            camera.radius = 250;
         }
 
         scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
@@ -41,81 +40,70 @@ const template = {
         PLANE.setCoordinates(0, 0, 0);
         PLANE.init(scene, config);
 
-        mirrorMat = new BABYLON.StandardMaterial("mirrorMat", scene);
-        mirrorMat.emissiveColor = _primaryColor.clone();
-        mirrorMat.disableLighting = true;
+        spokeMat = new BABYLON.StandardMaterial("spokeMat", scene);
+        spokeMat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+        spokeMat.disableLighting = true;
 
-        const segmentSize = 60;
-        mirrorGroup = [];
-
-        const baseBar = BABYLON.MeshBuilder.CreateBox("bar", {
-            width: segmentSize,
-            height: 3,
+        const bar = BABYLON.MeshBuilder.CreateBox("bar", {
+            width: 0.8,
+            height: 1,
             depth: 3
         }, scene);
-        baseBar.material = mirrorMat;
-        baseBar.isVisible = false;
+        bar.material = spokeMat;
+        bar.isVisible = false;
 
-        const baseRing = BABYLON.MeshBuilder.CreateTorus("ringSeg", {
-            diameter: 50,
-            thickness: 1.5,
-            tessellation: 16
-        }, scene);
-        baseRing.material = mirrorMat;
-        baseRing.isVisible = false;
+        spokes = [];
+        for (let s = 0; s < SPOKE_COUNT; s++) {
+            const angle = (s / SPOKE_COUNT) * Math.PI * 2;
+            const group = [];
 
-        const angleStep = (Math.PI * 2) / MIRROR_COUNT;
-        for (let m = 0; m < MIRROR_COUNT; m++) {
-            const group = new BABYLON.TransformNode("mirror" + m, scene);
-            const rot = m * angleStep;
-
-            for (let i = 0; i < 8; i++) {
-                const bar = baseBar.createInstance("mBar" + m + "_" + i);
-                const dist = 60 + i * 35;
-                bar.position.set(dist, (i - 4) * 20, 0);
-                bar.scaling.set(1, 1 + Math.sin(i * 1.5) * 0.5, 1);
-                bar.parent = group;
+            for (let seg = 0; seg < SEGMENTS; seg++) {
+                const b = bar.createInstance("s" + s + "_" + seg);
+                const dist = 10 + seg * 3.5;
+                b.position.set(Math.cos(angle) * dist, Math.sin(angle) * dist, 0);
+                b.scaling.set(1, 1 + seg * 0.15, 1);
+                group.push({ mesh: b, dist: dist, seg: seg });
             }
-
-            for (let i = 0; i < 4; i++) {
-                const ring = baseRing.createInstance("mRing" + m + "_" + i);
-                const dist = 80 + i * 60;
-                ring.position.set(dist, 0, 0);
-                ring.scaling.setAll(1 + i * 0.2);
-                ring.parent = group;
-            }
-
-            group.rotation.y = rot;
-            mirrorGroup.push(group);
+            spokes.push({ bars: group, angle: angle });
         }
 
-        baseBar.dispose();
-        baseRing.dispose();
+        bar.dispose();
+
+        const ringMat = new BABYLON.StandardMaterial("ringMat2", scene);
+        ringMat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+        ringMat.alpha = 0.1;
+        ringMat.disableLighting = true;
+        const ring = BABYLON.MeshBuilder.CreateTorus("ring2", {
+            diameter: 2 * (10 + (SEGMENTS - 1) * 3.5),
+            thickness: 1,
+            tessellation: 64
+        }, scene);
+        ring.material = ringMat;
 
         if (!scene.glowLayer) {
-            new BABYLON.GlowLayer("glow", scene).intensity = 2.0;
+            new BABYLON.GlowLayer("glow", scene).intensity = 0.6;
         }
     },
 
     render(fft, config) {
         if (!fft || !fft.length) fft = new Uint8Array(256).fill(0);
-        t += 0.01;
+        t += 0.005;
         PLANE.render(fft, config);
 
         const boost = config.sensitivity ? config.sensitivity.bassBoost : 1.0;
         let bass = 0;
-        for (let i = 0; i < 8; i++) bass += fft[i];
-        bass = (bass / 8 / 255) * boost;
-        const pBass = Math.pow(bass, 1.5);
+        for (let i = 0; i < 6; i++) bass += fft[i];
+        bass = (bass / 6 / 255) * boost;
+        const pBass = Math.pow(bass, 1.3);
 
         let treble = 0;
-        for (let i = fft.length - 25; i < fft.length; i++) treble += fft[i];
-        treble = (treble / 25 / 255) * boost;
+        for (let i = fft.length - 20; i < fft.length; i++) treble += fft[i];
+        treble = (treble / 20 / 255) * boost;
 
         if (config.dynamicColors) {
             const hue = (t * 0.04) % 1;
-            const pRGB = hslToRgb(hue, 0.8, 0.5 + bass * 0.2);
-            const aRGB = hslToRgb((hue + 0.3) % 1, 0.9, 0.6 + treble * 0.2);
+            const pRGB = hslToRgb(hue, 0.9, 0.5 + bass * 0.3);
+            const aRGB = hslToRgb((hue + 0.3) % 1, 0.8, 0.6 + treble * 0.2);
             _primaryColor.set(pRGB.r, pRGB.g, pRGB.b);
             _accentColor.set(aRGB.r, aRGB.g, aRGB.b);
         } else {
@@ -123,42 +111,42 @@ const template = {
             _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
         }
 
-        if (mirrorGroup) {
-            const angleStep = (Math.PI * 2) / MIRROR_COUNT;
-            for (let m = 0; m < mirrorGroup.length; m++) {
-                const group = mirrorGroup[m];
-                group.rotation.y += 0.002 * (1 + pBass * 3) * (1 + m * 0.05);
-                group.position.y = Math.sin(t * 0.5 + m * 0.5) * pBass * 20;
+        for (let s = 0; s < spokes.length; s++) {
+            const spoke = spokes[s];
+            const rotOffset = t * 0.2 * (0.5 + pBass * 2);
 
-                const children = group.getChildMeshes();
-                for (let c = 0; c < children.length; c++) {
-                    const child = children[c];
-                    const fftIdx = (m * 16 + c) % fft.length;
-                    const val = fft[fftIdx] / 255;
-                    const intensity = 0.3 + val * 1.5 + pBass * 0.5;
-                    child.material.emissiveColor.set(
-                        _primaryColor.r * intensity,
-                        _primaryColor.g * intensity * (0.5 + val * 0.5),
-                        _primaryColor.b * intensity * (0.3 + val * 0.7)
-                    );
-                    const s = 1 + val * 2 + pBass;
-                    if (child.name.includes("Bar")) {
-                        child.scaling.x = s;
-                    }
-                }
+            for (let b = 0; b < spoke.bars.length; b++) {
+                const bar = spoke.bars[b];
+                const angle = spoke.angle + rotOffset;
+                const dist = bar.dist;
+                bar.mesh.position.x = Math.cos(angle) * dist;
+                bar.mesh.position.y = Math.sin(angle) * dist;
+
+                const fftIdx = (s * 4 + b) % fft.length;
+                const val = fft[fftIdx] / 255;
+                const barHeight = 1 + val * 30 * (1 + pBass * 2);
+                bar.mesh.scaling.y = barHeight;
+
+                const intensity = 0.3 + val * 1.5 + pBass * 0.5;
+                const hue = (b / SEGMENTS + s / SPOKE_COUNT + t * 0.02) % 1;
+                const col = hslToRgb(hue, 0.9, 0.5 + val * 0.5);
+                bar.mesh.material.emissiveColor.set(
+                    col.r * intensity,
+                    col.g * intensity,
+                    col.b * intensity
+                );
             }
         }
 
         if (currentCamera) {
-            currentCamera.radius = 300 - pBass * 80;
-            currentCamera.alpha += 0.003 * (1 + pBass * 2);
+            currentCamera.radius = 250 - pBass * 50;
         }
     },
 
     dispose() {
         currentCamera = null;
         sceneRef = null;
-        mirrorGroup = [];
+        spokes = [];
     }
 };
 

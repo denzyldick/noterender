@@ -154,7 +154,7 @@ export default new Vuex.Store({
       {
         name: "flux",
         preview: "",
-        description: "Liquid metal surface rippling with bass. Hypnotic fluid dynamics.",
+        description: "Psychedelic plasma surface. Flowing, colorful, and hypnotic.",
         price: "0",
         configuration: {},
         currentConfig: {}
@@ -162,7 +162,7 @@ export default new Vuex.Store({
       {
         name: "ember",
         preview: "",
-        description: "Fire particle swarm that erupts on bass hits. Raw energy.",
+        description: "Classic 3D starfield. Stars fly toward you in a rush of color.",
         price: "0",
         configuration: {},
         currentConfig: {}
@@ -170,7 +170,7 @@ export default new Vuex.Store({
       {
         name: "wire",
         preview: "",
-        description: "Minimal 3D waveform oscilloscope. Clean and technical.",
+        description: "Colored waveform lines scrolling in harmony. Pure retro wave.",
         price: "0",
         configuration: {},
         currentConfig: {}
@@ -178,7 +178,7 @@ export default new Vuex.Store({
       {
         name: "kaleid",
         preview: "",
-        description: "Kaleidoscopic mirrored geometry. Symmetry in motion.",
+        description: "Circular spoke visualization. FFT-driven bars radiate from center.",
         price: "0",
         configuration: {},
         currentConfig: {}
@@ -186,7 +186,7 @@ export default new Vuex.Store({
       {
         name: "static",
         preview: "",
-        description: "CRT glitch aesthetic with noise and scanlines. Industrial grit.",
+        description: "Wireframe water ripple grid. Bass drops send rings across the surface.",
         price: "0",
         configuration: {},
         currentConfig: {}

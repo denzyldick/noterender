@@ -5,13 +5,12 @@ import CAMERA_PHYSICS from "@/js/templates/components/camera";
 let sceneRef;
 let currentCamera;
 let t = 0;
-let embers;
-let emberMat;
+let stars;
 let currentTemplateConfig = {};
 
 const _primaryColor = new BABYLON.Color3();
 const _accentColor = new BABYLON.Color3();
-const _tempVec3 = new BABYLON.Vector3();
+const STAR_COUNT = 600;
 
 const template = {
     init(camera, renderer, nb, scene, width, height, d, config) {
@@ -25,9 +24,12 @@ const template = {
         CAMERA_PHYSICS.lock();
         if (camera) {
             camera.detachControl();
-            camera.position.set(0, 0, -350);
-            camera.setTarget(BABYLON.Vector3.Zero());
-            camera.radius = 350;
+            camera.position.set(0, 0, 0);
+            camera.setTarget(new BABYLON.Vector3(0, 0, 100));
+            camera.radius = 1;
+            camera.alpha = 0;
+            camera.beta = 0;
+            camera.fov = 1.2;
         }
 
         scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
@@ -35,50 +37,44 @@ const template = {
         _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
         _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
 
-        PLANE.setScale(100, 100);
-        PLANE.setCoordinates(0, 0, 0);
+        PLANE.setScale(60, 60);
+        PLANE.setCoordinates(0, 0, 300);
         PLANE.init(scene, config);
+        const plane = PLANE.getPlane();
+        if (plane) plane.renderingGroupId = 1;
 
-        const box = BABYLON.MeshBuilder.CreateBox("e", { size: 1 }, scene);
-        embers = new BABYLON.SolidParticleSystem("embers", scene, { updatable: true });
-        embers.addShape(box, 2000);
+        const box = BABYLON.MeshBuilder.CreateBox("s", { size: 1 }, scene);
+        stars = new BABYLON.SolidParticleSystem("stars", scene, { updatable: true });
+        stars.addShape(box, STAR_COUNT);
         box.dispose();
-        const mesh = embers.buildMesh();
-        emberMat = new BABYLON.StandardMaterial("emberMat", scene);
-        emberMat.emissiveColor = new BABYLON.Color3(1, 1, 1);
-        emberMat.disableLighting = true;
-        mesh.material = emberMat;
+        const mesh = stars.buildMesh();
+        mesh.material = new BABYLON.StandardMaterial("starMat", scene);
+        mesh.material.emissiveColor = new BABYLON.Color3(1, 1, 1);
+        mesh.material.disableLighting = true;
 
-        embers.initParticles = () => {
-            for (let p = 0; p < embers.nbParticles; p++) {
-                const part = embers.particles[p];
-                this.resetEmber(part);
-                part.position.y = (Math.random() - 0.5) * 400;
+        stars.initParticles = () => {
+            for (let p = 0; p < stars.nbParticles; p++) {
+                const part = stars.particles[p];
+                this.resetStar(part, true);
             }
         };
-        embers.initParticles();
-        embers.setParticles();
-
-        if (!scene.glowLayer) {
-            new BABYLON.GlowLayer("glow", scene).intensity = 2.5;
-        }
+        stars.initParticles();
+        stars.setParticles();
     },
 
-    resetEmber(part, isBurst) {
-        const radius = isBurst ? Math.random() * 80 : Math.random() * 200;
+    resetStar(part, initial) {
         const angle = Math.random() * Math.PI * 2;
+        const angle2 = Math.random() * Math.PI * 2;
+        const dist = 100 + Math.random() * 2000;
         part.position.set(
-            Math.cos(angle) * radius,
-            -150 - Math.random() * 100,
-            Math.sin(angle) * radius
+            Math.cos(angle) * Math.sin(angle2) * dist,
+            Math.sin(angle) * Math.sin(angle2) * dist,
+            (initial ? -1 : 1) * (300 + Math.random() * 2000)
         );
         part.props = {
-            vx: (Math.random() - 0.5) * (isBurst ? 8 : 1),
-            vy: 1 + Math.random() * (isBurst ? 8 : 3),
-            vz: (Math.random() - 0.5) * (isBurst ? 8 : 1),
-            life: Math.random(),
-            maxLife: 0.5 + Math.random() * 0.5,
-            size: 2 + Math.random() * 8
+            speed: 5 + Math.random() * 20,
+            angle: angle,
+            size: 1 + Math.random() * 4
         };
         part.scaling.setAll(part.props.size);
     },
@@ -90,20 +86,18 @@ const template = {
 
         const boost = config.sensitivity ? config.sensitivity.bassBoost : 1.0;
         let bass = 0;
-        for (let i = 0; i < 8; i++) bass += fft[i];
-        bass = (bass / 8 / 255) * boost;
-        const pBass = Math.pow(bass, 1.6);
+        for (let i = 0; i < 6; i++) bass += fft[i];
+        bass = (bass / 6 / 255) * boost;
+        const pBass = Math.pow(bass, 1.3);
 
         let treble = 0;
-        for (let i = fft.length - 30; i < fft.length; i++) treble += fft[i];
-        treble = (treble / 30 / 255) * boost;
-
-        const bassHit = bass > 0.6 && bass > (this._lastBass || 0);
+        for (let i = fft.length - 25; i < fft.length; i++) treble += fft[i];
+        treble = (treble / 25 / 255) * boost;
 
         if (config.dynamicColors) {
-            const hue = (t * 0.03) % 1;
-            const pRGB = hslToRgb(hue, 0.9, 0.5 + bass * 0.3);
-            const aRGB = hslToRgb((hue + 0.15) % 1, 1.0, 0.6 + treble * 0.2);
+            const hue = (t * 0.02) % 1;
+            const pRGB = hslToRgb(hue, 0.9, 0.6 + bass * 0.3);
+            const aRGB = hslToRgb((hue + 0.3) % 1, 0.8, 0.7);
             _primaryColor.set(pRGB.r, pRGB.g, pRGB.b);
             _accentColor.set(aRGB.r, aRGB.g, aRGB.b);
         } else {
@@ -111,53 +105,30 @@ const template = {
             _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
         }
 
-        if (embers) {
-            for (let p = 0; p < embers.nbParticles; p++) {
-                const part = embers.particles[p];
-                part.props.vy += 0.02;
-                part.position.x += part.props.vx * (1 + treble * 5);
-                part.position.y += part.props.vy * (1 + treble * 3);
-                part.position.z += part.props.vz * (1 + treble * 5);
+        if (stars) {
+            const speedMult = 1 + pBass * 8;
+            for (let p = 0; p < stars.nbParticles; p++) {
+                const part = stars.particles[p];
+                part.position.z += part.props.speed * speedMult;
 
-                part.props.vx *= 0.98;
-                part.props.vz *= 0.98;
-
-                part.props.life += 0.005 * (1 + treble * 3);
-
-                const lifeRatio = part.props.life / part.props.maxLife;
-                const fade = 1 - lifeRatio;
-                const heat = Math.max(0, 1 - lifeRatio * 2);
-
+                const fade = Math.min(1, (part.position.z + 300) / 1500);
                 part.color.set(
-                    _accentColor.r * heat + _primaryColor.r * (1 - heat),
-                    _primaryColor.g * heat * 0.6,
-                    _primaryColor.b * heat * 0.2,
+                    _accentColor.r * fade,
+                    _accentColor.g * fade,
+                    _accentColor.b * fade,
                     fade
                 );
+                part.scaling.setAll(part.props.size * (0.5 + fade * 0.5));
 
-                const s = part.props.size * (0.5 + heat * 0.5);
-                part.scaling.setAll(s);
-
-                if (lifeRatio > 1) {
-                    this.resetEmber(part, false);
+                if (part.position.z > 2500) {
+                    this.resetStar(part, false);
                 }
             }
-
-            if (bassHit) {
-                const burstCount = Math.min(50, Math.floor(bass * 100));
-                for (let i = 0; i < burstCount && i < embers.nbParticles; i++) {
-                    this.resetEmber(embers.particles[i], true);
-                }
-            }
-
-            embers.setParticles();
+            stars.setParticles();
         }
 
-        this._lastBass = bass;
-
         if (currentCamera) {
-            currentCamera.radius = 350 - pBass * 100;
-            currentCamera.fov = 1.0 + pBass * 0.2;
+            currentCamera.fov = 1.2 + pBass * 0.4 + treble * 0.2;
         }
     },
 

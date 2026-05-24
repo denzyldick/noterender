@@ -44,11 +44,11 @@ const template = {
         knot = BABYLON.MeshBuilder.CreateTorusKnot("knot", {
             radius: 120,
             tube: 1.2,
-            radialSegments: 128,
-            tubularSegments: 32,
+            radialSegments: 48,
+            tubularSegments: 16,
             p: 3,
             q: 7,
-            updatable: false // Scaling/Rotation is fine without updatable
+            updatable: false
         }, scene);
         
         const mat = new BABYLON.StandardMaterial("knotMat", scene);
@@ -59,8 +59,8 @@ const template = {
 
         // --- Particle Swarm ---
         sps = new BABYLON.SolidParticleSystem("swarm", scene, { updatable: true });
-        const sphere = BABYLON.MeshBuilder.CreateSphere("s", { diameter: 1.5 }, scene);
-        sps.addShape(sphere, 800); // Reduced count for safety
+        const sphere = BABYLON.MeshBuilder.CreateSphere("s", { diameter: 2 }, scene);
+        sps.addShape(sphere, 250);
         sphere.dispose();
         const mesh = sps.buildMesh();
         mesh.material = new BABYLON.StandardMaterial("swarmMat", scene);
@@ -80,7 +80,7 @@ const template = {
         sps.setParticles();
 
         if (!scene.glowLayer) {
-            new BABYLON.GlowLayer("glow", scene).intensity = 1.6;
+            new BABYLON.GlowLayer("glow", scene).intensity = 0.8;
         }
     },
 
@@ -96,8 +96,9 @@ const template = {
         const pBass = Math.pow(bass, 1.8);
 
         let treble = 0;
-        for (let i = 200; i < 250; i++) treble += fft[i];
-        treble = (treble / 50 / 255) * boost;
+        const tStart = Math.max(0, fft.length - 30);
+        for (let i = tStart; i < fft.length; i++) treble += fft[i];
+        treble = (treble / (fft.length - tStart) / 255) * boost;
 
         if (config.dynamicColors) {
             const hue = (t * 0.08) % 1;
