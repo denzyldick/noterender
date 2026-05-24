@@ -91,6 +91,10 @@ const template = {
         bass = (bass / 12 / 255) * boost;
         const pBass = Math.pow(bass, 1.4);
 
+        let treble = 0;
+        for (let i = fft.length - 30; i < fft.length; i++) treble += fft[i];
+        treble = (treble / 30 / 255) * boost;
+
         if (config.dynamicColors) {
             const hue = (t * 0.06) % 1;
             const pRGB = hslToRgb(hue, 0.75, 0.5 + bass * 0.2);
