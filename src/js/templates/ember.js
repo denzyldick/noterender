@@ -1,11 +1,11 @@
 import * as BABYLON from "babylonjs";
-import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
 
 let sceneRef;
 let currentCamera;
 let t = 0;
 let stars;
+let logoPlane;
 let currentTemplateConfig = {};
 
 const _primaryColor = new BABYLON.Color3();
@@ -37,9 +37,19 @@ const template = {
         _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
         _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
 
-        PLANE.setScale(80, 80);
-        PLANE.setCoordinates(0, 0, 0);
-        PLANE.init(scene, config);
+        const logoMat = new BABYLON.StandardMaterial("logoMat", scene);
+        const logoTexture = new BABYLON.Texture(config.emblem || "/img/logo.png", scene, true);
+        logoTexture.hasAlpha = true;
+        logoMat.diffuseTexture = logoTexture;
+        logoMat.emissiveTexture = logoTexture;
+        logoMat.disableLighting = true;
+        logoMat.useAlphaFromDiffuseTexture = true;
+        logoPlane = BABYLON.MeshBuilder.CreatePlane("logo", {
+            width: 80,
+            height: 80
+        }, scene);
+        logoPlane.material = logoMat;
+        logoPlane.renderingGroupId = 1;
 
         const bgMat = new BABYLON.StandardMaterial("bgMat", scene);
         bgMat.emissiveColor = new BABYLON.Color3(0.02, 0.01, 0.03);
@@ -91,8 +101,6 @@ const template = {
     render(fft, config) {
         if (!fft || !fft.length) fft = new Uint8Array(256).fill(0);
         t += 0.005;
-        PLANE.render(fft, config);
-
         const boost = config.sensitivity ? config.sensitivity.bassBoost : 1.0;
         let bass = 0;
         for (let i = 0; i < 6; i++) bass += fft[i];
@@ -102,6 +110,11 @@ const template = {
         let treble = 0;
         for (let i = fft.length - 25; i < fft.length; i++) treble += fft[i];
         treble = (treble / 25 / 255) * boost;
+
+        if (logoPlane) {
+            const s = 1 + pBass * 0.1;
+            logoPlane.scaling.set(s, s, s);
+        }
 
         if (config.dynamicColors) {
             const hue = (t * 0.02) % 1;
