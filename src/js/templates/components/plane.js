@@ -32,7 +32,7 @@ export default {
 
   render(fft, config) {
     if (!plane || !fft || !fft.length) return;
-    liquidStyle = config.logoStyle || "Liquid";
+    liquidStyle = config.logoStyle || "None";
 
     let bassSum = 0;
     for (let i = 0; i < 12; i++) bassSum += fft[i];
@@ -90,7 +90,7 @@ export default {
     sceneRef = scene;
     activeWidth = baseWidth;
     activeHeight = baseHeight;
-    liquidStyle = config.logoStyle || "Liquid";
+    liquidStyle = config.logoStyle || "None";
 
     if (plane) plane.dispose();
     if (liquidMesh) liquidMesh.dispose();

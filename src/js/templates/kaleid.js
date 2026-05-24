@@ -1,4 +1,5 @@
 import * as BABYLON from "babylonjs";
+import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
 
 let sceneRef;
@@ -34,6 +35,10 @@ const template = {
 
         _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
         _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+
+        PLANE.setScale(80, 80);
+        PLANE.setCoordinates(0, 0, 0);
+        PLANE.init(scene, config);
 
         spokeMat = new BABYLON.StandardMaterial("spokeMat", scene);
         spokeMat.emissiveColor = new BABYLON.Color3(1, 1, 1);
@@ -83,6 +88,7 @@ const template = {
     render(fft, config) {
         if (!fft || !fft.length) fft = new Uint8Array(256).fill(0);
         t += 0.005;
+        PLANE.render(fft, config);
 
         const boost = config.sensitivity ? config.sensitivity.bassBoost : 1.0;
         let bass = 0;
