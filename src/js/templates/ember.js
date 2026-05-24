@@ -41,6 +41,18 @@ const template = {
         PLANE.setCoordinates(0, 0, 0);
         PLANE.init(scene, config);
 
+        const bgMat = new BABYLON.StandardMaterial("bgMat", scene);
+        bgMat.emissiveColor = new BABYLON.Color3(0.02, 0.01, 0.03);
+        bgMat.disableLighting = true;
+        const bgPlane = BABYLON.MeshBuilder.CreatePlane("bg", {
+            width: 6000,
+            height: 4000,
+            sideOrientation: BABYLON.Mesh.DOUBLESIDE
+        }, scene);
+        bgPlane.position.z = 3000;
+        bgPlane.material = bgMat;
+        sceneRef._bgMat = bgMat;
+
         const box = BABYLON.MeshBuilder.CreateBox("s", { size: 1 }, scene);
         stars = new BABYLON.SolidParticleSystem("stars", scene, { updatable: true });
         stars.addShape(box, STAR_COUNT);
@@ -122,6 +134,14 @@ const template = {
                 }
             }
             stars.setParticles();
+        }
+
+        if (sceneRef && sceneRef._bgMat) {
+            sceneRef._bgMat.emissiveColor.set(
+                _primaryColor.r * (0.02 + pBass * 0.08),
+                _primaryColor.g * (0.01 + pBass * 0.06),
+                _primaryColor.b * (0.03 + pBass * 0.1)
+            );
         }
 
         if (currentCamera) {
