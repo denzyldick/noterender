@@ -1,0 +1,52 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: noterender_api
+    ports:
+      - "8081:8080"
+    volumes:
+      - api_storage:/app/api/public/storage
+    environment:
+      - APP_ENV=prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "php", "-r", "echo 'ok';"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: noterender_frontend_dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - VUE_APP_API_URL=
+    stdin_open: true
+    tty: true
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: noterender_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  api_storage:

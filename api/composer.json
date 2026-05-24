@@ -16,7 +16,9 @@
         "symfony/dotenv": "7.2.*",
         "symfony/flex": "^2",
         "symfony/framework-bundle": "7.2.*",
+        "symfony/rate-limiter": "7.2.*",
         "symfony/runtime": "7.2.*",
+        "symfony/security-bundle": "7.2.*",
         "symfony/yaml": "7.2.*"
     },
     "config": {
@@ -26,7 +28,10 @@
             "symfony/runtime": true
         },
         "bump-after-update": true,
-        "sort-packages": true
+        "sort-packages": true,
+        "audit": {
+            "ignore": ["PKSA-jzjr-4n2h-knvd", "PKSA-tbsf-h7vc-j7hn", "PKSA-5df2-zpfk-xgsv", "PKSA-4tmc-tz3m-9xpb"]
+        }
     },
     "autoload": {
         "psr-4": {
@@ -58,7 +63,10 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
-        ]
+        ],
+        "lint": "mago lint src/",
+        "analyze": "phanalist --src src/ && mago analyze src/",
+        "check": ["@lint", "@analyze"]
     },
     "conflict": {
         "symfony/symfony": "*"

@@ -11,11 +11,7 @@ let glowLayer;
 let blueSquare;
 let hyperSpace;
 let currentCamera;
-
-// Pre-allocated objects
-const _primaryColor = new BABYLON.Color3();
-const _accentColor = new BABYLON.Color3();
-const _tempVec3 = new BABYLON.Vector3();
+let currentTemplateConfig = {};
 
 const template = {
     init(camera, renderer, nb, scene, width, height, depth, config) {
@@ -23,7 +19,9 @@ const template = {
         currentCamera = camera;
         t = 0;
         
-        const c = config.templates.find(t => t.name === 'trap').currentConfig;
+        const templateData = config.templates.find(t => t.name === 'trap');
+        currentTemplateConfig = templateData ? templateData.currentConfig : {};
+        const c = currentTemplateConfig;
 
         // Claim the camera exclusively
         CAMERA_PHYSICS.lock();
@@ -152,7 +150,7 @@ const template = {
 
     render(fft, config) {
         if (!fft) fft = new Uint8Array(256).fill(0);
-        const c = config.templates.find(t => t.name === 'trap').currentConfig;
+        const c = currentTemplateConfig;
         t += 0.01;
 
         let bass = 0;

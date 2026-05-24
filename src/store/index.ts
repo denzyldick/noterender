@@ -4,6 +4,23 @@ import Socket from "../js/Socket.js";
 
 Vue.use(Vuex);
 //Socket.start();
+
+const API_BASE =
+  process.env.VUE_APP_API_URL || "";
+
+function api(path: string, options: any = {}) {
+  const token = localStorage.getItem("noterender_token");
+  const headers: any = { "Content-Type": "application/json", ...options.headers };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return fetch(`${API_BASE}${path}`, { ...options, headers }).then((r) => {
+    if (r.status === 401) {
+      localStorage.removeItem("noterender_token");
+      localStorage.removeItem("noterender_user");
+    }
+    return r.json();
+  });
+}
+
 export default new Vuex.Store({
   state: {
     template: "terrain",
@@ -92,6 +109,48 @@ export default new Vuex.Store({
         },
         currentConfig: { roughness: 50 }
       },
+      {
+        name: "aether",
+        preview: "",
+        description: "Flowing fluid silk surface. Perfect for Ambient/Lo-Fi.",
+        price: "0",
+        configuration: {
+          waveHeight: { type: "slider", min: 10, max: 150, step: 1, default: 40, label: "Wave Intensity" },
+          speed: { type: "slider", min: 0.1, max: 5.0, step: 0.1, default: 1.0, label: "Flow Speed" }
+        },
+        currentConfig: { waveHeight: 40, speed: 1.0 }
+      },
+      {
+        name: "monolith",
+        preview: "",
+        description: "Brutalist block with a reactive cube grid. Perfect for Techno.",
+        price: "0",
+        configuration: {
+          cubeCount: { type: "slider", min: 100, max: 1000, step: 10, default: 400, label: "Cube Density" }
+        },
+        currentConfig: { cubeCount: 400 }
+      },
+      {
+        name: "prism",
+        preview: "",
+        description: "Refractive glass shards with internal light bursts.",
+        price: "0",
+        configuration: {
+          prismCount: { type: "slider", min: 10, max: 100, step: 1, default: 40, label: "Prism Count" },
+          speed: { type: "slider", min: 0.1, max: 5.0, step: 0.1, default: 1.0, label: "Rotation Speed" }
+        },
+        currentConfig: { prismCount: 40, speed: 1.0 }
+      },
+      {
+        name: "flora",
+        preview: "",
+        description: "Neon organic tree with floating reactive leaves.",
+        price: "0",
+        configuration: {
+          leafCount: { type: "slider", min: 200, max: 5000, step: 100, default: 1000, label: "Leaf Density" }
+        },
+        currentConfig: { leafCount: 1000 }
+      },
     ],
     presets: [
       { name: "Dynamic", dynamic: true, colors: { r: 0, g: 229, b: 255 }, light: { r: 255, g: 255, b: 255 } },
@@ -133,7 +192,7 @@ export default new Vuex.Store({
     title: "Noterender",
     subtitle: "Elevate Your Sound",
     microphone: false,
-    audioSource: "system",
+    audioSource: "file",
     emblem: "/img/logo.png",
     colors: {
       r: 0,
@@ -165,7 +224,7 @@ export default new Vuex.Store({
     visualizer: true,
     dialog: true,
     recording: false,
-    activeEffects: ["smoke", "thunder", "birds"],
+    activeEffects: ["smoke", "thunder", "birds", "glitch", "grid", "fireflies", "rain", "shockwave", "lasers", "dust", "crystals", "vignette", "bloom"],
     soundFile: null,
     highQuality: false,
     removeWatermark: false,
@@ -175,6 +234,13 @@ export default new Vuex.Store({
       fftSmoothing: 0.8,
       bassBoost: 1.0,
     },
+    auth: {
+      token: localStorage.getItem("noterender_token") || null,
+      user: JSON.parse(localStorage.getItem("noterender_user") || "null"),
+      userId: parseInt(localStorage.getItem("noterender_user_id") || "0"),
+    },
+    announcement: { text: "", visible: false, duration: 5 },
+    shoutouts: [] as any[],
   },
   mutations: {
     setLogoStyle: function (state, style) {
@@ -276,6 +342,23 @@ export default new Vuex.Store({
     setAudioSource: function (state, source) {
       state.audioSource = source;
       state.microphone = source !== "file";
+    },
+    setAuth: function (state, { token, user }) {
+      state.auth.token = token;
+      state.auth.user = user;
+      if (user) state.auth.userId = user.id;
+      if (token) { localStorage.setItem("noterender_token", token); localStorage.setItem("noterender_user", JSON.stringify(user)); localStorage.setItem("noterender_user_id", String(user?.id || "")); }
+      else { localStorage.removeItem("noterender_token"); localStorage.removeItem("noterender_user"); localStorage.removeItem("noterender_user_id"); }
+    },
+    logout: function (state) {
+      state.auth = { token: null, user: null, userId: 0 };
+      localStorage.removeItem("noterender_token"); localStorage.removeItem("noterender_user"); localStorage.removeItem("noterender_user_id");
+    },
+    setAnnouncement: function (state, { text, visible, duration }) {
+      state.announcement = { text, visible, duration: duration || 5 };
+    },
+    setShoutouts: function (state, shoutouts) {
+      state.shoutouts = shoutouts;
     },
     setMicrophone: function (state, val) {
       state.microphone = val;
@@ -411,6 +494,52 @@ export default new Vuex.Store({
       if (presets[presetName]) {
         context.commit("setSensitivity", presets[presetName]);
       }
+    },
+    login: async function (context, { email, password }) {
+      const data = await api("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+      if (data.error) throw new Error(data.error);
+      context.commit("setAuth", data);
+      return data;
+    },
+    register: async function (context, { email, password }) {
+      const data = await api("/api/auth/register", { method: "POST", body: JSON.stringify({ email, password }) });
+      if (data.error) throw new Error(data.error);
+      context.commit("setAuth", data);
+      return data;
+    },
+    fetchMe: async function (context) {
+      const data = await api("/api/me");
+      if (!data.error) context.commit("setAuth", { token: context.state.auth.token, user: data });
+      return data;
+    },
+    saveProject: async function (context, { name, data }) {
+      const userId = context.state.auth.userId;
+      if (!userId) throw new Error("Not logged in");
+      return await api("/api/projects", { method: "POST", body: JSON.stringify({ name, data }) });
+    },
+    updateProject: async function (context, { id, name, data }) {
+      return await api(`/api/projects/${id}`, { method: "PUT", body: JSON.stringify({ name, data }) });
+    },
+    loadProjects: async function (context) {
+      const data = await api("/api/projects");
+      return Array.isArray(data) ? data : [];
+    },
+    deleteProject: async function (context, id) {
+      return await api(`/api/projects/${id}`, { method: "DELETE" });
+    },
+    submitShoutout: async function (context, { clubId, name, message }) {
+      return await api("/api/shoutout", { method: "POST", body: JSON.stringify({ club_id: clubId, name, message }) });
+    },
+    approveShoutout: async function (context, { id, status }) {
+      return await api(`/api/shoutout/${id}/approve`, { method: "PUT", body: JSON.stringify({ status: status || "approved" }) });
+    },
+    fetchPendingShoutouts: async function (context) {
+      const data = await api("/api/shoutout/pending");
+      return Array.isArray(data) ? data : [];
+    },
+    fetchApprovedShoutouts: async function (context, { clubId, since }) {
+      const data = await api(`/api/shoutout/approved?club_id=${clubId}${since ? `&since=${since}` : ""}`);
+      return Array.isArray(data) ? data : [];
     },
   },
   modules: {},

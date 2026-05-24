@@ -10,6 +10,8 @@
 export default {
   name: "App",
   mounted() {
+    const loader = document.getElementById("globalLoader");
+    if (loader) loader.style.display = "none";
   },
 };
 </script>

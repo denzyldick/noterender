@@ -31,7 +31,7 @@ export default {
   },
 
   render(fft, config) {
-    if (!plane) return;
+    if (!plane || !fft || !fft.length) return;
     liquidStyle = config.logoStyle || "Liquid";
 
     let bassSum = 0;
@@ -64,7 +64,7 @@ export default {
   },
 
   renderLiquid(fft, color) {
-    if (!liquidMesh) return;
+    if (!liquidMesh || !fft || !fft.length) return;
     const positions = liquidMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
     for (let i = 0; i < positions.length; i += 3) {
         const xP = positions[i];

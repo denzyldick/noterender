@@ -15,6 +15,14 @@ module.exports = {
       hints: false
     }
   },
+  devServer: {
+    proxy: {
+      '/api': {
+        target: 'http://api:8080',
+        changeOrigin: true,
+      },
+    },
+  },
   chainWebpack: config => {
     config.plugin('define').tap(args => {
       args[0]['process.env.BASE_URL'] = JSON.stringify('/');
@@ -35,7 +43,8 @@ module.exports = {
     appleMobileWebAppCapable: 'yes',
     appleMobileWebAppStatusBarStyle: 'black',
     workboxOptions: {
-      skipWaiting: true
+      skipWaiting: true,
+      clientsClaim: true
     }
   }
 }

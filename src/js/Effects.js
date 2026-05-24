@@ -5,10 +5,6 @@ class EffectsManager {
         this.scene = null;
         this.activeEffects = new Set();
         this.systems = {};
-        this._tempColor = new BABYLON.Color3(0, 0, 0);
-        this._tempColor4 = new BABYLON.Color4(0, 0, 0, 0);
-        this._primaryColor = new BABYLON.Color3(0, 0, 0);
-        this._accentColor = new BABYLON.Color3(0, 0, 0);
         this.t = 0;
     }
 
@@ -33,25 +29,19 @@ class EffectsManager {
 
     update(activeEffectNames) {
         this.activeEffects = new Set(activeEffectNames);
-        
         Object.keys(this.systems).forEach(name => {
             const system = this.systems[name];
-            if (this.activeEffects.has(name)) {
-                if (system.start) system.start();
-                if (system.mesh) system.mesh.isVisible = true;
-                if (system.isVisible !== undefined) system.isVisible = true;
-            } else {
-                if (system.stop) system.stop();
-                if (system.mesh) system.mesh.isVisible = false;
-                if (system.isVisible !== undefined) system.isVisible = false;
+            if (system && system.start && !system.isStarted) {
+                system.start();
+                system.isStarted = true;
             }
         });
     }
 
     render(fft, config) {
+        if (!this.scene) return;
         this.t += 0.01;
-        if (this.activeEffects.size === 0) return;
-
+        
         let bass = 0;
         const bassEnd = Math.min(fft.length, 10);
         for (let i = 0; i < bassEnd; i++) bass += fft[i];
@@ -63,15 +53,17 @@ class EffectsManager {
         for (let i = trebleStart; i < fft.length; i++) treble += fft[i];
         treble = (treble / 20) / 255;
 
-        this.activeEffects.forEach(name => {
+        Object.keys(this.systems).forEach(name => {
             const method = `render${name.charAt(0).toUpperCase() + name.slice(1)}`;
-            if (this[method]) this[method](pBass, treble, config);
+            if (this[method]) {
+                const isAllowed = this.activeEffects.has(name);
+                this[method](pBass, treble, config, isAllowed);
+            }
         });
     }
 
-    // --- SMOKE ---
     initSmoke() {
-        const smokeSystem = new BABYLON.ParticleSystem("smoke", 1500, this.scene);
+        const smokeSystem = new BABYLON.ParticleSystem("smoke", 1000, this.scene);
         smokeSystem.particleTexture = new BABYLON.Texture("/img/templates/Smoke30Frames.png", this.scene);
         smokeSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_STANDARD;
         smokeSystem.isAnimationSheetEnabled = true;
@@ -92,22 +84,25 @@ class EffectsManager {
         smokeSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0);
         return smokeSystem;
     }
-    renderSmoke(bass, treble, config) {
+
+    renderSmoke(bass, treble, config, isAllowed) {
         const sys = this.systems.smoke;
-        sys.emitRate = 60 + bass * 200;
+        if (!isAllowed) { sys.stop(); sys.isStarted = false; return; }
+        if (!sys.isStarted) { sys.start(); sys.isStarted = true; }
+        sys.emitRate = 20 + bass * 300;
         const color = config.colors;
-        sys.color1.set(color.r/255, color.g/255, color.b/255, 0);
-        sys.color2.set(color.r/255, color.g/255, color.b/255, 0.1 + bass * 0.3);
+        sys.color2.set(color.r/255, color.g/255, color.b/255, 0.05 + bass * 0.4);
     }
 
-    // --- THUNDER ---
     initThunder() {
         const light = new BABYLON.HemisphericLight("thunderLight", new BABYLON.Vector3(0, 1, 0), this.scene);
         light.intensity = 0;
-        return { light, lastFlash: 0, flashDuration: 0, start: () => {}, stop: () => { light.intensity = 0; } };
+        return { light, lastFlash: 0, flashDuration: 0, isStarted: true };
     }
-    renderThunder(bass, treble) {
+
+    renderThunder(bass, treble, config, isAllowed) {
         const sys = this.systems.thunder;
+        if (!isAllowed) { sys.light.intensity = 0; return; }
         const now = Date.now();
         if (bass > 0.88 && now - sys.lastFlash > 2000) {
             sys.lastFlash = now;
@@ -116,7 +111,6 @@ class EffectsManager {
         sys.light.intensity = (now - sys.lastFlash < sys.flashDuration) ? Math.random() * 10 : 0;
     }
 
-    // --- BIRDS ---
     initBirds() {
         const sps = new BABYLON.SolidParticleSystem("birds", this.scene);
         const triangle = BABYLON.MeshBuilder.CreateCylinder("t", { tessellation: 3, diameter: 5, height: 10 }, this.scene);
@@ -127,10 +121,13 @@ class EffectsManager {
         mesh.material = new BABYLON.StandardMaterial("birdMat", this.scene);
         mesh.material.emissiveColor = new BABYLON.Color3(1, 1, 1);
         mesh.material.disableLighting = true;
-        return { sps, mesh };
+        return { sps, mesh, isStarted: true };
     }
-    renderBirds(bass, treble, config) {
+
+    renderBirds(bass, treble, config, isAllowed) {
         const sys = this.systems.birds;
+        sys.mesh.isVisible = isAllowed && (treble > 0.3 || bass > 0.5);
+        if (!sys.mesh.isVisible) return;
         const color = config.light;
         sys.mesh.material.emissiveColor.set(color.r/255, color.g/255, color.b/255);
         for (let p = 0; p < sys.sps.nbParticles; p++) {
@@ -143,17 +140,17 @@ class EffectsManager {
         sys.sps.setParticles();
     }
 
-    // --- GLITCH ---
     initGlitch() {
-        return { active: false, intensity: 0 };
+        return { isStarted: true };
     }
-    renderGlitch(bass) {
-        if (bass > 0.85) {
-            this.scene.activeCamera.position.addInPlace(new BABYLON.Vector3((Math.random()-0.5)*10, (Math.random()-0.5)*10, (Math.random()-0.5)*10));
+
+    renderGlitch(bass, treble, config, isAllowed) {
+        if (!isAllowed) return;
+        if (bass > 0.9) {
+            this.scene.activeCamera.position.addInPlace(new BABYLON.Vector3((Math.random()-0.5)*15, (Math.random()-0.5)*15, (Math.random()-0.5)*15));
         }
     }
 
-    // --- NEON GRID ---
     initGrid() {
         const grid = BABYLON.MeshBuilder.CreateGround("effectGrid", { width: 5000, height: 5000, subdivisions: 50 }, this.scene);
         const mat = new BABYLON.StandardMaterial("gridMat", this.scene);
@@ -162,17 +159,19 @@ class EffectsManager {
         mat.disableLighting = true;
         grid.material = mat;
         grid.position.y = -400;
-        return { mesh: grid, mat };
+        return { mesh: grid, mat, isStarted: true };
     }
-    renderGrid(bass, treble, config) {
+
+    renderGrid(bass, treble, config, isAllowed) {
         const sys = this.systems.grid;
+        sys.mesh.isVisible = isAllowed;
+        if (!isAllowed) return;
         const color = config.colors;
         sys.mat.emissiveColor.set(color.r/255, color.g/255, color.b/255);
-        sys.mat.alpha = 0.1 + bass * 0.5;
+        sys.mat.alpha = 0.05 + bass * 0.6;
         sys.mesh.position.z = (this.t * 500) % 100 - 50;
     }
 
-    // --- FIREFLIES ---
     initFireflies() {
         const ps = new BABYLON.ParticleSystem("fireflies", 200, this.scene);
         ps.particleTexture = new BABYLON.Texture("/img/templates/Smoke30Frames.png", this.scene);
@@ -184,14 +183,16 @@ class EffectsManager {
         ps.addVelocityGradient(0, 1, 2);
         return ps;
     }
-    renderFireflies(bass, treble, config) {
+
+    renderFireflies(bass, treble, config, isAllowed) {
         const sys = this.systems.fireflies;
+        if (!isAllowed) { sys.stop(); sys.isStarted = false; return; }
+        if (!sys.isStarted) { sys.start(); sys.isStarted = true; }
         const color = config.light;
-        sys.color1.set(color.r/255, color.g/255, color.b/255, 0.8);
-        sys.color2.set(color.r/255, color.g/255, color.b/255, 0.5);
+        sys.color1.set(color.r/255, color.g/255, color.b/255, 0.4 + treble * 0.6);
+        sys.emitRate = 20 + treble * 100;
     }
 
-    // --- MATRIX RAIN ---
     initRain() {
         const sps = new BABYLON.SolidParticleSystem("rain", this.scene);
         const bar = BABYLON.MeshBuilder.CreateBox("rb", { width: 1, height: 40, depth: 1 }, this.scene);
@@ -201,10 +202,13 @@ class EffectsManager {
         mesh.material = new BABYLON.StandardMaterial("rainMat", this.scene);
         mesh.material.emissiveColor = new BABYLON.Color3(0, 1, 0);
         mesh.material.disableLighting = true;
-        return { sps, mesh };
+        return { sps, mesh, isStarted: true };
     }
-    renderRain(bass, treble, config) {
+
+    renderRain(bass, treble, config, isAllowed) {
         const sys = this.systems.rain;
+        sys.mesh.isVisible = isAllowed && treble > 0.4;
+        if (!sys.mesh.isVisible) return;
         const color = config.colors;
         sys.mesh.material.emissiveColor.set(color.r/255, color.g/255, color.b/255);
         for (let p = 0; p < sys.sps.nbParticles; p++) {
@@ -213,13 +217,12 @@ class EffectsManager {
                 part.position.set(Math.random()*2000-1000, 1000, Math.random()*2000-1000);
                 part.speed = 10 + Math.random() * 30;
             }
-            part.position.y -= part.speed * (1 + treble * 5);
+            part.position.y -= part.speed * (1 + treble * 8);
             if (part.position.y < -1000) part.position.y = 1000;
         }
         sys.sps.setParticles();
     }
 
-    // --- SHOCKWAVE ---
     initShockwave() {
         const mesh = BABYLON.MeshBuilder.CreateTorus("shock", { diameter: 1, thickness: 2, tessellation: 64 }, this.scene);
         const mat = new BABYLON.StandardMaterial("shockMat", this.scene);
@@ -228,29 +231,30 @@ class EffectsManager {
         mesh.material = mat;
         mesh.rotation.x = Math.PI / 2;
         mesh.isVisible = false;
-        return { mesh, mat, scale: 1, active: false };
+        return { mesh, mat, scale: 1, active: false, isStarted: true };
     }
-    renderShockwave(bass, treble, config) {
+
+    renderShockwave(bass, treble, config, isAllowed) {
+        if (!isAllowed) return;
         const sys = this.systems.shockwave;
         const color = config.colors;
-        if (bass > 0.92 && !sys.active) {
+        if (bass > 0.94 && !sys.active) {
             sys.active = true;
             sys.scale = 1;
             sys.mesh.isVisible = true;
         }
         if (sys.active) {
-            sys.scale += 20;
+            sys.scale += 25;
             sys.mesh.scaling.set(sys.scale, sys.scale, sys.scale);
-            sys.mat.alpha = 1 - (sys.scale / 1500);
+            sys.mat.alpha = 1 - (sys.scale / 2000);
             sys.mat.emissiveColor.set(color.r/255, color.g/255, color.b/255);
-            if (sys.scale > 1500) {
+            if (sys.scale > 2000) {
                 sys.active = false;
                 sys.mesh.isVisible = false;
             }
         }
     }
 
-    // --- LASERS ---
     initLasers() {
         const container = new BABYLON.TransformNode("laserRoot", this.scene);
         const lasers = [];
@@ -263,22 +267,22 @@ class EffectsManager {
             l.parent = container;
             lasers.push({ mesh: l, mat, offset: i * Math.PI / 4 });
         }
-        return { container, lasers, isVisible: false };
+        return { container, lasers, isStarted: true };
     }
-    renderLasers(bass, treble, config) {
+
+    renderLasers(bass, treble, config, isAllowed) {
         const sys = this.systems.lasers;
+        const shouldShow = isAllowed && bass > 0.6;
+        sys.container.setEnabled(shouldShow);
+        if (!shouldShow) return;
         const color = config.light;
-        sys.container.setEnabled(sys.isVisible);
         sys.lasers.forEach((l, i) => {
-            l.mesh.rotation.y = Math.sin(this.t * 0.5 + l.offset) * 1.5;
-            l.mesh.rotation.x = Math.cos(this.t * 0.3 + l.offset) * 0.5;
+            l.mesh.rotation.y = Math.sin(this.t * 0.8 + l.offset) * 2.0;
             l.mat.emissiveColor.set(color.r/255, color.g/255, color.b/255);
-            l.mat.alpha = 0.2 + bass * 0.8;
-            l.mesh.scaling.x = 1 + treble * 10;
+            l.mat.alpha = 0.1 + bass * 0.9;
         });
     }
 
-    // --- DUST ---
     initDust() {
         const ps = new BABYLON.ParticleSystem("dust", 1000, this.scene);
         ps.particleTexture = new BABYLON.Texture("/img/templates/Smoke30Frames.png", this.scene);
@@ -290,11 +294,15 @@ class EffectsManager {
         ps.color2 = new BABYLON.Color4(1, 1, 1, 0.1);
         return ps;
     }
-    renderDust(bass) {
-        this.systems.dust.updateSpeed = 0.005 + bass * 0.05;
+
+    renderDust(bass, treble, config, isAllowed) {
+        const sys = this.systems.dust;
+        if (!isAllowed) { sys.stop(); sys.isStarted = false; return; }
+        if (!sys.isStarted) { sys.start(); sys.isStarted = true; }
+        sys.updateSpeed = 0.005 + bass * 0.08;
+        sys.emitRate = 100 + bass * 500;
     }
 
-    // --- CRYSTALS ---
     initCrystals() {
         const sps = new BABYLON.SolidParticleSystem("crystals", this.scene);
         const crystal = BABYLON.MeshBuilder.CreatePolyhedron("c", { type: 4, size: 10 }, this.scene);
@@ -306,22 +314,24 @@ class EffectsManager {
         mat.alpha = 0.6;
         mat.disableLighting = true;
         mesh.material = mat;
-        return { sps, mesh, mat };
+        return { sps, mesh, mat, isStarted: true };
     }
-    renderCrystals(bass, treble, config) {
+
+    renderCrystals(bass, treble, config, isAllowed) {
         const sys = this.systems.crystals;
+        sys.mesh.isVisible = isAllowed && bass > 0.4;
+        if (!sys.mesh.isVisible) return;
         const color = config.light;
         sys.mat.emissiveColor.set(color.r/255, color.g/255, color.b/255);
         for (let p = 0; p < sys.sps.nbParticles; p++) {
             const part = sys.sps.particles[p];
             if (!part.rotVel) part.rotVel = new BABYLON.Vector3(Math.random()*0.05, Math.random()*0.05, Math.random()*0.05);
-            part.rotation.addInPlace(part.rotVel.scale(1 + treble * 10));
-            part.scaling.setAll(1 + bass * 2);
+            part.rotation.addInPlace(part.rotVel.scale(1 + treble * 15));
+            part.scaling.setAll(1 + bass * 3);
         }
         sys.sps.setParticles();
     }
 
-    // --- VIGNETTE ---
     initVignette() {
         const mesh = BABYLON.MeshBuilder.CreatePlane("vignette", { size: 1 }, this.scene);
         mesh.scaling.set(2000, 2000, 1);
@@ -340,20 +350,25 @@ class EffectsManager {
         mat.diffuseColor = new BABYLON.Color3(0, 0, 0);
         mat.disableLighting = true;
         mesh.material = mat;
-        return { mesh, mat };
-    }
-    renderVignette(bass) {
-        this.systems.vignette.mat.alpha = 0.5 + bass * 0.5;
+        return { mesh, mat, isStarted: true };
     }
 
-    // --- BLOOM ---
-    initBloom() {
-        return { intensity: 1 };
+    renderVignette(bass, treble, config, isAllowed) {
+        this.systems.vignette.mesh.isVisible = isAllowed;
+        if (!isAllowed) return;
+        this.systems.vignette.mat.alpha = 0.3 + bass * 0.7;
     }
-    renderBloom(bass) {
-        if (this.scene.glowLayer) {
-            this.scene.glowLayer.intensity = 1.0 + bass * 4.0;
+
+    initBloom() {
+        return { isStarted: true };
+    }
+
+    renderBloom(bass, treble, config, isAllowed) {
+        if (!isAllowed || !this.scene.glowLayer) {
+            if (this.scene.glowLayer) this.scene.glowLayer.intensity = 1.0;
+            return;
         }
+        this.scene.glowLayer.intensity = 0.8 + bass * 5.0;
     }
 }
 

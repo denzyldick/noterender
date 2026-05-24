@@ -122,11 +122,50 @@
                       <v-list-item-icon><v-icon>mdi-monitor-speaker</v-icon></v-list-item-icon>
                       <v-list-item-content>
                         <v-list-item-title>System Audio</v-list-item-title>
-                        <v-list-item-subtitle>Capture from PC</v-list-item-subtitle>
+                        <v-list-item-subtitle>Screen/window capture</v-list-item-subtitle>
+                      </v-list-item-content>
+                    </v-list-item>
+                    <v-list-item value="device">
+                      <v-list-item-icon><v-icon>mdi-cable-data</v-icon></v-list-item-icon>
+                      <v-list-item-content>
+                        <v-list-item-title>Capture Device</v-list-item-title>
+                        <v-list-item-subtitle>Virtual cable / audio interface</v-list-item-subtitle>
                       </v-list-item-content>
                     </v-list-item>
                   </v-list-item-group>
                 </v-list>
+
+                <v-select
+                  v-if="audioSource === 'device'"
+                  v-model="selectedDeviceId"
+                  :items="audioDevices"
+                  item-title="label"
+                  item-value="deviceId"
+                  label="Select Audio Device"
+                  outlined
+                  dense
+                  class="mt-4"
+                  prepend-inner-icon="mdi-volume-source"
+                  @click:prepend-inner="enumerateAudioDevices"
+                >
+                  <template v-slot:append>
+                    <v-btn icon x-small @click="enumerateAudioDevices" class="mt-n1">
+                      <v-icon>mdi-refresh</v-icon>
+                    </v-btn>
+                  </template>
+                </v-select>
+
+                <v-btn
+                  v-if="audioSource === 'device'"
+                  block
+                  small
+                  text
+                  color="primary"
+                  class="mt-2"
+                  @click="showAudioSetupGuide = true"
+                >
+                  <v-icon left small>mdi-help-circle</v-icon> How to set up a virtual audio cable
+                </v-btn>
 
                 <v-alert v-if="audioSource === 'system'" dense text type="info" class="mt-4 text-caption">
                   Tip: When the browser asks to share your screen, go to the <strong>"Tab"</strong> or <strong>"Window"</strong> section and ensure <strong>"Also share system audio"</strong> is checked.
@@ -135,12 +174,19 @@
                 <v-file-input v-if="audioSource === 'file' && appMode === 'studio'" label="Choose Audio" outlined dense @change="soundSelected" prepend-inner-icon="mdi-music-circle" class="mt-4"></v-file-input>
                 
                 <div v-if="appMode === 'live'">
-                  <div class="text-overline mt-6 mb-4 primary--text">Performance</div>
+                  <div class="text-overline mt-6 mb-2 primary--text">Performance</div>
+
+                  <v-alert dense text type="info" class="mb-4 text-caption" style="border-left: 4px solid #00E5FF; background-color: rgba(0, 229, 255, 0.05) !important;">
+                    <strong>For clean big-screen output:</strong> Use a <strong>virtual audio cable</strong> (VB-Cable / BlackHole) and select it under "Capture Device" in the Sound tab. This avoids the browser "Sharing" bar.
+                  </v-alert>
+
+                  <v-switch v-model="removeWatermarkCheckbox" label="Clean Performance (No Branding)" color="primary" dense class="mb-4" @click.native="paywallMode = 'live'"></v-switch>
+
                   <v-btn block color="error" x-large @click="goLive" class="rounded-lg font-weight-bold">
                     <v-icon left>mdi-broadcast</v-icon>
                     START LIVE SESSION
                   </v-btn>
-                  
+
                   <v-btn block text color="primary" class="mt-2" @click="toggleFullscreen">
                     <v-icon left>mdi-fullscreen</v-icon>
                     Toggle Fullscreen
@@ -280,6 +326,58 @@
                 </div>
 
                 <v-file-input label="Center Logo" dense outlined @change="emblemSelected" prepend-inner-icon="mdi-sticker-emoji"></v-file-input>
+
+                <v-divider class="my-4 opacity-10"></v-divider>
+
+                <div class="text-overline mb-2 primary--text">Announcements</div>
+                <v-text-field v-model="announcementInput" label="Announcement text" outlined dense hide-details class="mb-2"></v-text-field>
+                <v-row dense class="mb-2">
+                  <v-col cols="4">
+                    <v-text-field v-model.number="announcementDuration" label="Seconds" outlined dense type="number" hide-details></v-text-field>
+                  </v-col>
+                  <v-col cols="8">
+                    <v-btn block color="warning" @click="showAnnouncement" :disabled="!announcementInput">
+                      <v-icon left>mdi-bullhorn</v-icon> Show Announcement
+                    </v-btn>
+                  </v-col>
+                </v-row>
+
+                <v-divider class="my-4 opacity-10"></v-divider>
+
+                <div class="text-overline mb-2 primary--text">Shoutouts</div>
+                <div class="text-caption grey--text mb-3">Audience can submit shoutouts at this URL:</div>
+                <v-text-field :value="shoutoutUrl" readonly outlined dense hide-details class="mb-3" prepend-inner-icon="mdi-link" @click:prepend="copyShoutoutUrl" @click="copyShoutoutUrl" bg-color="rgba(255,255,255,0.03)">
+                  <template v-slot:append>
+                    <v-btn icon x-small @click="copyShoutoutUrl">
+                      <v-icon size="16">mdi-content-copy</v-icon>
+                    </v-btn>
+                  </template>
+                </v-text-field>
+
+                <div v-if="isLoggedIn">
+                  <div class="d-flex align-center mb-2">
+                    <span class="text-body-2 font-weight-bold white--text">Pending Messages</span>
+                    <v-spacer></v-spacer>
+                    <v-chip x-small label color="primary" class="font-weight-bold">{{ pendingShoutouts.length }}</v-chip>
+                  </div>
+                  <div v-if="pendingShoutouts.length === 0" class="text-caption grey--text text-center py-4" style="background:rgba(255,255,255,0.02); border-radius:8px">
+                    No pending shoutouts
+                  </div>
+                  <div v-for="s in pendingShoutouts" :key="s.id" class="d-flex align-start pa-3 mb-2 rounded-lg" style="background:rgba(255,255,255,0.04)">
+                    <div class="flex-grow-1" style="min-width:0">
+                      <div class="text-body-2 font-weight-bold white--text truncate-text">{{ s.name }}</div>
+                      <div class="text-caption grey--text truncate-text">{{ s.message }}</div>
+                    </div>
+                    <div class="d-flex ml-2" style="gap:4px; flex-shrink:0">
+                      <v-btn x-small icon color="success" @click="approveShoutout(s.id)" title="Approve"><v-icon size="16">mdi-check</v-icon></v-btn>
+                      <v-btn x-small icon color="error" @click="rejectShoutout(s.id)" title="Reject"><v-icon size="16">mdi-close</v-icon></v-btn>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-caption grey--text text-center py-4" style="background:rgba(255,255,255,0.02); border-radius:8px">
+                  <v-icon small class="mr-1">mdi-lock</v-icon>
+                  Sign in to moderate shoutouts
+                </div>
               </div>
             </v-tab-item>
 
@@ -298,7 +396,7 @@
                   Video quality depends on your machine's performance. <strong>Do not resize the window</strong> while recording, as it will change the video resolution mid-render.
                 </v-alert>
 
-                <v-checkbox v-model="removeWatermarkCheckbox" label="Remove Watermark (Pro Only)" dense color="primary"></v-checkbox>
+                <v-checkbox v-model="removeWatermarkCheckbox" label="Remove Watermark (Pro Only)" dense color="primary" @click.native="paywallMode = 'export'"></v-checkbox>
                 <v-checkbox v-model="highQuality" label="8Mbps High Bitrate" dense color="primary" class="mb-4"></v-checkbox>
                 
                 <v-btn block color="primary" x-large @click="handleExport" class="rounded-lg font-weight-bold elevation-4">
@@ -318,7 +416,7 @@
           </div>
           
           <v-row no-gutters>
-            <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" to="/about">Our Story</v-btn></v-col>
+            <v-col cols="6"><v-btn v-if="isLoggedIn" text x-small color="grey" block class="justify-start px-0" to="/dj" target="_blank"><v-icon x-small class="mr-1">mdi-open-in-new</v-icon>DJ Remote</v-btn></v-col>
             <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" to="/blog">Blog</v-btn></v-col>
             <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" to="/legal">Legal</v-btn></v-col>
             <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" href="mailto:support@noterender.com">Support</v-btn></v-col>
@@ -337,7 +435,9 @@
       large
       elevation="12"
       class="mt-4 ml-4 sidebar-toggle"
+      :class="{ 'ui-hidden': playing && !isMouseMoving && !drawer }"
       @click="drawer = !drawer"
+      @mouseover="resetMouseTimer"
       style="z-index: 100; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2)"
     >
       <v-icon color="white">{{ drawer ? 'mdi-chevron-left' : 'mdi-tune-vertical' }}</v-icon>
@@ -353,7 +453,9 @@
       small
       elevation="12"
       class="mt-4 mr-4"
+      :class="{ 'ui-hidden': playing && !isMouseMoving && !showHelp }"
       @click="showHelp = true"
+      @mouseover="resetMouseTimer"
       style="z-index: 100; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2)"
     >
       <v-icon color="white">mdi-help</v-icon>
@@ -384,11 +486,13 @@
 
     <!-- Floating Transport HUD -->
     <v-main class="pa-0 fill-height">
-      <div class="transport-container">
+      <div class="transport-container" :class="{ 'ui-hidden': playing && !isMouseMoving && !drawer }">
         <v-card class="transport-bar d-flex align-center px-4 rounded-pill elevation-24" color="rgba(20, 20, 20, 0.85)" style="height: 64px">
-          <v-btn icon color="white" large @click="togglePlayLocal" :class="{ 'recording-active': isExporting }">
-            <v-icon size="40">{{ playing ? 'mdi-play-circle-outline' : 'mdi-stop-circle' }}</v-icon>
-          </v-btn>
+          <div class="play-btn-wrapper" :class="{ 'pulse-ring': !playing }">
+            <v-btn icon color="white" large @click="togglePlayLocal" :class="{ 'recording-active': isExporting }">
+              <v-icon size="40">{{ playing ? 'mdi-stop-circle' : 'mdi-play-circle-outline' }}</v-icon>
+            </v-btn>
+          </div>
           <v-btn-toggle v-model="appMode" mandatory background-color="transparent" color="primary" dense class="ml-4 border-thin rounded-pill px-2">
             <v-btn value="studio" small text class="rounded-pill px-4">Studio</v-btn>
             <v-btn value="live" small text class="rounded-pill px-4">Live</v-btn>
@@ -413,6 +517,65 @@
     <audio style="display: none" id="audio" :src="soundFile" loop></audio>
 
     <PaywallModal v-model="showPaywall" :mode="paywallMode" @trial-started="startLiveAfterTrial" />
+
+    <!-- Live Mode Explanation Dialog -->
+    <v-dialog v-model="showLiveDialog" max-width="480" persistent>
+      <v-card color="rgba(15,15,15,0.95)" class="pa-6 rounded-xl" style="border:1px solid rgba(255,255,255,0.1)">
+        <v-card-title class="pa-0 primary--text font-weight-black text-h5 mb-4 letter-spacing-2">LIVE MODE</v-card-title>
+
+        <div class="mb-4">
+          <div class="d-flex mb-3">
+            <v-icon color="primary" class="mr-3">mdi-monitor-speaker</v-icon>
+            <div>
+              <div class="font-weight-bold white--text">1. Select your audio source</div>
+              <div class="text-caption grey--text">Choose "Capture Device" for clean big-screen output (recommended), or "System Audio" to share a window</div>
+            </div>
+          </div>
+          <div class="d-flex mb-3">
+            <v-icon color="primary" class="mr-3">mdi-monitor-screenshot</v-icon>
+            <div>
+              <div class="font-weight-bold white--text">2. Choose what to share</div>
+              <div class="text-caption grey--text">Your browser will ask you to select a window or screen. Make sure to check "Also share system audio"</div>
+            </div>
+          </div>
+          <div class="d-flex">
+            <v-icon color="primary" class="mr-3">mdi-fullscreen</v-icon>
+            <div>
+              <div class="font-weight-bold white--text">3. Go fullscreen</div>
+              <div class="text-caption grey--text">The visualizer will enter fullscreen mode. Move your mouse to reveal controls</div>
+            </div>
+          </div>
+        </div>
+
+        <v-checkbox v-model="dontShowLiveDialog" label="Don't show this again" dense color="primary" class="mb-2"></v-checkbox>
+
+        <v-btn block x-large color="primary" @click="startLiveCapture" class="font-weight-bold rounded-lg">Continue</v-btn>
+        <v-btn block text color="grey" @click="showLiveDialog = false" class="mt-2">Cancel</v-btn>
+      </v-card>
+    </v-dialog>
+
+    <!-- Audio Setup Guide Dialog -->
+    <v-dialog v-model="showAudioSetupGuide" max-width="500">
+      <v-card color="rgba(15,15,15,0.95)" class="pa-6 rounded-xl" style="border:1px solid rgba(255,255,255,0.1)">
+        <v-card-title class="pa-0 primary--text font-weight-black text-h5 mb-4 letter-spacing-2">SETUP GUIDE</v-card-title>
+
+        <div class="mb-4">
+          <div class="font-weight-bold white--text mb-2">What is a virtual audio cable?</div>
+          <div class="text-caption grey--text mb-4">It lets you route audio from your DJ software (Ableton, Serato, Spotify, etc.) directly into the visualizer — no screen sharing needed, so no Chrome "Sharing" bar appears on the big screen.</div>
+
+          <div class="font-weight-bold white--text mb-2">Windows</div>
+          <div class="text-caption grey--text mb-3">Download <strong>VB-Cable</strong> from vb-audio.com/Cable — install, restart. Your DJ software outputs to "CABLE Input", visualizer captures from "CABLE Output".</div>
+
+          <div class="font-weight-bold white--text mb-2">macOS</div>
+          <div class="text-caption grey--text mb-3">Install <strong>BlackHole</strong> from github.com/ExistentialAudio/BlackHole. Create a Multi-Output Device in Audio MIDI Setup. Route DJ software to it.</div>
+
+          <div class="font-weight-bold white--text mb-2">Linux</div>
+          <div class="text-caption grey--text">Use PipeWire's loopback module or `pactl load-module module-null-sink`.</div>
+        </div>
+
+        <v-btn block color="primary" @click="showAudioSetupGuide = false" class="font-weight-bold">Got it</v-btn>
+      </v-card>
+    </v-dialog>
   </v-app>
 </template>
 
@@ -436,6 +599,10 @@ import trap from "../js/templates/trap";
 import solaris from "../js/templates/solaris";
 import infinity from "../js/templates/infinity";
 import tunnel from "../js/templates/tunnel";
+import aether from "../js/templates/aether";
+import monolith from "../js/templates/monolith";
+import prism from "../js/templates/prism";
+import flora from "../js/templates/flora";
 
 export default {
   name: "Player",
@@ -444,7 +611,7 @@ export default {
     return {
       drawer: false,
       activeTab: 0,
-      playing: true,
+      playing: false,
       audio: null,
       engine: null,
       scene: null,
@@ -457,7 +624,7 @@ export default {
       accentColorHex: "#00E5FF",
       lightColorHex: "#00E5FF",
       templates: {
-        city, terrain, nebulacore, trap, solaris, infinity, tunnel
+        city, terrain, nebulacore, trap, solaris, infinity, tunnel, aether, monolith, prism, flora
       },
       isPro: false,
       showPaywall: false,
@@ -467,8 +634,21 @@ export default {
       showHelp: false,
       mouseTimer: null,
       isMouseMoving: true,
-      appMode: "studio", // 'studio' or 'live'
-      paywallMode: "export", // 'export' or 'live'
+      appMode: "studio",
+      paywallMode: "export",
+      audioDevices: [],
+      selectedDeviceId: "",
+      showAudioSetupGuide: false,
+      showLiveDialog: false,
+      dontShowLiveDialog: localStorage.getItem("noterender_dont_show_live_dialog") === "true",
+      showAnnounceInput: false,
+      announcementInput: "",
+      announcementDuration: 5,
+      lastShoutoutFetch: "",
+      shoutoutTimer: null,
+      pendingShoutoutTimer: null,
+      pendingShoutouts: [],
+      autoSaveTimer: null,
       effectList: [
         { id: 'smoke', name: 'Smoke Atmosphere', desc: 'Reactive particle fog system' },
         { id: 'thunder', name: 'Dynamic Thunder', desc: 'Bass-triggered lightning flashes' },
@@ -517,10 +697,24 @@ export default {
     trialStartedAt() { return this.$store.state.trialStartedAt; },
     highQuality: { get() { return this.$store.state.highQuality; }, set(val) { this.$store.dispatch("toggleHighQuality", val); } },
     removeWatermarkCheckbox: { 
-      get() { return this.removeWatermark; }, 
-      set(val) { if(this.isPro) { this.$store.dispatch("toggleRemoveWatermark", val); } else { this.showPaywall = true; } } 
+      get() { return this.$store.state.removeWatermark; }, 
+      set(val) { 
+        if(this.paywallMode === 'export' && !this.isPro) { 
+          this.showPaywall = true; 
+        } else if(this.paywallMode === 'live' && !this.livePro) {
+          this.showPaywall = true;
+        } else {
+          this.$store.dispatch("toggleRemoveWatermark", val);
+        }
+      } 
     },
-    removeWatermark() { return this.isPro && this.$store.state.removeWatermark; },
+    removeWatermark() { 
+      if (this.appMode === 'studio') return this.isPro && this.$store.state.removeWatermark;
+      return (this.livePro || this.isTrialActive) && this.$store.state.removeWatermark;
+    },
+    isTrialActive() {
+      return this.trialStartedAt && (Date.now() - this.trialStartedAt < 7 * 24 * 60 * 60 * 1000);
+    },
     activeEffects() { return this.$store.state.activeEffects; },
     sensitivity() { return this.$store.state.sensitivity; },
     sizes() { return this.$store.state.sizes; },
@@ -536,7 +730,12 @@ export default {
     bassBoost: {
       get() { return this.sensitivity.bassBoost; },
       set(val) { this.$store.dispatch("setSensitivity", { bassBoost: val }); }
-    }
+    },
+    isLoggedIn() { return !!this.$store.state.auth.token; },
+    currentUserId() { return this.$store.state.auth.userId; },
+    shoutoutUrl() {
+      return `${window.location.origin}/shout?club=${this.currentUserId || 1}`;
+    },
   },
   watch: {
     drawer(val) {
@@ -569,14 +768,27 @@ export default {
         this.audio.setSmoothing(val);
       }
     },
+    announcement: {
+      handler(val) {
+        if (val.visible && val.text) {
+          TEXT.showAnnouncement(val.text, val.duration);
+          this.$store.commit("setAnnouncement", { text: "", visible: false, duration: 5 });
+        }
+      },
+      deep: true,
+    },
     appMode(val) {
       if (val === 'live') {
         if (this.audioSource === 'file') {
-          this.audioSource = 'mic'; // Switch away from file in live mode
+          this.audioSource = 'system'; // Default to system audio in live mode
         }
       } else {
+        // Return to file mode when entering studio to prevent accidental capture prompts
+        if (this.audioSource === 'system') {
+          this.audioSource = 'file';
+        }
         // Reset tab if Render tab was selected and we switched away from studio
-        if (this.activeTab === 6 && val === 'live') this.activeTab = 0;
+        if (this.activeTab === 6) this.activeTab = 0;
       }
     },
     storeColors: {
@@ -639,21 +851,51 @@ export default {
       }
     },
 
+    async enumerateAudioDevices() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(d => d.kind === 'audioinput');
+        this.audioDevices = audioInputs.map(d => ({
+          label: d.label || `Device (${d.deviceId.slice(0, 8)}...)`,
+          deviceId: d.deviceId,
+        }));
+        if (!this.selectedDeviceId && this.audioDevices.length > 0) {
+          this.selectedDeviceId = this.audioDevices[0].deviceId;
+        }
+      } catch (e) {
+        console.warn("Could not enumerate devices:", e);
+      }
+    },
+
     async goLive() {
-      // Check Trial/Pro Status
-      const isTrialActive = this.trialStartedAt && (Date.now() - this.trialStartedAt < 7 * 24 * 60 * 60 * 1000);
-      
-      if (!this.livePro && !isTrialActive) {
-        this.paywallMode = 'live';
-        this.showPaywall = true;
+      this.paywallMode = 'live';
+
+      if (this.audioSource === 'system' && !this.dontShowLiveDialog) {
+        this.showLiveDialog = true;
         return;
       }
 
-      this.audioSource = 'system';
+      await this.startLiveCapture();
+    },
+
+    async startLiveCapture() {
+      this.showLiveDialog = false;
+      if (this.dontShowLiveDialog) {
+        localStorage.setItem("noterender_dont_show_live_dialog", "true");
+      }
+
+      this.paywallMode = 'live';
       this.drawer = false;
       this.toggleFullscreen();
-      
-      // If already playing, we need to restart with new source
+
+      if (!this.livePro && !this.isTrialActive) {
+        this.$store.dispatch("toggleRemoveWatermark", false);
+      }
+
+      if (this.audioSource === 'system') {
+        this.audioSource = 'system';
+      }
+
       if (!this.playing) {
         this.stopVisualizer();
         setTimeout(() => {
@@ -664,6 +906,106 @@ export default {
         this.reCreate();
         this.startVisualizer(false);
       }
+    },
+
+    showAnnouncement() {
+      if (!this.announcementInput) return;
+      this.$store.commit("setAnnouncement", {
+        text: this.announcementInput,
+        visible: true,
+        duration: this.announcementDuration || 5,
+      });
+      const saved = this.announcementInput;
+      this.announcementInput = "";
+    },
+
+    async saveCurrentProject() {
+      if (!this.isLoggedIn) return;
+      try {
+        const state = this.$store.state;
+        const data = {
+          template: state.template,
+          colors: state.colors,
+          light: state.light,
+          dynamicColors: state.dynamicColors,
+          title: state.title,
+          subtitle: state.subtitle,
+          logoStyle: state.logoStyle,
+          selectedSize: state.selectedSize,
+          sensitivity: state.sensitivity,
+          activeEffects: state.activeEffects,
+          options: state.options,
+          templates: state.templates,
+        };
+        await this.$store.dispatch("saveProject", { name: "Club Setup", data });
+      } catch (e) {
+        console.warn("Save failed:", e);
+      }
+    },
+
+    async loadProjects() {
+      if (!this.isLoggedIn) return;
+      try {
+        const projects = await this.$store.dispatch("loadProjects");
+        if (projects.length > 0) {
+          const p = projects[0];
+          const data = p.data;
+          if (data.template) this.$store.commit("templateSelected", data.template);
+          if (data.colors) this.$store.commit("setBarRGB", data.colors);
+          if (data.light) this.$store.commit("setLightRGB", data.light);
+          if (data.dynamicColors !== undefined) this.$store.commit("setDynamicColors", data.dynamicColors);
+          if (data.title) this.$store.commit("changeTitle", data.title);
+          if (data.subtitle) this.$store.commit("changeSubtitle", data.subtitle);
+          if (data.logoStyle) this.$store.commit("setLogoStyle", data.logoStyle);
+          if (data.selectedSize) this.$store.commit("setSize", data.selectedSize);
+          if (data.sensitivity) this.$store.commit("setSensitivity", data.sensitivity);
+          if (data.activeEffects) {
+            this.$store.state.activeEffects.splice(0, this.$store.state.activeEffects.length, ...data.activeEffects);
+          }
+        }
+      } catch (e) {
+        console.warn("Load failed:", e);
+      }
+    },
+
+    pollShoutouts() {
+      if (!this.currentUserId) return;
+      this.$store.dispatch("fetchApprovedShoutouts", {
+        clubId: this.currentUserId,
+        since: this.lastShoutoutFetch || undefined,
+      }).then((shoutouts) => {
+        if (shoutouts && shoutouts.length > 0) {
+          TEXT.pushShoutouts(shoutouts);
+          this.lastShoutoutFetch = shoutouts[shoutouts.length - 1].createdAt;
+        }
+      }).catch(() => {});
+    },
+
+    async loadPendingShoutouts() {
+      if (!this.isLoggedIn) return;
+      try {
+        this.pendingShoutouts = await this.$store.dispatch("fetchPendingShoutouts");
+      } catch (e) { /* ignore */ }
+    },
+
+    async approveShoutout(id) {
+      const s = this.pendingShoutouts.find(s => s.id === id);
+      await this.$store.dispatch("approveShoutout", { id, status: "approved" });
+      this.pendingShoutouts = this.pendingShoutouts.filter(s => s.id !== id);
+      if (s) TEXT.pushShoutouts([{
+        name: s.name,
+        message: s.message,
+        createdAt: new Date().toISOString(),
+      }]);
+    },
+
+    async rejectShoutout(id) {
+      await this.$store.dispatch("approveShoutout", { id, status: "rejected" });
+      this.pendingShoutouts = this.pendingShoutouts.filter(s => s.id !== id);
+    },
+
+    copyShoutoutUrl() {
+      navigator.clipboard.writeText(this.shoutoutUrl).catch(() => {});
     },
 
     startLiveAfterTrial() {
@@ -677,10 +1019,10 @@ export default {
       }
 
       if (this.playing) {
-        this.reCreate(); // Re-initialize disposed scene
-        this.startVisualizer(false);
-      } else {
         this.stopVisualizer();
+      } else {
+        this.reCreate();
+        this.startVisualizer(false);
       }
     },
 
@@ -810,6 +1152,7 @@ export default {
     },
 
     stopVisualizer() {
+      this.playing = false;
       if (this.audio) {
         this.audio.stop(() => {
           if (this.scene) this.scene.dispose();
@@ -818,15 +1161,14 @@ export default {
             Recording.stop();
             this.isExporting = false;
           }
-          this.playing = true;
         });
       }
     },
 
     startVisualizer(record = false) {
+      this.playing = true;
       this.$store.dispatch("toggleRecording", record);
       setTimeout(async () => {
-        this.playing = false;
         // 8 Mbps (High) or 2.5 Mbps (Standard)
         const bitrate = this.highQuality ? 8000000 : 2500000;
         
@@ -835,8 +1177,10 @@ export default {
             await this.audio.useMicrophone();
           } else if (this.audioSource === "system") {
             await this.audio.useSystemAudio();
+          } else if (this.audioSource === "device" && this.selectedDeviceId) {
+            await this.audio.useDevice(this.selectedDeviceId);
           } else {
-            this.audio.nodes(); // Ensure analyzer nodes are created
+            this.audio.nodes();
             await this.audio.play();
           }
 
@@ -846,7 +1190,7 @@ export default {
           }
         } catch (e) {
           console.warn("Visualizer start audio error:", e);
-          this.playing = true; // Revert play state on failure
+          this.playing = false;
         }
       }, 500);
     },
@@ -949,13 +1293,20 @@ export default {
     },
 
     setupWebGL() {
-      this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true });
+      this.engine = new BABYLON.Engine(this.canvas, true, { 
+        preserveDrawingBuffer: true, 
+        stencil: true, 
+        antialias: true,
+        adaptToDeviceRatio: true 
+      });
       this.setupEngine();
     },
 
     async setupEngine() {
       console.log("Setting up engine...");
-      this.engine.setHardwareScalingLevel(1 / (window.devicePixelRatio || 1));
+      // CRISPY FIX: Set hardware scaling to match physical pixels
+      const devicePixelRatio = window.devicePixelRatio || 1;
+      this.engine.setHardwareScalingLevel(1 / devicePixelRatio);
       
       // Ensure canvas is correctly sized before first render/resize
       this.resizeCanvas();
@@ -1044,8 +1395,16 @@ export default {
       TEXT.render();
       CAMERA.render(fft);
 
-      if (this.templates[this.activeTemplateName]) {
-        this.templates[this.activeTemplateName].render(fft, this.config);
+      // Performance Optimization: Cache active template and config
+      if (!this._cachedTemplate || this._cachedTemplateName !== this.activeTemplateName) {
+        this._cachedTemplate = this.templates[this.activeTemplateName];
+        this._cachedTemplateName = this.activeTemplateName;
+        const tData = this.config.templates.find(t => t.name === this.activeTemplateName);
+        this._cachedConfig = tData ? tData.currentConfig : {};
+      }
+
+      if (this._cachedTemplate) {
+        this._cachedTemplate.render(fft, this.config);
       }
       Effects.render(fft, this.config);
     }
@@ -1077,25 +1436,49 @@ export default {
     this.title = this.$store.state.title;
     this.subtitle = this.$store.state.subtitle;
 
+    // Load user projects and set up QR
+    if (this.isLoggedIn) {
+      this.loadProjects();
+    }
+
+    // Enumerate audio devices (for device selector)
+    this.enumerateAudioDevices();
+    navigator.mediaDevices?.addEventListener("devicechange", () => this.enumerateAudioDevices());
+
+    // Set QR URL for shoutouts
+    const shoutoutUrl = `${window.location.origin}/shout?club=${this.currentUserId || 1}`;
+    TEXT.setQrUrl(shoutoutUrl);
+
+    // Start shoutout polling
+    this.shoutoutTimer = setInterval(() => this.pollShoutouts(), 5000);
+
+    // Poll pending shoutouts for moderation
+    this.loadPendingShoutouts();
+    this.pendingShoutoutTimer = setInterval(() => this.loadPendingShoutouts(), 5000);
+
+    // Auto-save every 2 minutes
+    this.autoSaveTimer = setInterval(() => {
+      if (this.isLoggedIn) this.saveCurrentProject();
+    }, 120000);
+
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("mousemove", this.handleMouseMove);
+    window.addEventListener("touchstart", this.handleMouseMove);
 
-    // Play the audio muted in the background for a "wow" visual preview.
-    // The play button remains visible (playing=true) so the user can natively press "Play"
     const audioEl = document.getElementById("audio");
     if (audioEl) {
       audioEl.muted = true;
     }
-    if (this.audio) {
-      this.audio.play().catch(() => {
-        // Silently fail mount autoplay - the visualizer will still run with emptyFft
-      });
-    }
   },
+
   beforeDestroy() {
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("mousemove", this.handleMouseMove);
+    window.removeEventListener("touchstart", this.handleMouseMove);
     if (this.mouseTimer) clearTimeout(this.mouseTimer);
+    if (this.shoutoutTimer) clearInterval(this.shoutoutTimer);
+    if (this.pendingShoutoutTimer) clearInterval(this.pendingShoutoutTimer);
+    if (this.autoSaveTimer) clearInterval(this.autoSaveTimer);
   }
 };
 </script>
@@ -1220,6 +1603,30 @@ export default {
   transform: translateX(-50%);
   z-index: 50;
   pointer-events: none;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease;
+}
+
+.transport-container.ui-hidden {
+  transform: translate(-50%, 120px);
+  opacity: 0;
+}
+
+.sidebar-toggle.ui-hidden {
+  transform: translateX(-120px);
+  opacity: 0;
+}
+
+.sidebar-toggle {
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease;
+}
+
+.v-btn--fixed.v-btn--top.right.ui-hidden {
+  transform: translateX(120px);
+  opacity: 0;
+}
+
+.v-btn--fixed.v-btn--top.right {
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease;
 }
 
 .transport-bar {
@@ -1271,6 +1678,32 @@ export default {
   100% { transform: scale(1); opacity: 1; }
 }
 
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.5); }
+  70% { box-shadow: 0 0 0 18px rgba(0, 229, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0); }
+}
+
+.play-btn-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-btn-wrapper.pulse-ring::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  border-radius: 50%;
+  border: 2px solid rgba(0, 229, 255, 0.6);
+  animation: pulse-ring 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
 .truncate-text {
   max-width: 150px;
   white-space: nowrap;
@@ -1293,24 +1726,116 @@ export default {
 
 @media (max-width: 600px) {
   .transport-container {
-    bottom: 24px;
-    width: 90%;
+    bottom: 16px;
+    width: 92%;
   }
   .transport-bar {
     width: 100%;
     justify-content: center;
+    height: 52px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+  .transport-bar >>> .v-btn--icon {
+    width: 40px;
+    height: 40px;
+  }
+  .transport-bar >>> .v-icon {
+    font-size: 28px !important;
+  }
+  .transport-bar >>> .v-btn-toggle {
+    margin-left: 4px !important;
+  }
+  .transport-bar >>> .v-btn-toggle .v-btn {
+    font-size: 0.7rem;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    height: 32px !important;
+  }
+  .transport-bar > .v-btn:not(.v-btn--icon) {
+    height: 34px !important;
+    font-size: 0.7rem;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    margin-left: 4px !important;
+  }
+  .transport-bar > .v-btn:not(.v-btn--icon) .v-icon {
+    font-size: 16px !important;
+  }
+  .transport-bar > .v-divider {
+    margin-left: 8px !important;
+    margin-right: 8px !important;
   }
   .tabs-scroll-area {
-    width: 70px;
+    width: 60px;
   }
   .studio-tab-content {
-    width: calc(100% - 70px);
+    width: calc(100% - 60px);
   }
   .tab-text {
     display: none;
   }
   .studio-tabs >>> .v-tab {
     padding: 0 !important;
+    height: 72px !important;
+    min-width: unset !important;
+  }
+  .studio-tabs >>> .v-tab .v-icon {
+    font-size: 20px !important;
+  }
+
+  /* Sidebar drawer full-width on mobile */
+  .studio-sidebar {
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+  .studio-sidebar .pa-8 {
+    padding: 16px !important;
+  }
+  .studio-sidebar .logo-wrapper {
+    padding: 8px !important;
+  }
+  .studio-sidebar .logo-wrapper img {
+    width: 48px !important;
+  }
+  .studio-sidebar .pa-6 {
+    padding: 12px !important;
+  }
+  .studio-sidebar .px-6 {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .studio-sidebar .pa-4 {
+    padding: 8px !important;
+  }
+  .studio-sidebar .mx-8 {
+    margin-left: 16px !important;
+    margin-right: 16px !important;
+  }
+
+  /* Sidebar toggle button smaller on mobile */
+  .sidebar-toggle {
+    width: 40px !important;
+    height: 40px !important;
+    margin-top: 8px !important;
+    margin-left: 8px !important;
+  }
+  .sidebar-toggle .v-icon {
+    font-size: 20px !important;
+  }
+
+  /* Help button smaller on mobile */
+  .v-btn--fixed.v-btn--top.right {
+    margin-top: 8px !important;
+    margin-right: 8px !important;
+  }
+
+  .preset-chip {
+    font-size: 0.7rem;
+    height: 28px !important;
+  }
+  .text-overline {
+    font-size: 0.6rem !important;
   }
 }
 </style>

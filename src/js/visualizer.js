@@ -23,8 +23,12 @@ class Visualizer {
     try {
         const webgpuSupported = await BABYLON.WebGPUEngine.IsSupportedAsync;
         if (webgpuSupported) {
-            this.engine = new BABYLON.WebGPUEngine(this.canvas, { antialias: true });
+            this.engine = new BABYLON.WebGPUEngine(this.canvas, { 
+              antialias: true,
+              adaptToDeviceRatio: true 
+            });
             await this.engine.initAsync();
+            this.engine.setHardwareScalingLevel(1 / (window.devicePixelRatio || 1));
             console.log("WebGPU Engine Initialized");
         } else {
             throw new Error("WebGPU not supported");
@@ -34,7 +38,10 @@ class Visualizer {
         this.engine = new BABYLON.Engine(this.canvas, true, {
           preserveDrawingBuffer: true,
           stencil: true,
+          antialias: true,
+          adaptToDeviceRatio: true
         });
+        this.engine.setHardwareScalingLevel(1 / (window.devicePixelRatio || 1));
     }
 
     this.createScene();
