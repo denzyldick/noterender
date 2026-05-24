@@ -131,6 +131,9 @@ const template = {
     }
 };
 
+const _primaryColor = new BABYLON.Color3();
+const _accentColor = new BABYLON.Color3();
+
 function hslToRgb(h, s, l) {
     let r, g, b;
     if (s === 0) { r = g = b = l; } else {
