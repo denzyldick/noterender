@@ -151,6 +151,46 @@ export default new Vuex.Store({
         },
         currentConfig: { leafCount: 1000 }
       },
+      {
+        name: "flux",
+        preview: "",
+        description: "Liquid metal surface rippling with bass. Hypnotic fluid dynamics.",
+        price: "0",
+        configuration: {},
+        currentConfig: {}
+      },
+      {
+        name: "ember",
+        preview: "",
+        description: "Fire particle swarm that erupts on bass hits. Raw energy.",
+        price: "0",
+        configuration: {},
+        currentConfig: {}
+      },
+      {
+        name: "wire",
+        preview: "",
+        description: "Minimal 3D waveform oscilloscope. Clean and technical.",
+        price: "0",
+        configuration: {},
+        currentConfig: {}
+      },
+      {
+        name: "kaleid",
+        preview: "",
+        description: "Kaleidoscopic mirrored geometry. Symmetry in motion.",
+        price: "0",
+        configuration: {},
+        currentConfig: {}
+      },
+      {
+        name: "static",
+        preview: "",
+        description: "CRT glitch aesthetic with noise and scanlines. Industrial grit.",
+        price: "0",
+        configuration: {},
+        currentConfig: {}
+      },
     ],
     presets: [
       { name: "Dynamic", dynamic: true, colors: { r: 0, g: 229, b: 255 }, light: { r: 255, g: 255, b: 255 } },

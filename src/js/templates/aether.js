@@ -99,18 +99,27 @@ const template = {
         for (let i = 200; i < 250; i++) treble += fft[i];
         treble = (treble / 50 / 255) * boost;
 
+        if (config.dynamicColors) {
+            const hue = (t * 0.08) % 1;
+            const pRGB = hslToRgb(hue, 0.7, 0.5 + bass * 0.2);
+            const aRGB = hslToRgb((hue + 0.5) % 1, 0.8, 0.6 + treble * 0.3);
+            _primaryColor.set(pRGB.r, pRGB.g, pRGB.b);
+            _accentColor.set(aRGB.r, aRGB.g, aRGB.b);
+        } else {
+            _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
+            _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        }
+
         if (knot) {
             knot.rotation.y += 0.005 + pBass * 0.05;
             knot.rotation.z += 0.002;
             const s = 1.0 + pBass * 0.6;
             knot.scaling.set(s, s, s);
-            const col = config.colors;
-            knot.material.emissiveColor.set(col.r/255 * (0.4 + pBass*2), col.g/255 * (0.4 + pBass*2), col.b/255 * (0.4 + pBass*2));
+            knot.material.emissiveColor.set(_primaryColor.r * (0.4 + pBass*2), _primaryColor.g * (0.4 + pBass*2), _primaryColor.b * (0.4 + pBass*2));
         }
 
         if (sps) {
-            const lCol = config.light;
-            sps.mesh.material.emissiveColor.set(lCol.r/255, lCol.g/255, lCol.b/255);
+            sps.mesh.material.emissiveColor.set(_accentColor.r, _accentColor.g, _accentColor.b);
             
             const pCount = sps.nbParticles;
             for (let p = 0; p < pCount; p++) {
@@ -140,5 +149,24 @@ const template = {
         }
     }
 };
+
+function hslToRgb(h, s, l) {
+    let r, g, b;
+    if (s === 0) { r = g = b = l; } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1; if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1 / 3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1 / 3);
+    }
+    return { r, g, b };
+}
 
 export default template;

@@ -8,6 +8,7 @@ let vortex;
 let coreLight;
 let sceneRef;
 let currentCamera;
+let currentTemplateConfig = {};
 
 // Pre-allocated objects for performance
 const _primaryColor = new BABYLON.Color3();
@@ -19,6 +20,10 @@ const template = {
         sceneRef = scene;
         currentCamera = camera;
         t = 0;
+
+        const templateData = config.templates.find(td => td.name === 'nebulacore');
+        currentTemplateConfig = templateData ? templateData.currentConfig : {};
+        const c = currentTemplateConfig;
         
         // Claim the camera exclusively
         CAMERA_PHYSICS.lock();
@@ -53,14 +58,15 @@ const template = {
         ringMat.wireframe = true;
         ringMat.disableLighting = true;
 
-        for (let i = 0; i < 2; i++) {
+        const ringCount = Math.max(1, c.rings || 10);
+        for (let i = 0; i < ringCount; i++) {
             const ring = BABYLON.MeshBuilder.CreateTorus(`ring${i}`, {
-                diameter: 300 + i * 100, thickness: 2, tessellation: 128
+                diameter: 200 + i * (400 / ringCount), thickness: 2, tessellation: 64
             }, scene);
             ring.material = ringMat;
             ring.rotation.x = Math.PI / 2;
             ring.renderingGroupId = 1;
-            rings.push({ mesh: ring, rotSpeed: 0.01 + i * 0.005 });
+            rings.push({ mesh: ring, rotSpeed: 0.01 + i * 0.003 });
         }
 
         // --- Vortex Particles ---

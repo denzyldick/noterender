@@ -81,6 +81,22 @@ const template = {
         for (let i = fft.length-20; i < fft.length; i++) treble += fft[i];
         treble = (treble / 20 / 255) * boost;
 
+        if (config.dynamicColors) {
+            const hue = (t * 0.05) % 1;
+            const pRGB = hslToRgb(hue, 0.7, 0.6 + bass * 0.2);
+            const aRGB = hslToRgb((hue + 0.6) % 1, 0.8, 0.5 + treble * 0.3);
+            _primaryColor.set(pRGB.r, pRGB.g, pRGB.b);
+            _accentColor.set(aRGB.r, aRGB.g, aRGB.b);
+        } else {
+            _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
+            _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        }
+
+        const prismMat = prisms.length > 0 ? prisms[0].mesh.material : null;
+        if (prismMat) {
+            prismMat.emissiveColor.copyFrom(_accentColor.scale(0.3 * (1 + pBass * 3)));
+        }
+
         prisms.forEach((p, i) => {
             const speed = (c.speed || 1.0) * (0.01 + pBass * 0.1);
             p.angle += speed;
@@ -105,5 +121,24 @@ const template = {
 
 const _primaryColor = new BABYLON.Color3();
 const _accentColor = new BABYLON.Color3();
+
+function hslToRgb(h, s, l) {
+    let r, g, b;
+    if (s === 0) { r = g = b = l; } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1; if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1 / 3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1 / 3);
+    }
+    return { r, g, b };
+}
 
 export default template;

@@ -5,6 +5,7 @@ import CAMERA_PHYSICS from "@/js/templates/components/camera";
 let currentScene;
 let currentCamera;
 let t = 0;
+let currentTemplateConfig = {};
 
 // World Elements
 let roadSegments = [];
@@ -29,6 +30,10 @@ const template = {
         currentScene = scene;
         currentCamera = camera;
         t = 0;
+
+        const templateData = config.templates.find(td => td.name === 'city');
+        currentTemplateConfig = templateData ? templateData.currentConfig : {};
+        const c = currentTemplateConfig;
         
         CAMERA_PHYSICS.lock();
         if (camera) {
@@ -140,7 +145,7 @@ const template = {
             const lateral = (ROAD_WIDTH/2 + SIDEWALK_WIDTH + 20 + Math.random() * 400) * side;
             const z = Math.random() * (ROAD_LENGTH * SEGMENT_COUNT);
             const w = 40 + Math.random() * 80;
-            const h = 100 + Math.pow(Math.random(), 2) * 600;
+            const h = (c.height || 200) * (0.5 + Math.random() * 0.5);
             
             b.position.set(lateral, h/2, z);
             b.scaling.set(w, h, w);
@@ -178,8 +183,16 @@ const template = {
         bass = (bass / 10 / 255) * boost;
         const pBass = Math.pow(bass, 1.5);
 
-        _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
-        _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        if (config.dynamicColors) {
+            const hue = (t * 0.05) % 1;
+            const pRGB = hslToRgb(hue, 0.8, 0.5 + bass * 0.2);
+            const aRGB = hslToRgb((hue + 0.3) % 1, 0.9, 0.6 + bass * 0.3);
+            _primaryColor.set(pRGB.r, pRGB.g, pRGB.b);
+            _accentColor.set(aRGB.r, aRGB.g, aRGB.b);
+        } else {
+            _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
+            _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        }
 
         const frameSpeed = SPEED * (1 + pBass * 4.0);
         const totalWorldDepth = ROAD_LENGTH * SEGMENT_COUNT;
@@ -241,5 +254,24 @@ const template = {
         lightStreaks = [];
     }
 };
+
+function hslToRgb(h, s, l) {
+    let r, g, b;
+    if (s === 0) { r = g = b = l; } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1; if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1 / 3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1 / 3);
+    }
+    return { r, g, b };
+}
 
 export default template;

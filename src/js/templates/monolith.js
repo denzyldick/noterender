@@ -81,11 +81,21 @@ const template = {
         bass = (bass / 10 / 255) * boost;
         const pBass = Math.pow(bass, 1.5);
 
+        if (config.dynamicColors) {
+            const hue = (t * 0.04) % 1;
+            const pRGB = hslToRgb(hue, 0.6, 0.4 + bass * 0.3);
+            const aRGB = hslToRgb((hue + 0.5) % 1, 0.7, 0.5 + bass * 0.2);
+            _primaryColor.set(pRGB.r, pRGB.g, pRGB.b);
+            _accentColor.set(aRGB.r, aRGB.g, aRGB.b);
+        } else {
+            _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
+            _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        }
+
         if (monolith) {
             monolith.rotation.y += 0.005;
             monolith.scaling.set(1 + pBass*0.2, 1 + pBass*0.1, 1 + pBass*0.2);
-            const col = config.colors;
-            monolith.material.emissiveColor.set(col.r/255 * pBass, col.g/255 * pBass, col.b/255 * pBass);
+            monolith.material.emissiveColor.set(_primaryColor.r * pBass, _primaryColor.g * pBass, _primaryColor.b * pBass);
         }
 
         if (cubeSPS) {
@@ -105,8 +115,7 @@ const template = {
                 }
             }
             cubeSPS.setParticles();
-            const lCol = config.light;
-            cubeSPS.mesh.material.emissiveColor.set(lCol.r/255, lCol.g/255, lCol.b/255);
+            cubeSPS.mesh.material.emissiveColor.set(_accentColor.r, _accentColor.g, _accentColor.b);
         }
 
         if (currentCamera) {
@@ -121,5 +130,24 @@ const template = {
         if (cubeSPS) cubeSPS.mesh.dispose();
     }
 };
+
+function hslToRgb(h, s, l) {
+    let r, g, b;
+    if (s === 0) { r = g = b = l; } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1; if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1 / 3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1 / 3);
+    }
+    return { r, g, b };
+}
 
 export default template;

@@ -603,6 +603,11 @@ import aether from "../js/templates/aether";
 import monolith from "../js/templates/monolith";
 import prism from "../js/templates/prism";
 import flora from "../js/templates/flora";
+import flux from "../js/templates/flux";
+import ember from "../js/templates/ember";
+import wire from "../js/templates/wire";
+import kaleid from "../js/templates/kaleid";
+import static_ from "../js/templates/static";
 
 export default {
   name: "Player",
@@ -624,7 +629,8 @@ export default {
       accentColorHex: "#00E5FF",
       lightColorHex: "#00E5FF",
       templates: {
-        city, terrain, nebulacore, trap, solaris, infinity, tunnel, aether, monolith, prism, flora
+        city, terrain, nebulacore, trap, solaris, infinity, tunnel, aether, monolith, prism, flora,
+        flux, ember, wire, kaleid, static: static_
       },
       isPro: false,
       showPaywall: false,

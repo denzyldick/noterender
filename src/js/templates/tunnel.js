@@ -9,6 +9,8 @@ let tunnelGroup;
 let starField;
 let energyLines = [];
 let currentCamera;
+let currentTemplateConfig = {};
+let sectionCount = 25;
 
 // Pre-allocated for performance
 const _primaryColor = new BABYLON.Color3();
@@ -20,6 +22,11 @@ const template = {
         sceneRef = scene;
         currentCamera = camera;
         t = 0;
+
+        const templateData = config.templates.find(td => td.name === 'tunnel');
+        currentTemplateConfig = templateData ? templateData.currentConfig : {};
+        const c = currentTemplateConfig;
+        sectionCount = c.repetition || 5;
         
         // EXCLUSIVELY claim the camera to prevent orbit logic from crashing it
         CAMERA_PHYSICS.lock();
@@ -53,7 +60,6 @@ const template = {
         piles = [];
         tunnelGroup = new BABYLON.TransformNode("tunnel", scene);
         
-        const sectionCount = 25;
         const pilesPerSection = 24; // 6 per side
         const tunnelSize = 500;
         const sectionSpacing = 80;
@@ -184,7 +190,7 @@ const template = {
         const tunnelSpeed = 8 * (1 + bass * 4);
         piles.forEach((p) => {
             p.mesh.position.z -= tunnelSpeed;
-            if (p.mesh.position.z < -300) p.mesh.position.z += 25 * 80;
+            if (p.mesh.position.z < -300) p.mesh.position.z += sectionCount * 80;
 
             const freqVal = fft[p.index * 4 % fft.length] / 255;
             const intensity = 0.3 + freqVal * 1.5;

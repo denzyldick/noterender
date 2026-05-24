@@ -91,11 +91,21 @@ const template = {
         bass = (bass / 12 / 255) * boost;
         const pBass = Math.pow(bass, 1.4);
 
+        if (config.dynamicColors) {
+            const hue = (t * 0.06) % 1;
+            const pRGB = hslToRgb(hue, 0.75, 0.5 + bass * 0.2);
+            const aRGB = hslToRgb((hue + 0.35) % 1, 0.85, 0.5 + treble * 0.3);
+            _primaryColor.set(pRGB.r, pRGB.g, pRGB.b);
+            _accentColor.set(aRGB.r, aRGB.g, aRGB.b);
+        } else {
+            _primaryColor.set(config.colors.r / 255, config.colors.g / 255, config.colors.b / 255);
+            _accentColor.set(config.light.r / 255, config.light.g / 255, config.light.b / 255);
+        }
+
         if (core) {
             core.rotation.y += 0.01;
             core.rotation.z += 0.005;
             
-            const col = config.colors;
             const fLen = facets.length;
             // HIGH PERFORMANCE LOOP: No .forEach, no 'new' allocations
             for (let i = 0; i < fLen; i++) {
@@ -107,7 +117,7 @@ const template = {
                 f.mesh.scaling.set(10 * push, 10 * push, 2);
                 
                 const intensity = 0.2 + fftVal * 1.5;
-                _tempColor4.set(col.r/255 * intensity, col.g/255 * intensity, col.b/255 * intensity, 1);
+                _tempColor4.set(_primaryColor.r * intensity, _primaryColor.g * intensity, _primaryColor.b * intensity, 1);
                 f.mesh.instancedBuffers.color = _tempColor4;
             }
         }
@@ -134,5 +144,24 @@ const template = {
         outerRings = [];
     }
 };
+
+function hslToRgb(h, s, l) {
+    let r, g, b;
+    if (s === 0) { r = g = b = l; } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1; if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1 / 3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1 / 3);
+    }
+    return { r, g, b };
+}
 
 export default template;

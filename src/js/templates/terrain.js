@@ -8,6 +8,7 @@ let sunMat;
 let digitalAurora;
 let t = 0;
 let currentCamera;
+let currentTemplateConfig = {};
 
 // Pre-allocated objects for performance
 const _primaryColor = new BABYLON.Color3();
@@ -19,6 +20,9 @@ const template = {
     init(camera, renderer, nb, scene, width, height, depth, config) {
         currentCamera = camera;
         t = 0;
+
+        const templateData = config.templates.find(td => td.name === 'terrain');
+        currentTemplateConfig = templateData ? templateData.currentConfig : {};
         
         // Claim the camera exclusively
         CAMERA_PHYSICS.lock();
@@ -150,6 +154,8 @@ const template = {
 
         const positions = ground.getVerticesData(BABYLON.VertexBuffer.PositionKind);
         if (positions) {
+            const c = currentTemplateConfig;
+            const roughnessMult = (c.roughness || 50) / 50;
             for (let i = 0; i < positions.length; i += 3) {
                 const xVal = positions[i];
                 const zVal = positions[i + 2];
@@ -162,13 +168,13 @@ const template = {
 
                 if (xVal < -400) {
                     fftIndex = Math.floor(Math.abs(xVal / 100)) % 15; 
-                    waveFreq = 0.012; waveSpeed = 1.2; baseAmp = 55;
+                    waveFreq = 0.012; waveSpeed = 1.2; baseAmp = 55 * roughnessMult;
                 } else if (xVal > 400) {
                     fftIndex = 80 + (Math.floor(Math.abs(xVal / 20)) % 40);
-                    waveFreq = 0.06; waveSpeed = 4; baseAmp = 25;
+                    waveFreq = 0.06; waveSpeed = 4; baseAmp = 25 * roughnessMult;
                 } else {
                     fftIndex = 20 + (Math.floor(Math.abs(xVal / 40)) % 50);
-                    waveFreq = 0.03; waveSpeed = 2.5; baseAmp = 38;
+                    waveFreq = 0.03; waveSpeed = 2.5; baseAmp = 38 * roughnessMult;
                 }
                 
                 const amplitude = this.getFFT(fft, fftIndex) / 255;
