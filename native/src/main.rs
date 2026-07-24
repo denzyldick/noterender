@@ -5,6 +5,7 @@ mod config;
 mod effects;
 mod io;
 mod network;
+mod recording;
 mod templates;
 mod ui;
 mod windows;
@@ -55,6 +56,7 @@ fn run_graphical() {
             components::plane::LogoPlugin,
             templates::TemplatePlugin,
             effects::EffectsPlugin,
+            recording::RecordingPlugin,
             ui::UiPlugin,
         ))
         .insert_resource(ClearColor(Color::srgb(0.02, 0.02, 0.04)))

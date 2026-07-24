@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::window::{MonitorSelection, WindowMode, WindowPosition};
 use crossbeam_channel::TryRecvError;
 
+use crate::recording::RecordingState;
 use crate::windows::{MonitorList, WindowEntities};
 
 #[derive(Resource)]
@@ -54,6 +55,7 @@ fn render_ui(
     window_entities: Res<WindowEntities>,
     monitor_list: Res<MonitorList>,
     mut windows: Query<&mut Window>,
+    mut recording_state: ResMut<RecordingState>,
 ) {
     use bevy_egui::egui::*;
 
@@ -202,6 +204,33 @@ fn render_ui(
                         }
                     }
                 }
+            }
+
+            ui.separator();
+            ui.heading("Recording");
+            let rec_text = if recording_state.recording {
+                "Stop Recording"
+            } else {
+                "Record Video"
+            };
+            if ui.button(rec_text).clicked() {
+                if recording_state.recording {
+                    crate::recording::stop_recording(&mut recording_state);
+                } else {
+                    crate::recording::start_recording(&mut recording_state);
+                }
+            }
+            if recording_state.recording {
+                ui.label(
+                    RichText::new("Recording... Click to stop")
+                        .color(Color32::from_rgb(255, 80, 80)),
+                );
+            } else {
+                ui.label(
+                    RichText::new("Requires ffmpeg in PATH")
+                        .color(Color32::from_gray(120))
+                        .size(11.0),
+                );
             }
         });
 }
