@@ -1,13 +1,48 @@
 use bevy::prelude::*;
 use bevy::window::{MonitorSelection, WindowMode, WindowPosition};
+use crossbeam_channel::TryRecvError;
 
 use crate::windows::{MonitorList, WindowEntities};
+
+#[derive(Resource)]
+pub struct AuthState {
+    pub logged_in: bool,
+    pub email: String,
+    pub password: String,
+    pub confirm_password: String,
+    pub mode: AuthMode,
+    pub error: String,
+    pub loading: bool,
+    pub receiver: Option<crossbeam_channel::Receiver<Result<(String, String), String>>>,
+}
+
+#[derive(PartialEq)]
+pub enum AuthMode {
+    Login,
+    Register,
+}
+
+impl Default for AuthState {
+    fn default() -> Self {
+        Self {
+            logged_in: false,
+            email: String::new(),
+            password: String::new(),
+            confirm_password: String::new(),
+            mode: AuthMode::Login,
+            error: String::new(),
+            loading: false,
+            receiver: None,
+        }
+    }
+}
 
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, render_ui);
+        app.init_resource::<AuthState>()
+            .add_systems(Update, (render_ui, poll_auth_response, render_auth_overlay));
     }
 }
 
@@ -276,4 +311,160 @@ fn render_template_controls(ui: &mut bevy_egui::egui::Ui, config: &mut crate::co
         }
         _ => {}
     }
+}
+
+fn poll_auth_response(
+    mut auth: ResMut<AuthState>,
+    mut config: ResMut<crate::config::Config>,
+) {
+    if let Some(rx) = &auth.receiver {
+        match rx.try_recv() {
+            Ok(Ok((token, email))) => {
+                auth.logged_in = true;
+                auth.loading = false;
+                auth.error.clear();
+                auth.receiver = None;
+                config.auth_token = Some(token);
+                config.user_email = Some(email);
+                crate::io::save_config(&config);
+            }
+            Ok(Err(e)) => {
+                auth.error = e;
+                auth.loading = false;
+                auth.receiver = None;
+            }
+            Err(TryRecvError::Empty) => {}
+            Err(TryRecvError::Disconnected) => {
+                auth.error = "Connection lost".into();
+                auth.loading = false;
+                auth.receiver = None;
+            }
+        }
+    }
+}
+
+fn render_auth_overlay(
+    mut egui_context: bevy_egui::EguiContexts,
+    mut auth: ResMut<AuthState>,
+    window_entities: Res<WindowEntities>,
+) {
+    if auth.logged_in {
+        return;
+    }
+
+    let ctx = egui_context.ctx_for_entity_mut(window_entities.control);
+
+    use bevy_egui::egui;
+    egui::Area::new("auth_overlay".into())
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ctx, |ui| {
+            egui::Frame::none()
+                .fill(egui::Color32::from_rgba_unmultiplied(10, 12, 18, 240))
+                .rounding(egui::Rounding::same(16.0))
+                .inner_margin(egui::Margin::same(32.0))
+                .show(ui, |ui| {
+                    ui.set_min_width(320.0);
+                    ui.vertical_centered(|ui| {
+                        ui.heading(egui::RichText::new("Noterender").size(24.0));
+                        ui.add_space(4.0);
+                        ui.label(egui::RichText::new("Sign in to access all features").color(egui::Color32::from_gray(160)));
+                        ui.add_space(16.0);
+
+                        ui.horizontal(|ui| {
+                            if ui.selectable_label(auth.mode == AuthMode::Login, "Login").clicked() {
+                                auth.mode = AuthMode::Login;
+                                auth.error.clear();
+                            }
+                            if ui.selectable_label(auth.mode == AuthMode::Register, "Register").clicked() {
+                                auth.mode = AuthMode::Register;
+                                auth.error.clear();
+                            }
+                        });
+                        ui.add_space(12.0);
+
+                        ui.label("Email");
+                        ui.text_edit_singleline(&mut auth.email);
+                        ui.add_space(4.0);
+
+                        ui.label("Password");
+                        ui.add(egui::TextEdit::singleline(&mut auth.password).password(true));
+
+                        if auth.mode == AuthMode::Register {
+                            ui.add_space(4.0);
+                            ui.label("Confirm Password");
+                            ui.add(egui::TextEdit::singleline(&mut auth.confirm_password).password(true));
+                        }
+
+                        ui.add_space(12.0);
+
+                        if !auth.error.is_empty() {
+                            ui.label(egui::RichText::new(&auth.error).color(egui::Color32::from_rgb(255, 80, 80)));
+                            ui.add_space(8.0);
+                        }
+
+                        let btn_text = if auth.loading {
+                            "Loading..."
+                        } else if auth.mode == AuthMode::Login {
+                            "Sign In"
+                        } else {
+                            "Create Account"
+                        };
+
+                        if ui.add_enabled(!auth.loading, egui::Button::new(egui::RichText::new(btn_text).size(16.0).strong()).min_size(egui::vec2(200.0, 36.0))).clicked() && !auth.loading {
+                            auth.error.clear();
+
+                            if auth.email.is_empty() || auth.password.is_empty() {
+                                auth.error = "Email and password required".into();
+                            } else if auth.mode == AuthMode::Register && auth.password != auth.confirm_password {
+                                auth.error = "Passwords don't match".into();
+                            } else if auth.mode == AuthMode::Register && auth.password.len() < 6 {
+                                auth.error = "Password must be at least 6 characters".into();
+                            } else {
+                                auth.loading = true;
+                                let (tx, rx) = crossbeam_channel::unbounded();
+                                auth.receiver = Some(rx);
+
+                                let email = auth.email.clone();
+                                let password = auth.password.clone();
+                                let is_register = auth.mode == AuthMode::Register;
+
+                                std::thread::spawn(move || {
+                                    let rt = tokio::runtime::Runtime::new().unwrap();
+                                    let result = rt.block_on(async move {
+                                        if is_register {
+                                            crate::network::register(&email, &password).await
+                                        } else {
+                                            crate::network::login(&email, &password).await
+                                        }
+                                    });
+                                    let _ = tx.send(match result {
+                                        Ok(resp) => Ok((resp.token, resp.user.email)),
+                                        Err(e) => Err(e),
+                                    });
+                                });
+                            }
+                        }
+
+                        ui.add_space(8.0);
+                        ui.separator();
+                        ui.add_space(8.0);
+
+                        if ui.button(egui::RichText::new("Buy Pro Access").size(14.0)).clicked() {
+                            let rt = tokio::runtime::Runtime::new().unwrap();
+                            if let Ok(resp) = rt.block_on(crate::network::create_checkout_session("pro_export")) {
+                                if let Some(url) = resp.url {
+                                    let _ = open::that(url);
+                                }
+                            }
+                        }
+
+                        ui.add_space(4.0);
+                        ui.label(egui::RichText::new("You can use the app without signing in").color(egui::Color32::from_gray(120)).size(12.0));
+                        ui.add_space(4.0);
+                        if ui.add(egui::Button::new(egui::RichText::new("Skip for now").color(egui::Color32::from_gray(160)).size(13.0)).fill(egui::Color32::TRANSPARENT)).clicked() {
+                            auth.logged_in = true;
+                        }
+                    });
+                });
+        });
 }

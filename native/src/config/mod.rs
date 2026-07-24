@@ -16,6 +16,8 @@ pub struct Config {
     pub logo_path: String,
     pub title: String,
     pub subtitle: String,
+    pub auth_token: Option<String>,
+    pub user_email: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -372,6 +374,8 @@ impl Default for Config {
             logo_path: "logo.png".into(),
             title: "Noterender".into(),
             subtitle: "Elevate Your Sound".into(),
+            auth_token: None,
+            user_email: None,
         }
     }
 }

@@ -4,6 +4,7 @@ mod components;
 mod config;
 mod effects;
 mod io;
+mod network;
 mod templates;
 mod ui;
 mod windows;

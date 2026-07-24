@@ -1,6 +1,7 @@
 .DS_Store
 node_modules
 music
+native/target
 # local env files
 .env.local
 .env.*.local
