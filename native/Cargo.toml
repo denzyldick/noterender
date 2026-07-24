@@ -1,0 +1,12 @@
+[package]
+name = "noterender"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.15"
+bevy_egui = "0.31"
+cpal = "0.15"
+crossbeam-channel = "0.5"
+serde = { version = "1", features = ["derive"] }
+rand = "0.8"
