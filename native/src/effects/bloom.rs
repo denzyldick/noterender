@@ -1,7 +1,8 @@
+use bevy::core_pipeline::bloom::Bloom;
 use bevy::prelude::*;
 
 use crate::audio::AudioState;
-use crate::components::lights::BaseIntensity;
+use crate::camera::MainCameraMarker;
 use crate::config::Config;
 
 #[derive(Resource, Default)]
@@ -13,15 +14,15 @@ pub fn bloom_system(
     mut state: ResMut<BloomState>,
     audio: Res<AudioState>,
     config: Res<Config>,
-    mut lights: Query<(&mut PointLight, &BaseIntensity)>,
+    mut cameras: Query<&mut Bloom, With<MainCameraMarker>>,
 ) {
     if !config.active_effects.iter().any(|e| e == "bloom") {
         state.intensity = 0.0;
     } else {
-        state.intensity = (0.6 + audio.bass * 1.2).min(3.0);
+        state.intensity = (0.3 + audio.bass * 0.7).min(1.0);
     }
 
-    for (mut light, base) in &mut lights {
-        light.intensity = base.0 * (1.0 + state.intensity);
+    for mut bloom in &mut cameras {
+        bloom.intensity = state.intensity;
     }
 }

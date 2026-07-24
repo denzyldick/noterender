@@ -10,6 +10,8 @@ mod templates;
 mod ui;
 mod windows;
 
+use bevy::core_pipeline::bloom::Bloom;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::prelude::*;
 use bevy::render::camera::{Camera, RenderTarget};
 use bevy::window::{
@@ -211,8 +213,11 @@ fn setup_windows(
         Camera3d::default(),
         Camera {
             target: RenderTarget::Window(WindowRef::Entity(visualizer_window)),
+            hdr: true,
             ..default()
         },
+        Tonemapping::TonyMcMapface,
+        Bloom::NATURAL,
         Transform::from_xyz(0.0, 200.0, 400.0).looking_at(Vec3::ZERO, Vec3::Y),
         MainCameraMarker,
     ));
@@ -244,8 +249,11 @@ fn setup_windows_headless(mut commands: Commands) {
         Camera3d::default(),
         Camera {
             target: RenderTarget::Window(WindowRef::Entity(visualizer_window)),
+            hdr: true,
             ..default()
         },
+        Tonemapping::TonyMcMapface,
+        Bloom::NATURAL,
         Transform::from_xyz(0.0, 200.0, 400.0).looking_at(Vec3::ZERO, Vec3::Y),
         MainCameraMarker,
     ));
