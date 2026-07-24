@@ -1,4 +1,7 @@
 use bevy::prelude::*;
+use bevy::window::{MonitorSelection, WindowMode, WindowPosition};
+
+use crate::windows::{MonitorList, WindowEntities};
 
 pub struct UiPlugin;
 
@@ -13,10 +16,13 @@ fn render_ui(
     mut config: ResMut<crate::config::Config>,
     camera_state: Res<crate::camera::CameraState>,
     audio: Res<crate::audio::AudioState>,
+    window_entities: Res<WindowEntities>,
+    monitor_list: Res<MonitorList>,
+    mut windows: Query<&mut Window>,
 ) {
     use bevy_egui::egui::*;
 
-    let ctx = egui_context.ctx_mut();
+    let ctx = egui_context.ctx_for_entity_mut(window_entities.control);
     let template = config.template.clone();
 
     Area::new("hud".into())
@@ -126,6 +132,42 @@ fn render_ui(
             ui.label(format!("Punch Bass: {:.3}", audio.punch_bass));
             ui.label(format!("Alpha: {:.3}", camera_state.alpha));
             ui.label(format!("Beta: {:.3}", camera_state.beta));
+
+            ui.separator();
+            ui.heading("Display");
+
+            if let Ok(mut viz_window) = windows.get_mut(window_entities.visualizer) {
+                let is_fullscreen = matches!(
+                    viz_window.mode,
+                    WindowMode::BorderlessFullscreen(_) | WindowMode::Fullscreen(_)
+                );
+                if ui
+                    .button(if is_fullscreen {
+                        "Exit Fullscreen (F11)"
+                    } else {
+                        "Fullscreen (F11)"
+                    })
+                    .clicked()
+                {
+                    viz_window.mode = if is_fullscreen {
+                        WindowMode::Windowed
+                    } else {
+                        WindowMode::BorderlessFullscreen(MonitorSelection::Current)
+                    };
+                }
+
+                if monitor_list.monitors.len() > 1 {
+                    ui.label("Move visualizer to:");
+                    for m in &monitor_list.monitors {
+                        if ui.button(&m.name).clicked() {
+                            viz_window.mode =
+                                WindowMode::BorderlessFullscreen(MonitorSelection::Index(m.index));
+                            viz_window.position =
+                                WindowPosition::Centered(MonitorSelection::Index(m.index));
+                        }
+                    }
+                }
+            }
         });
 }
 

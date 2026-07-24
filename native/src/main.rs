@@ -5,10 +5,14 @@ mod config;
 mod effects;
 mod templates;
 mod ui;
+mod windows;
 
 use bevy::prelude::*;
-use bevy::window::Window;
-use bevy::window::WindowPlugin;
+use bevy::render::camera::{Camera, RenderTarget};
+use bevy::window::{
+    Monitor, MonitorSelection, PrimaryWindow, WindowMode, WindowPosition, WindowRef,
+    WindowResolution,
+};
 use std::env;
 use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
@@ -20,6 +24,7 @@ use templates::solaris;
 use templates::terrain;
 use templates::trap;
 use templates::TemplateMarker;
+use windows::{MonitorInfo, MonitorList, WindowEntities};
 
 fn main() {
     match runtime_mode() {
@@ -32,8 +37,9 @@ fn run_graphical() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                title: "Noterender".into(),
-                resolution: (1920.0, 1080.0).into(),
+                title: "Noterender - Control".into(),
+                resolution: WindowResolution::new(1280.0, 800.0),
+                position: WindowPosition::Centered(MonitorSelection::Index(0)),
                 ..default()
             }),
             ..default()
@@ -51,9 +57,9 @@ fn run_graphical() {
         .insert_resource(ClearColor(Color::srgb(0.02, 0.02, 0.04)))
         .insert_resource(Config::default())
         .init_resource::<CurrentTemplate>()
-        .add_systems(Startup, setup_camera)
+        .add_systems(Startup, setup_windows)
         .add_systems(Startup, init_default_template)
-        .add_systems(Update, template_switch_system)
+        .add_systems(Update, (template_switch_system, fullscreen_toggle_system))
         .run();
 }
 
@@ -71,7 +77,7 @@ fn run_headless() {
         .insert_resource(ClearColor(Color::srgb(0.02, 0.02, 0.04)))
         .insert_resource(Config::default())
         .init_resource::<CurrentTemplate>()
-        .add_systems(Startup, setup_camera)
+        .add_systems(Startup, setup_windows_headless)
         .add_systems(Startup, init_default_template)
         .add_systems(Update, template_switch_system)
         .run();
@@ -150,12 +156,114 @@ fn try_connect_wayland(display: &std::ffi::OsStr) -> bool {
 #[derive(Resource, Default)]
 struct CurrentTemplate(String);
 
-fn setup_camera(mut commands: Commands) {
+fn setup_windows(
+    mut commands: Commands,
+    monitors: Query<(Entity, &Monitor)>,
+    primary_window: Query<Entity, With<PrimaryWindow>>,
+) {
+    let control_window = primary_window.single();
+
+    let mut monitor_list = MonitorList::default();
+    for (i, (entity, monitor)) in monitors.iter().enumerate() {
+        let name = monitor.name.clone().unwrap_or_else(|| format!("Monitor {}", i));
+        monitor_list.monitors.push(MonitorInfo {
+            entity,
+            name,
+            width: monitor.physical_width,
+            height: monitor.physical_height,
+            index: i,
+        });
+    }
+    let monitor_count = monitor_list.monitors.len();
+    let second_monitor_index = if monitor_count > 1 {
+        Some(monitor_list.monitors[1].index)
+    } else {
+        None
+    };
+    commands.insert_resource(monitor_list);
+
+    let visualizer_window = if let Some(idx) = second_monitor_index {
+        commands
+            .spawn(Window {
+                title: "Noterender - Visualizer".into(),
+                mode: WindowMode::BorderlessFullscreen(MonitorSelection::Index(idx)),
+                position: WindowPosition::Centered(MonitorSelection::Index(idx)),
+                ..default()
+            })
+            .id()
+    } else {
+        commands
+            .spawn(Window {
+                title: "Noterender - Visualizer".into(),
+                resolution: WindowResolution::new(1280.0, 720.0),
+                position: WindowPosition::Automatic,
+                ..default()
+            })
+            .id()
+    };
+
     commands.spawn((
         Camera3d::default(),
+        Camera {
+            target: RenderTarget::Window(WindowRef::Entity(visualizer_window)),
+            ..default()
+        },
         Transform::from_xyz(0.0, 200.0, 400.0).looking_at(Vec3::ZERO, Vec3::Y),
         MainCameraMarker,
     ));
+
+    commands.insert_resource(WindowEntities {
+        control: control_window,
+        visualizer: visualizer_window,
+    });
+}
+
+fn setup_windows_headless(mut commands: Commands) {
+    let control_window = commands
+        .spawn(Window {
+            title: "Noterender - Control".into(),
+            resolution: WindowResolution::new(1280.0, 800.0),
+            ..default()
+        })
+        .id();
+
+    let visualizer_window = commands
+        .spawn(Window {
+            title: "Noterender - Visualizer".into(),
+            resolution: WindowResolution::new(1280.0, 720.0),
+            ..default()
+        })
+        .id();
+
+    commands.spawn((
+        Camera3d::default(),
+        Camera {
+            target: RenderTarget::Window(WindowRef::Entity(visualizer_window)),
+            ..default()
+        },
+        Transform::from_xyz(0.0, 200.0, 400.0).looking_at(Vec3::ZERO, Vec3::Y),
+        MainCameraMarker,
+    ));
+
+    commands.insert_resource(WindowEntities {
+        control: control_window,
+        visualizer: visualizer_window,
+    });
+}
+
+fn fullscreen_toggle_system(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut windows: Query<&mut Window>,
+    window_entities: Res<WindowEntities>,
+) {
+    if keyboard.just_pressed(KeyCode::F11) {
+        if let Ok(mut window) = windows.get_mut(window_entities.visualizer) {
+            window.mode = match window.mode {
+                WindowMode::Windowed => WindowMode::BorderlessFullscreen(MonitorSelection::Current),
+                _ => WindowMode::Windowed,
+            };
+        }
+    }
 }
 
 fn init_default_template(
