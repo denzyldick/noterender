@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::window::{MonitorSelection, WindowMode, WindowPosition};
 use crossbeam_channel::TryRecvError;
 
+use crate::network::Shoutout;
 use crate::recording::RecordingState;
 use crate::windows::{MonitorList, WindowEntities};
 
@@ -38,12 +39,47 @@ impl Default for AuthState {
     }
 }
 
+#[derive(Resource)]
+pub struct DjState {
+    pub pending_shoutouts: Vec<Shoutout>,
+    pub announcement_text: String,
+    pub announcement_visible: bool,
+    pub announcement_duration: f32,
+    pub poll_rx: Option<crossbeam_channel::Receiver<Result<Vec<Shoutout>, String>>>,
+    pub action_rx: Option<crossbeam_channel::Receiver<Result<(), String>>>,
+    pub last_poll: f64,
+}
+
+impl Default for DjState {
+    fn default() -> Self {
+        Self {
+            pending_shoutouts: Vec::new(),
+            announcement_text: String::new(),
+            announcement_visible: false,
+            announcement_duration: 5.0,
+            poll_rx: None,
+            action_rx: None,
+            last_poll: 0.0,
+        }
+    }
+}
+
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<AuthState>()
-            .add_systems(Update, (render_ui, poll_auth_response, render_auth_overlay));
+            .init_resource::<DjState>()
+            .add_systems(
+                Update,
+                (
+                    render_ui,
+                    poll_auth_response,
+                    render_auth_overlay,
+                    poll_dj_shoutouts,
+                    handle_dj_action,
+                ),
+            );
     }
 }
 
@@ -56,6 +92,8 @@ fn render_ui(
     monitor_list: Res<MonitorList>,
     mut windows: Query<&mut Window>,
     mut recording_state: ResMut<RecordingState>,
+    auth: Res<AuthState>,
+    mut dj: ResMut<DjState>,
 ) {
     use bevy_egui::egui::*;
 
@@ -130,6 +168,65 @@ fn render_ui(
         ui.separator();
         ui.label("Template Config");
         render_template_controls(ui, &mut config);
+
+        if auth.logged_in {
+            ui.separator();
+            ui.collapsing("DJ Panel", |ui| {
+                ui.label("Announcements");
+                ui.text_edit_singleline(&mut dj.announcement_text);
+                ui.add(Slider::new(&mut dj.announcement_duration, 1.0..=30.0).text("Duration (s)"));
+                if ui.button("Show Announcement").clicked() && !dj.announcement_text.is_empty() {
+                    dj.announcement_visible = true;
+                }
+                if ui.button("Hide Announcement").clicked() {
+                    dj.announcement_visible = false;
+                }
+
+                ui.separator();
+                ui.label(format!("Pending Shoutouts: {}", dj.pending_shoutouts.len()));
+
+                let to_approve: Vec<i64> = dj.pending_shoutouts.iter().filter_map(|s| {
+                    if ui.button(format!("Approve: {} - {}", s.name, s.message)).clicked() {
+                        Some(s.id)
+                    } else {
+                        None
+                    }
+                }).collect();
+
+                let to_reject: Vec<i64> = dj.pending_shoutouts.iter().filter_map(|s| {
+                    if ui.button(format!("Reject: {} - {}", s.name, s.message)).clicked() {
+                        Some(s.id)
+                    } else {
+                        None
+                    }
+                }).collect();
+
+                for id in to_approve {
+                    if let Some(token) = &config.auth_token {
+                        let (tx, rx) = crossbeam_channel::unbounded();
+                        dj.action_rx = Some(rx);
+                        let token = token.clone();
+                        std::thread::spawn(move || {
+                            let rt = tokio::runtime::Runtime::new().unwrap();
+                            let result = rt.block_on(crate::network::approve_shoutout(&token, id, "approved"));
+                            let _ = tx.send(result);
+                        });
+                    }
+                }
+                for id in to_reject {
+                    if let Some(token) = &config.auth_token {
+                        let (tx, rx) = crossbeam_channel::unbounded();
+                        dj.action_rx = Some(rx);
+                        let token = token.clone();
+                        std::thread::spawn(move || {
+                            let rt = tokio::runtime::Runtime::new().unwrap();
+                            let result = rt.block_on(crate::network::approve_shoutout(&token, id, "rejected"));
+                            let _ = tx.send(result);
+                        });
+                    }
+                }
+            });
+        }
     });
 
     SidePanel::right("effects_panel")
@@ -496,4 +593,53 @@ fn render_auth_overlay(
                     });
                 });
         });
+}
+
+fn poll_dj_shoutouts(time: Res<Time>, mut dj: ResMut<DjState>, config: Res<crate::config::Config>) {
+    if config.auth_token.is_none() {
+        return;
+    }
+
+    if let Some(rx) = &dj.poll_rx {
+        match rx.try_recv() {
+            Ok(Ok(shoutouts)) => {
+                dj.pending_shoutouts = shoutouts;
+                dj.poll_rx = None;
+            }
+            Ok(Err(_)) | Err(TryRecvError::Disconnected) => {
+                dj.poll_rx = None;
+            }
+            Err(TryRecvError::Empty) => {}
+        }
+    }
+
+    let now = time.elapsed_secs_f64();
+    if dj.poll_rx.is_none() && now - dj.last_poll > 5.0 {
+        dj.last_poll = now;
+        if let Some(token) = &config.auth_token {
+            let (tx, rx) = crossbeam_channel::unbounded();
+            dj.poll_rx = Some(rx);
+            let token = token.clone();
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                let result = rt.block_on(crate::network::fetch_pending_shoutouts(&token));
+                let _ = tx.send(result);
+            });
+        }
+    }
+}
+
+fn handle_dj_action(mut dj: ResMut<DjState>) {
+    if let Some(rx) = &dj.action_rx {
+        match rx.try_recv() {
+            Ok(Ok(())) | Err(TryRecvError::Disconnected) => {
+                dj.action_rx = None;
+                dj.last_poll = 0.0;
+            }
+            Ok(Err(_)) => {
+                dj.action_rx = None;
+            }
+            Err(TryRecvError::Empty) => {}
+        }
+    }
 }
