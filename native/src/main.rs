@@ -3,6 +3,7 @@ mod camera;
 mod components;
 mod config;
 mod effects;
+mod io;
 mod templates;
 mod ui;
 mod windows;
@@ -13,6 +14,7 @@ use bevy::window::{
     Monitor, MonitorSelection, PrimaryWindow, WindowMode, WindowPosition, WindowRef,
     WindowResolution,
 };
+use std::time::Duration;
 use std::env;
 use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
@@ -55,11 +57,11 @@ fn run_graphical() {
             ui::UiPlugin,
         ))
         .insert_resource(ClearColor(Color::srgb(0.02, 0.02, 0.04)))
-        .insert_resource(Config::default())
+        .insert_resource(io::load_config())
         .init_resource::<CurrentTemplate>()
         .add_systems(Startup, setup_windows)
         .add_systems(Startup, init_default_template)
-        .add_systems(Update, (template_switch_system, fullscreen_toggle_system))
+        .add_systems(Update, (template_switch_system, fullscreen_toggle_system, auto_save_config))
         .run();
 }
 
@@ -75,11 +77,11 @@ fn run_headless() {
             effects::EffectsPlugin,
         ))
         .insert_resource(ClearColor(Color::srgb(0.02, 0.02, 0.04)))
-        .insert_resource(Config::default())
+        .insert_resource(io::load_config())
         .init_resource::<CurrentTemplate>()
         .add_systems(Startup, setup_windows_headless)
         .add_systems(Startup, init_default_template)
-        .add_systems(Update, template_switch_system)
+        .add_systems(Update, (template_switch_system, auto_save_config))
         .run();
 }
 
@@ -327,4 +329,24 @@ fn template_switch_system(
     }
 
     current.0 = config.template.clone();
+}
+
+#[derive(Resource)]
+struct SaveTimer(Timer);
+
+impl Default for SaveTimer {
+    fn default() -> Self {
+        Self(Timer::new(Duration::from_secs(5), TimerMode::Repeating))
+    }
+}
+
+fn auto_save_config(
+    time: Res<Time>,
+    config: Res<Config>,
+    mut timer: Local<SaveTimer>,
+) {
+    timer.0.tick(time.delta());
+    if timer.0.just_finished() {
+        io::save_config(&config);
+    }
 }
