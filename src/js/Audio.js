@@ -70,6 +70,25 @@ class Audio {
   }
 
   async useSystemAudio() {
+    if (window.__TAURI__) {
+      const { invoke } = window.__TAURI__.core;
+      const { listen } = window.__TAURI__.event;
+      this.fft = new Uint8Array(256);
+      this.tauriNative = true;
+
+      await invoke("start_system_audio_capture");
+
+      this._unlisten = await listen("audio-fft", (event) => {
+        const floatData = event.payload;
+        for (let i = 0; i < 256 && i < floatData.length; i++) {
+          this.fft[i] = Math.round(floatData[i] * 255);
+        }
+      });
+
+      this.initialized = true;
+      return;
+    }
+
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     this.context = new AudioContextClass();
     this.analyzer = this.context.createAnalyser();
@@ -150,6 +169,17 @@ class Audio {
    * @returns {Promise<unknown>}
    */
   async stop(resolver) {
+    if (this.tauriNative && window.__TAURI__) {
+      const { invoke } = window.__TAURI__.core;
+      await invoke("stop_system_audio_capture");
+      if (this._unlisten) {
+        this._unlisten();
+        this._unlisten = null;
+      }
+      this.tauriNative = false;
+      this.initialized = false;
+      return new Promise(resolver || (() => {}));
+    }
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
       this.stream = null;
@@ -183,6 +213,9 @@ class Audio {
    * @returns {MediaStream|null}
    */
   getStream() {
+    if (this.tauriNative) {
+      return null;
+    }
     if (this.stream) {
       return this.stream;
     }
@@ -204,6 +237,9 @@ class Audio {
    * @returns {null}
    */
   getFtt() {
+    if (this.tauriNative) {
+      return this.fft;
+    }
     this.getFrequency();
     return this.fft;
   }
