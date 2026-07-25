@@ -66,6 +66,7 @@ export default {
   renderLiquid(fft, color) {
     if (!liquidMesh || !fft || !fft.length) return;
     const positions = liquidMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    if (!positions) return;
     for (let i = 0; i < positions.length; i += 3) {
         const xP = positions[i];
         const yP = positions[i+1];

@@ -50,6 +50,7 @@ const template = {
         facetMat.disableLighting = true;
         facetBase.material = facetMat;
         facetBase.isVisible = false;
+        facetBase.registerInstancedBuffer("color", 4);
 
         facets = [];
         const facetCount = 120;

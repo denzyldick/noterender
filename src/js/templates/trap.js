@@ -12,6 +12,8 @@ let blueSquare;
 let hyperSpace;
 let currentCamera;
 let currentTemplateConfig = {};
+const _primaryColor = new BABYLON.Color3();
+const _accentColor = new BABYLON.Color3();
 
 const template = {
     init(camera, renderer, nb, scene, width, height, depth, config) {

@@ -1,5 +1,0 @@
-User-agent: *
-Allow: /
-Allow: /blog
-
-Sitemap: https://noterender.com/sitemap.xml

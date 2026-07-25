@@ -206,41 +206,41 @@ export default new Vuex.Store({
         currentConfig: { leafCount: 1000 }
       },
       {
-        name: "flux",
+        name: "clouds",
         preview: "",
-        description: "Psychedelic plasma surface. Flowing, colorful, and hypnotic.",
+        description: "Fly through volumetric cloud layers. Atmospheric and dreamy.",
         price: "0",
         configuration: {},
         currentConfig: {}
       },
       {
-        name: "ember",
+        name: "aurora",
         preview: "",
-        description: "Classic 3D starfield. Stars fly toward you in a rush of color.",
+        description: "Northern lights ribbon curtains dancing across the sky.",
         price: "0",
         configuration: {},
         currentConfig: {}
       },
       {
-        name: "wire",
+        name: "cathedral",
         preview: "",
-        description: "Colored waveform lines scrolling in harmony. Pure retro wave.",
+        description: "Gothic architecture with a reactive rose window. Grand scale.",
         price: "0",
         configuration: {},
         currentConfig: {}
       },
       {
-        name: "kaleid",
+        name: "oscillate",
         preview: "",
-        description: "Circular spoke visualization. FFT-driven bars radiate from center.",
+        description: "3D waveform cage. Stand inside the music.",
         price: "0",
         configuration: {},
         currentConfig: {}
       },
       {
-        name: "static",
+        name: "reactor",
         preview: "",
-        description: "Wireframe water ripple grid. Bass drops send rings across the surface.",
+        description: "Sci-fi energy core with pulsing rings and beam trails.",
         price: "0",
         configuration: {},
         currentConfig: {}

@@ -1,7 +1,13 @@
 .DS_Store
 node_modules
 music
-native/target
+dist
+native
+
+# Tauri
+src-tauri/target
+src-tauri/gen
+
 # local env files
 .env.local
 .env.*.local

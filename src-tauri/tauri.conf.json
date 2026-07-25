@@ -1,0 +1,43 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicholasgasior/tauri-config-schema/tauri-v2/schema.json",
+  "productName": "Noterender",
+  "version": "0.1.0",
+  "identifier": "io.denzyl.noterender",
+  "build": {
+    "beforeDevCommand": "yarn serve",
+    "devUrl": "http://localhost:8080",
+    "beforeBuildCommand": "yarn build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Noterender",
+        "width": 1400,
+        "height": 900,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://noterender.denzyl.io http://localhost:*; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "linux": {
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-dev", "libgtk-3-dev", "libappindicator3-dev", "librsvg2-dev", "patchelf"]
+      }
+    }
+  }
+}
