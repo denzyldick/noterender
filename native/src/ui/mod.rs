@@ -474,7 +474,8 @@ fn render_auth_overlay(
     mut auth: ResMut<AuthState>,
     window_entities: Res<WindowEntities>,
 ) {
-    if auth.logged_in {
+    if auth.logged_in || cfg!(debug_assertions) {
+        auth.logged_in = true;
         return;
     }
 

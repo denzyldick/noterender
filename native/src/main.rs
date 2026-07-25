@@ -10,6 +10,7 @@ mod templates;
 mod ui;
 mod windows;
 
+use bevy::asset::AssetPlugin;
 use bevy::core_pipeline::bloom::Bloom;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::prelude::*;
@@ -39,7 +40,27 @@ fn main() {
     }
 }
 
+fn assets_path() -> String {
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .unwrap_or_default();
+
+    if exe_dir.join("assets").exists() {
+        return exe_dir.join("assets").to_str().unwrap_or("assets").to_string();
+    }
+
+    if let Ok(cwd) = std::env::current_dir() {
+        if cwd.join("assets").exists() {
+            return cwd.join("assets").to_str().unwrap_or("assets").to_string();
+        }
+    }
+
+    "assets".to_string()
+}
+
 fn run_graphical() {
+    let asset_path = assets_path();
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -48,6 +69,9 @@ fn run_graphical() {
                 position: WindowPosition::Centered(MonitorSelection::Index(0)),
                 ..default()
             }),
+            ..default()
+        }).set(AssetPlugin {
+            file_path: asset_path,
             ..default()
         }))
         .add_plugins(bevy_egui::EguiPlugin)
