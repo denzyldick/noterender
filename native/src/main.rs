@@ -21,7 +21,6 @@ use bevy::window::{
 };
 use std::time::Duration;
 use std::env;
-use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 
 use camera::MainCameraMarker;
@@ -119,6 +118,7 @@ enum RuntimeMode {
     Headless,
 }
 
+#[cfg(unix)]
 fn runtime_mode() -> RuntimeMode {
     if let Some(backend) = detected_unix_backend() {
         env::set_var("WINIT_UNIX_BACKEND", backend);
@@ -132,6 +132,7 @@ fn runtime_mode() -> RuntimeMode {
     }
 }
 
+#[cfg(unix)]
 fn detected_unix_backend() -> Option<&'static str> {
     if let Some(display) = env::var_os("DISPLAY") {
         if x11_socket_exists(&display) && try_connect_x11(&display) {
@@ -148,6 +149,7 @@ fn detected_unix_backend() -> Option<&'static str> {
     None
 }
 
+#[cfg(unix)]
 fn x11_socket_exists(display: &std::ffi::OsStr) -> bool {
     let display = display.to_string_lossy();
     let display_num = display.split('.').next().unwrap_or("");
@@ -157,6 +159,7 @@ fn x11_socket_exists(display: &std::ffi::OsStr) -> bool {
     path.exists()
 }
 
+#[cfg(unix)]
 fn wayland_socket_exists(display: &std::ffi::OsStr) -> bool {
     if let Some(runtime_dir) = env::var_os("XDG_RUNTIME_DIR") {
         let mut path = PathBuf::from(runtime_dir);
@@ -166,7 +169,9 @@ fn wayland_socket_exists(display: &std::ffi::OsStr) -> bool {
     false
 }
 
+#[cfg(unix)]
 fn try_connect_x11(display: &std::ffi::OsStr) -> bool {
+    use std::os::unix::net::UnixStream;
     let display = display.to_string_lossy();
     let display_num = display.split('.').next().unwrap_or("");
     let display_num = display_num.trim_start_matches(':');
@@ -175,13 +180,20 @@ fn try_connect_x11(display: &std::ffi::OsStr) -> bool {
     UnixStream::connect(path).is_ok()
 }
 
+#[cfg(unix)]
 fn try_connect_wayland(display: &std::ffi::OsStr) -> bool {
+    use std::os::unix::net::UnixStream;
     if let Some(runtime_dir) = env::var_os("XDG_RUNTIME_DIR") {
         let mut path = PathBuf::from(runtime_dir);
         path.push(display);
         return UnixStream::connect(path).is_ok();
     }
     false
+}
+
+#[cfg(not(unix))]
+fn runtime_mode() -> RuntimeMode {
+    RuntimeMode::Graphical
 }
 
 #[derive(Resource, Default)]
