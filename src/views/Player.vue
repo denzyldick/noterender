@@ -505,6 +505,26 @@
             <v-icon left size="18">mdi-broadcast</v-icon> 
             START LIVE
           </v-btn>
+          <template v-if="isTauri && monitors.length > 0">
+            <v-divider vertical class="mx-4 grey darken-3 my-4"></v-divider>
+            <v-select
+              v-model="selectedMonitorIndex"
+              :items="monitors.map((m, i) => ({ text: m.name || `Monitor ${i + 1}`, value: i }))"
+              dense
+              dark
+              outlined
+              hide-details
+              class="mt-0"
+              style="max-width: 180px"
+              prepend-inner-icon="mdi-monitor"
+            ></v-select>
+            <v-btn v-if="!visualizerOpen" icon color="green" class="ml-2" @click="openVisualizer" title="Open visualizer on selected monitor">
+              <v-icon>mdi-monitor-dashboard</v-icon>
+            </v-btn>
+            <v-btn v-else icon color="red" class="ml-2" @click="closeVisualizerWindow" title="Close visualizer">
+              <v-icon>mdi-close-circle</v-icon>
+            </v-btn>
+          </template>
           <v-divider vertical class="mx-6 grey darken-3 my-4"></v-divider>
           <div class="d-none d-sm-block mr-2" style="min-width: 120px">
             <div class="text-overline primary--text font-weight-black mb-n1" style="letter-spacing: 3px !important">ACTIVE</div>
@@ -609,6 +629,13 @@ import cathedral from "../js/templates/cathedral";
 import oscillate from "../js/templates/oscillate";
 import reactor from "../js/templates/reactor";
 
+let invoke;
+let listen;
+if (window.__TAURI__) {
+  invoke = window.__TAURI__.core.invoke;
+  listen = window.__TAURI__.event.listen;
+}
+
 export default {
   name: "Player",
   components: { Templates, TemplateConfig, PaywallModal },
@@ -680,7 +707,11 @@ export default {
         { key: 'c', desc: 'Toggle Camera Motion' },
         { key: 'Space', desc: 'Play / Pause' },
         { key: '?', desc: 'Show Shortcuts' }
-      ]
+      ],
+      isTauri: !!window.__TAURI__,
+      monitors: [],
+      selectedMonitorIndex: 0,
+      visualizerOpen: false,
     };
   },
   computed: {
@@ -759,6 +790,7 @@ export default {
           if (prev && prev.dispose) prev.dispose();
         }
         this.reCreate();
+        this.sendVisualizerUpdate();
       },
       immediate: false
     },
@@ -767,7 +799,7 @@ export default {
     storeTitle(val) { TEXT.update(val, this.storeSubtitle, !this.removeWatermark); },
     storeSubtitle(val) { TEXT.update(this.storeTitle, val, !this.removeWatermark); },
     removeWatermark(val) { TEXT.update(this.storeTitle, this.storeSubtitle, !val); },
-    activeEffects(val) { Effects.update(val); },
+    activeEffects(val) { Effects.update(val); this.sendVisualizerUpdate(); },
     selectedSize() { this.resizeCanvas(); },
     "sensitivity.fftSmoothing"(val) {
       if (this.audio) {
@@ -875,6 +907,11 @@ export default {
 
     async goLive() {
       this.paywallMode = 'live';
+
+      if (this.isTauri && this.monitors.length > 1) {
+        await this.openVisualizer();
+        return;
+      }
 
       if (this.audioSource === 'system' && !this.dontShowLiveDialog) {
         this.showLiveDialog = true;
@@ -1102,6 +1139,55 @@ export default {
         this.mouseTimer = setTimeout(() => {
           this.isMouseMoving = false;
         }, 3000);
+      }
+    },
+
+    async loadMonitors() {
+      if (!this.isTauri) return;
+      try {
+        this.monitors = await invoke("get_monitors");
+      } catch (e) {
+        console.error("Failed to get monitors:", e);
+      }
+    },
+
+    async openVisualizer() {
+      if (!this.isTauri) return;
+      try {
+        await invoke("spawn_visualizer", { monitorIndex: this.selectedMonitorIndex });
+        this.visualizerOpen = true;
+        this.sendVisualizerUpdate();
+      } catch (e) {
+        console.error("Failed to open visualizer:", e);
+      }
+    },
+
+    async closeVisualizerWindow() {
+      if (!this.isTauri) return;
+      try {
+        await invoke("close_visualizer");
+        this.visualizerOpen = false;
+      } catch (e) {
+        console.error("Failed to close visualizer:", e);
+      }
+    },
+
+    async sendVisualizerUpdate() {
+      if (!this.isTauri || !this.visualizerOpen) return;
+      try {
+        const { emit } = window.__TAURI__.event;
+        await emit("visualizer-update", {
+          template: this.template,
+          config: {
+            ...this.config,
+            title: this.config.title || "noterender",
+            subtitle: this.config.subtitle || "visualizer",
+            activeEffects: this.$store.state.activeEffects,
+            removeWatermark: this.$store.state.removeWatermark,
+          },
+        });
+      } catch (e) {
+        console.error("Failed to send visualizer update:", e);
       }
     },
 
@@ -1474,6 +1560,10 @@ export default {
     const audioEl = document.getElementById("audio");
     if (audioEl) {
       audioEl.muted = true;
+    }
+
+    if (this.isTauri) {
+      this.loadMonitors();
     }
   },
 

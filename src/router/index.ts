@@ -37,6 +37,11 @@ const routes = [
     component: () => import("../views/Legal.vue"),
   },
   {
+    path: "/visualizer",
+    name: "visualizer",
+    component: () => import("../views/Visualizer.vue"),
+  },
+  {
     path: "*",
     redirect: "/",
   }
