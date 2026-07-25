@@ -1,14 +1,17 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::SampleFormat;
+use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use rustfft::{FftPlanner, num_complex::Complex};
 use serde::Serialize;
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 
 use crate::FftState;
 
 const FFT_SIZE: usize = 512;
 const SMOOTHING: f32 = 0.7;
+const PCM_CHUNK_SIZE: usize = 1024;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct AudioDeviceInfo {
@@ -25,8 +28,10 @@ struct StreamGuard {
 unsafe impl Send for StreamGuard {}
 unsafe impl Sync for StreamGuard {}
 
-static STREAM_GUARD: once_cell::sync::Lazy<Mutex<StreamGuard>> =
-    once_cell::sync::Lazy::new(|| Mutex::new(StreamGuard { stream: None }));
+static STREAM_GUARD: Lazy<Mutex<StreamGuard>> =
+    Lazy::new(|| Mutex::new(StreamGuard { stream: None }));
+
+static RECORDING_ACTIVE: Lazy<Arc<Mutex<bool>>> = Lazy::new(|| Arc::new(Mutex::new(false)));
 
 fn find_loopback_device(host: &cpal::Host) -> Option<cpal::Device> {
     for device in host.input_devices().ok()? {
@@ -126,7 +131,9 @@ pub async fn start_system_audio_capture(
     let channels = config.channels() as usize;
     let fft_buffer = fft_state.buffer.clone();
     let app_handle = app.clone();
+    let recording_flag = RECORDING_ACTIVE.clone();
     let mut sample_accumulator: Vec<f32> = Vec::with_capacity(FFT_SIZE);
+    let mut pcm_accumulator: Vec<f32> = Vec::with_capacity(PCM_CHUNK_SIZE);
     let mut smoothed = vec![0.0f32; FFT_SIZE / 2];
 
     let stream = match config.sample_format() {
@@ -139,8 +146,8 @@ pub async fn start_system_audio_capture(
                         .map(|frame| frame.iter().sum::<f32>() / channels as f32)
                         .collect();
 
+                    // FFT processing
                     sample_accumulator.extend_from_slice(&mono);
-
                     while sample_accumulator.len() >= FFT_SIZE {
                         let chunk: Vec<f32> = sample_accumulator.drain(..FFT_SIZE).collect();
                         let mut fft_output = vec![0.0f32; FFT_SIZE / 2];
@@ -159,6 +166,15 @@ pub async fn start_system_audio_capture(
 
                     let buf = fft_buffer.lock();
                     let _ = app_handle.emit("audio-fft", buf.clone());
+
+                    // PCM emission for recording
+                    if *recording_flag.lock() {
+                        pcm_accumulator.extend_from_slice(&mono);
+                        while pcm_accumulator.len() >= PCM_CHUNK_SIZE {
+                            let chunk: Vec<f32> = pcm_accumulator.drain(..PCM_CHUNK_SIZE).collect();
+                            let _ = app_handle.emit("audio-pcm", chunk);
+                        }
+                    }
                 },
                 |err| eprintln!("Audio capture error: {err}"),
                 None,
@@ -176,8 +192,8 @@ pub async fn start_system_audio_capture(
                         })
                         .collect();
 
+                    // FFT processing
                     sample_accumulator.extend_from_slice(&mono);
-
                     while sample_accumulator.len() >= FFT_SIZE {
                         let chunk: Vec<f32> = sample_accumulator.drain(..FFT_SIZE).collect();
                         let mut fft_output = vec![0.0f32; FFT_SIZE / 2];
@@ -196,6 +212,15 @@ pub async fn start_system_audio_capture(
 
                     let buf = fft_buffer.lock();
                     let _ = app_handle.emit("audio-fft", buf.clone());
+
+                    // PCM emission for recording
+                    if *recording_flag.lock() {
+                        pcm_accumulator.extend_from_slice(&mono);
+                        while pcm_accumulator.len() >= PCM_CHUNK_SIZE {
+                            let chunk: Vec<f32> = pcm_accumulator.drain(..PCM_CHUNK_SIZE).collect();
+                            let _ = app_handle.emit("audio-pcm", chunk);
+                        }
+                    }
                 },
                 |err| eprintln!("Audio capture error: {err}"),
                 None,
@@ -219,8 +244,15 @@ pub async fn start_system_audio_capture(
 
 #[tauri::command]
 pub async fn stop_system_audio_capture() -> Result<(), String> {
+    *RECORDING_ACTIVE.lock() = false;
     let mut guard = STREAM_GUARD.lock();
     guard.stream = None;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn set_recording_active(active: bool) -> Result<(), String> {
+    *RECORDING_ACTIVE.lock() = active;
     Ok(())
 }
 

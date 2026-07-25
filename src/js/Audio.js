@@ -155,6 +155,102 @@ class Audio {
   }
 
   /**
+   * Start capturing PCM samples from Tauri system audio for recording.
+   * Returns a MediaStream that can be passed to MediaRecorder.
+   */
+  async startRecordingCapture() {
+    if (!window.__TAURI__ || !this.tauriNative) return null;
+
+    const { invoke } = window.__TAURI__.core;
+    const { listen } = window.__TAURI__.event;
+
+    const ctx = new (window.AudioContext || window.webkitAudioContext)({
+      sampleRate: 44100,
+    });
+
+    const dest = ctx.createMediaStreamDestination();
+
+    const workletCode = `
+      class PCMProcessor extends AudioWorkletProcessor {
+        constructor() {
+          super();
+          this.buffer = new Float32Array(16384);
+          this.writePos = 0;
+          this.readPos = 0;
+          this.buffered = 0;
+          this.port.onmessage = (e) => {
+            const data = e.data;
+            for (let i = 0; i < data.length; i++) {
+              this.buffer[(this.writePos + i) & 16383] = data[i];
+            }
+            this.writePos = (this.writePos + data.length) & 16383;
+            this.buffered += data.length;
+          };
+        }
+
+        process(inputs, outputs) {
+          const output = outputs[0][0];
+          if (this.buffered < output.length) {
+            return true;
+          }
+          for (let i = 0; i < output.length; i++) {
+            output[i] = this.buffer[(this.readPos + i) & 16383];
+          }
+          this.readPos = (this.readPos + output.length) & 16383;
+          this.buffered -= output.length;
+
+          for (let ch = 1; ch < outputs[0].length; ch++) {
+            outputs[0][ch].set(output);
+          }
+          return true;
+        }
+      }
+      registerProcessor('pcm-processor', PCMProcessor);
+    `;
+
+    const blob = new Blob([workletCode], { type: 'application/javascript' });
+    const url = URL.createObjectURL(blob);
+    await ctx.audioWorklet.addModule(url);
+    URL.revokeObjectURL(url);
+
+    const worklet = new AudioWorkletNode(ctx, 'pcm-processor');
+    worklet.connect(dest);
+
+    this._recordingCtx = ctx;
+    this._recordingDest = dest;
+    this._recordingWorklet = worklet;
+
+    await invoke("set_recording_active", { active: true });
+
+    this._recordingUnlisten = await listen('audio-pcm', (event) => {
+      const samples = event.payload;
+      worklet.port.postMessage(new Float32Array(samples));
+    });
+
+    return dest.stream;
+  }
+
+  async stopRecordingCapture() {
+    if (window.__TAURI__ && window.__TAURI__.core) {
+      const { invoke } = window.__TAURI__.core;
+      await invoke("set_recording_active", { active: false });
+    }
+    if (this._recordingUnlisten) {
+      this._recordingUnlisten();
+      this._recordingUnlisten = null;
+    }
+    if (this._recordingWorklet) {
+      this._recordingWorklet.disconnect();
+      this._recordingWorklet = null;
+    }
+    if (this._recordingCtx) {
+      await this._recordingCtx.close();
+      this._recordingCtx = null;
+    }
+    this._recordingDest = null;
+  }
+
+  /**
    *
    * @param resolver
    * @returns {Promise<unknown>}
@@ -170,6 +266,7 @@ class Audio {
    */
   async stop(resolver) {
     if (this.tauriNative && window.__TAURI__) {
+      await this.stopRecordingCapture();
       const { invoke } = window.__TAURI__.core;
       await invoke("stop_system_audio_capture");
       if (this._unlisten) {
@@ -209,11 +306,14 @@ class Audio {
   }
 
   /**
-   * Get the audio stream.
+   * Get the audio stream for recording.
    * @returns {MediaStream|null}
    */
   getStream() {
     if (this.tauriNative) {
+      if (this._recordingDest) {
+        return this._recordingDest.stream;
+      }
       return null;
     }
     if (this.stream) {

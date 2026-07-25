@@ -30,6 +30,7 @@ pub fn run() {
             commands::audio::start_system_audio_capture,
             commands::audio::stop_system_audio_capture,
             commands::audio::get_current_fft,
+            commands::audio::set_recording_active,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

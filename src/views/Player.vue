@@ -1277,6 +1277,9 @@ export default {
           }
 
           if (record) {
+            if (this.audio.tauriNative && this.audioSource === 'system') {
+              await this.audio.startRecordingCapture();
+            }
             const stream = this.canvas.captureStream ? this.canvas.captureStream(30) : this.canvas.mozCaptureStream(30);
             Recording.start(stream, this.audio.getStream(), bitrate);
           }
