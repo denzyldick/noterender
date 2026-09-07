@@ -1,4 +1,7 @@
 import * as BABYLON from "babylonjs";
+import { asset } from "./assets";
+
+const SMOKE_TEXTURE = asset("/img/templates/Smoke30Frames.png");
 
 class EffectsManager {
     constructor() {
@@ -64,7 +67,7 @@ class EffectsManager {
 
     initSmoke() {
         const smokeSystem = new BABYLON.ParticleSystem("smoke", 1000, this.scene);
-        smokeSystem.particleTexture = new BABYLON.Texture("/img/templates/Smoke30Frames.png", this.scene);
+        smokeSystem.particleTexture = new BABYLON.Texture(SMOKE_TEXTURE, this.scene);
         smokeSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_STANDARD;
         smokeSystem.isAnimationSheetEnabled = true;
         smokeSystem.startSpriteCellID = 0;
@@ -174,7 +177,7 @@ class EffectsManager {
 
     initFireflies() {
         const ps = new BABYLON.ParticleSystem("fireflies", 200, this.scene);
-        ps.particleTexture = new BABYLON.Texture("/img/templates/Smoke30Frames.png", this.scene);
+        ps.particleTexture = new BABYLON.Texture(SMOKE_TEXTURE, this.scene);
         ps.emitter = new BABYLON.Vector3(0, 0, 0);
         ps.minEmitBox = new BABYLON.Vector3(-600, -300, -600);
         ps.maxEmitBox = new BABYLON.Vector3(600, 300, 600);
@@ -285,7 +288,7 @@ class EffectsManager {
 
     initDust() {
         const ps = new BABYLON.ParticleSystem("dust", 1000, this.scene);
-        ps.particleTexture = new BABYLON.Texture("/img/templates/Smoke30Frames.png", this.scene);
+        ps.particleTexture = new BABYLON.Texture(SMOKE_TEXTURE, this.scene);
         ps.minEmitBox = new BABYLON.Vector3(-1500, -1000, -1500);
         ps.maxEmitBox = new BABYLON.Vector3(1500, 1000, 1500);
         ps.minSize = 1; ps.maxSize = 3;

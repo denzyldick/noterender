@@ -2,7 +2,7 @@
   <v-app dark class="dj-app">
     <v-container class="pa-4" style="max-width: 500px">
       <div class="text-center mb-4">
-        <img src="/img/logo.png" width="48" alt="Noterender" />
+        <img :src="asset('/img/logo.png')" width="48" alt="Noterender" />
         <div class="text-h6 font-weight-black primary--text mt-2">DJ REMOTE</div>
         <div class="text-caption grey--text">Moderate shoutouts & control the show</div>
       </div>
@@ -67,6 +67,8 @@
 </template>
 
 <script lang="ts">
+import { asset } from "../js/assets";
+
 export default {
   name: "DJPanel",
   data() {
@@ -83,6 +85,7 @@ export default {
     baseUrl() { return window.location.origin; },
   },
   methods: {
+    asset,
     async loadPending() {
       if (!this.user) return;
       try {

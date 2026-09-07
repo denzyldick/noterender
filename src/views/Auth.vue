@@ -5,7 +5,7 @@
         <v-col cols="12" sm="8" md="5" lg="4">
           <v-card class="pa-8 rounded-xl" color="rgba(15,15,15,0.95)" style="backdrop-filter:blur(25px);border:1px solid rgba(255,255,255,0.1)">
             <div class="text-center mb-6">
-              <img src="/img/logo.png" width="64" alt="Noterender" />
+              <img :src="asset('/img/logo.png')" width="64" alt="Noterender" />
               <div class="text-h5 font-weight-black primary--text mt-3 letter-spacing-2">{{ isLogin ? 'WELCOME BACK' : 'CREATE ACCOUNT' }}</div>
               <div class="text-caption grey--text mt-1">{{ isLogin ? 'Sign in to your club account' : 'Start your club visualizer setup' }}</div>
             </div>
@@ -40,6 +40,8 @@
 </template>
 
 <script lang="ts">
+import { asset } from "../js/assets";
+
 export default {
   name: "Auth",
   data() {
@@ -52,6 +54,7 @@ export default {
     };
   },
   methods: {
+    asset,
     async submit() {
       this.error = "";
       if (!this.email || !this.password) { this.error = "Fill in all fields"; return; }

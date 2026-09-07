@@ -1,0 +1,16 @@
+{
+  "name": "noterender-rtmp-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WebSocket → ffmpeg → RTMP relay for Noterender TikTok Live streaming",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

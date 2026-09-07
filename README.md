@@ -1,13 +1,36 @@
 # Noterender
 
-This is the code for the visualizer I made. The visualizer is running on [https://noterender.denzyl.io](https://noterender.denzyl.io).
+Real-time, audio-reactive 3D music visualizer ([Babylon.js](https://www.babylonjs.com/)) with Studio and Live modes, plus built-in TikTok Live streaming.
+
+- **Web app:** [https://denzyldick.github.io/noterender/](https://denzyldick.github.io/noterender/) (GitHub Pages)
+- **Backend API:** `https://api.noterender.denzyl.io` (Oracle Always-Free VPS, Symfony + FrankenPHP)
+- **Main site:** [https://noterender.denzyl.io](https://noterender.denzyl.io)
 
 ![example](https://github.com/denzyldick/noterender/blob/main/example.gif)
+
+---
+
+## Architecture
+
+```
+┌──────────────────────┐    /api/*     ┌───────────────────────────────┐
+│ Browser (Vue app)    │─────────────►│ api.noterender.denzyl.io      │
+│ Babylon.js visuals   │              │  Symfony + FrankenPHP + SQLite │
+│                      │              │  (Oracle Always-Free VPS)     │
+│  TikTok Live mode:   │   WS chunks  │                               │
+│  MediaRecorder ──────┼─────────────►│ rtmp-relay (Node)             │
+│  (canvas + audio)    │              │  -> ffmpeg -> RTMP ───────────► TikTok Live
+└──────────────────────┘              └───────────────────────────────┘
+```
+
+- Frontend is a **static build** deployed to GitHub Pages (hash routing, `/#/`).
+- The API and the RTMP relay run in Docker on the VPS / your machine.
+- The RTMP relay can't be replaced by a pure browser call (browsers can't push RTMP), so it lives next to the app and pipes WebSocket chunks into `ffmpeg`.
 
 ## Project setup
 
 ```
-yarn install
+yarn install --ignore-engines
 ```
 
 ### Compiles and hot-reloads for development
@@ -22,7 +45,68 @@ yarn serve
 yarn build
 ```
 
-### How to
+## Deploy the frontend to GitHub Pages
+
+The production build uses `publicPath: /noterender/` and hash routing, so it can live under a sub-path on a static host.
+
+**Locally (one-off):**
+
+```
+yarn build && yarn gh-pages -d dist
+```
+
+**Automatically:** push to `main` — `.github/workflows/pages.yml` builds and publishes `dist` to the `gh-pages` branch. In the repo settings enable GitHub Pages → Source: **Deploy from a branch → `gh-pages`**.
+
+> The app calls the API at `VUE_APP_API_URL` (`src/store/index.ts`). In production this points at the backend — GH Pages only hosts the static UI. After payment/checkout, Stripe redirects back to the requesting origin automatically.
+
+## TikTok Live streaming
+
+1. Open the app, go to **Live mode → TikTok Live**, and switch on "Stream to TikTok Live".
+2. In the TikTok app: profile → **LIVE → tools → Stream Key**. Paste the **Server URL** and **Stream Key** into the app (they persist locally).
+3. Start the relay once (the machine that streams — usually your laptop or the VPS):
+
+   ```
+   cd rtmp-relay && yarn install && yarn start
+   # optional: RELAY_HOST=0.0.0.0 RELAY_PORT=8090 yarn start
+   ```
+
+   It listens on `ws://localhost:8090` and needs `ffmpeg` on `PATH`.
+4. Click **START LIVE SESSION**. The browser captures the canvas + audio as MPEG-TS chunks, streams them to the relay, and `ffmpeg` pushes them to TikTok via RTMP. A red **LIVE** badge appears in the header while streaming.
+5. Watch your stream in the TikTok LIVE dashboard. Stop everything with the play/stop button in the HUD.
+
+> **Mixed content note:** GH Pages is HTTPS, so the frontend at `denzyldick.github.io` cannot reach `ws://localhost` (an insecure WebSocket is blocked from a secure page). For streaming, run the app locally (`yarn serve` → `http://localhost:8080`), which talks to the relay fine. The published GH Pages copy is for others to browse/preview. When you later stream from the VPS, run the relay there (`RELAY_HOST=0.0.0.0`) and set the relay URL in the app to `wss://…`.
+
+## Backend (Symfony API) on the VPS
+
+The production API is the Symfony app in `api/` (FrankenPHP, SQLite), not the `api-server.php` dev fallback.
+
+1. Provision an Oracle Cloud **Always-Free "Ampere A1"** instance (Ubuntu 22.04, ARM). Open ports **80, 443, 22** in the security list.
+2. Install Docker + compose plugin, clone the repo.
+3. Create `api/env.local.file` (gitignored) with secrets. **Never** put secrets in `api/.env` (it is tracked by git):
+
+   ```dotenv
+   STRIPE_SECRET_KEY=sk_test_...
+   CORS_ALLOW_ORIGIN='^https?://(localhost|127\.0\.0\.1|noterender\.denzyl\.io|api\.noterender\.denzyl\.io|denzyldick\.github\.io)(:[0-9]+)?$'
+   ```
+
+4. Copy your existing database to `api/data/data.db` so accounts/projects/shoutouts survive.
+5. Point DNS `api` → the VPS IP, then:
+
+   ```
+   cd api && docker compose up -d --build
+   ```
+
+   FrankenPHP auto-provisions the Let's Encrypt certificate for `api.noterender.denzyl.io` (exposes `:80` + `:443`).
+6. Test: `curl https://api.noterender.denzyl.io/api/waitlist -X POST -H 'Content-Type: application/json' -d '{"email":"a@b.c"}'`
+
+### Stripe
+
+- Test keys: `sk_test_…` in `api/env.local.file` → restart the API. `CheckoutController` reads `STRIPE_SECRET_KEY`.
+- The frontend can fall back to the lightweight JSON-storage dev server (`api-server.php`) via the root `docker-compose.yml` — that one has **no Stripe/auth** and is only for local prototyping.
+
+---
+
+## How to create a template
 
 The 3D rendering works with [babylonjs](https://www.babylonjs.com/). If you do not know how to work with
 babylonjs I will recommend you to read their documentation. In the code below you can see a working example of the

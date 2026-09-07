@@ -71,7 +71,7 @@ export default {
           preserveDrawingBuffer: true,
           stencil: true,
           antialias: true,
-          adaptToDeviceRatio: true,
+          adaptToDeviceRatio: false,
         });
       } catch (e) {
         console.error("Engine creation failed:", e);
@@ -153,14 +153,15 @@ export default {
       });
     });
 
-    window.__TAURI__?.event?.listen("visualizer-update", (event) => {
-      const { template, config } = event.payload;
-      if (template) {
-        this.initScene(template, config || this.currentConfig);
-      } else if (config) {
-        this.currentConfig = config;
-      }
-    });
+    if (window.electronAPI) {
+      window.electronAPI.onVisualizerUpdate(({ templateName, config }) => {
+        if (templateName) {
+          this.initScene(templateName, config || this.currentConfig);
+        } else if (config) {
+          this.currentConfig = config;
+        }
+      });
+    }
   },
   beforeDestroy() {
     if (this.engine) {

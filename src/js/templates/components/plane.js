@@ -1,4 +1,5 @@
 import * as BABYLON from "babylonjs";
+import { asset } from "../../assets";
 
 let baseWidth = 200;
 let baseHeight = 200;
@@ -100,7 +101,7 @@ export default {
     const materialPlane = new BABYLON.StandardMaterial("logoMaterial", scene);
     
     // Disable mipmaps and use BILINEAR for a crisper look on 2D assets
-    const texture = new BABYLON.Texture(config.emblem || "/img/logo.png", scene, true, true, BABYLON.Texture.BILINEAR_SAMPLINGMODE);
+    const texture = new BABYLON.Texture(config.emblem || asset("/img/logo.png"), scene, true, true, BABYLON.Texture.BILINEAR_SAMPLINGMODE);
     texture.hasAlpha = true;
     texture.anisotropicFilteringLevel = 16;
     

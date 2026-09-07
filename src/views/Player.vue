@@ -20,7 +20,7 @@
         <!-- Brand Section -->
         <div class="pa-8 text-center flex-shrink-0">
           <div class="logo-wrapper mb-3 pa-4 rounded-xl d-inline-block">
-            <img src="/img/logo.png" width="80" alt="Noterender logo" />
+            <img :src="asset('/img/logo.png')" width="80" alt="Noterender logo" />
           </div>
           <div class="text-caption grey--text text--lighten-2 font-weight-black letter-spacing-2">NOTERENDER V2.4</div>
         </div>
@@ -181,6 +181,32 @@
                   </v-alert>
 
                   <v-switch v-model="removeWatermarkCheckbox" label="Clean Performance (No Branding)" color="primary" dense class="mb-4" @click.native="paywallMode = 'live'"></v-switch>
+
+                  <v-divider class="my-2 opacity-10"></v-divider>
+
+                  <div class="text-overline mt-4 mb-2 primary--text">TikTok Live</div>
+
+                  <v-switch v-model="tiktokEnabled" label="Stream to TikTok Live" color="error" dense class="mb-2"></v-switch>
+
+                  <template v-if="tiktokEnabled">
+                    <v-text-field v-model="tiktokRtmpUrl" label="TikTok RTMP URL (Server URL)" outlined dense hide-details class="mb-3" prepend-inner-icon="mdi-radio-tower" @blur="saveTikTokSettings" placeholder="rtmps://xxxx.ts.tiktoklive.com:443/live"></v-text-field>
+                    <v-text-field v-model="tiktokStreamKey" label="TikTok Stream Key" outlined dense hide-details class="mb-3" prepend-inner-icon="mdi-key-variant" @blur="saveTikTokSettings" type="password"></v-text-field>
+                    <v-text-field v-model="tiktokRelayUrl" label="Relay Server" outlined dense hide-details class="mb-3" prepend-inner-icon="mdi-server-network" @blur="saveTikTokSettings" placeholder="ws://localhost:8090"></v-text-field>
+
+                    <v-alert dense text type="info" class="mb-4 text-caption">
+                      <strong>Get keys:</strong> Open TikTok &rarr; your profile &rarr; LIVE &rarr; tools &rarr; "Stream Key", then paste Server URL + Stream Key above. The stream is relayed through ffmpeg — start it once with <code>node rtmp-relay/server.js</code>.
+                    </v-alert>
+
+                    <v-alert
+                      v-if="streamState"
+                      dense
+                      text
+                      class="mb-4 text-caption"
+                      :type="streamState === 'error' ? 'error' : (streamState === 'live' ? 'success' : 'info')"
+                    >
+                      {{ streamState === 'live' ? 'Live on TikTok' : streamMessage }}
+                    </v-alert>
+                  </template>
 
                   <v-btn block color="error" x-large @click="goLive" class="rounded-lg font-weight-bold">
                     <v-icon left>mdi-broadcast</v-icon>
@@ -493,6 +519,14 @@
               <v-icon size="40">{{ playing ? 'mdi-stop-circle' : 'mdi-play-circle-outline' }}</v-icon>
             </v-btn>
           </div>
+          <v-chip v-if="streamState === 'live'" color="error" dark class="ml-3 pulse-red font-weight-bold">
+            <v-icon left size="16">mdi-access-point</v-icon>
+            LIVE
+          </v-chip>
+          <v-chip v-else-if="streamState" :color="streamState === 'error' ? 'grey' : 'amber'" dark class="ml-3">
+            <v-icon left size="16">{{ streamState === 'error' ? 'mdi-alert' : 'mdi-access-point' }}</v-icon>
+            {{ streamState === 'error' ? 'STREAM ERROR' : 'CONNECTING' }}
+          </v-chip>
           <v-btn-toggle v-model="appMode" mandatory background-color="transparent" color="primary" dense class="ml-4 border-thin rounded-pill px-2">
             <v-btn value="studio" small text class="rounded-pill px-4">Studio</v-btn>
             <v-btn value="live" small text class="rounded-pill px-4">Live</v-btn>
@@ -505,7 +539,7 @@
             <v-icon left size="18">mdi-broadcast</v-icon> 
             START LIVE
           </v-btn>
-          <template v-if="isTauri && monitors.length > 0">
+          <template v-if="isDesktop && monitors.length > 0">
             <v-divider vertical class="mx-4 grey darken-3 my-4"></v-divider>
             <v-select
               v-model="selectedMonitorIndex"
@@ -610,6 +644,8 @@ import PaywallModal from "@/components/PaywallModal.vue";
 import TEXT from "@/js/templates/components/text";
 import Effects from "@/js/Effects";
 import CAMERA from "@/js/templates/components/camera";
+import Streaming from "@/js/Streaming";
+import { asset } from "@/js/assets";
 
 // Visualizer Engines
 import city from "../js/templates/city";
@@ -628,13 +664,6 @@ import aurora from "../js/templates/aurora";
 import cathedral from "../js/templates/cathedral";
 import oscillate from "../js/templates/oscillate";
 import reactor from "../js/templates/reactor";
-
-let invoke;
-let listen;
-if (window.__TAURI__) {
-  invoke = window.__TAURI__.core.invoke;
-  listen = window.__TAURI__.event.listen;
-}
 
 export default {
   name: "Player",
@@ -669,6 +698,12 @@ export default {
       isMouseMoving: true,
       appMode: "studio",
       paywallMode: "export",
+      tiktokEnabled: localStorage.getItem("noterender_tiktok_enabled") === "true",
+      tiktokRtmpUrl: localStorage.getItem("noterender_tiktok_rtmp") || "",
+      tiktokStreamKey: localStorage.getItem("noterender_tiktok_key") || "",
+      tiktokRelayUrl: localStorage.getItem("noterender_tiktok_relay") || "ws://localhost:8090",
+      streamState: "",
+      streamMessage: "",
       audioDevices: [],
       selectedDeviceId: "",
       showAudioSetupGuide: false,
@@ -708,7 +743,7 @@ export default {
         { key: 'Space', desc: 'Play / Pause' },
         { key: '?', desc: 'Show Shortcuts' }
       ],
-      isTauri: !!window.__TAURI__,
+      isDesktop: !!window.electronAPI,
       monitors: [],
       selectedMonitorIndex: 0,
       visualizerOpen: false,
@@ -775,6 +810,21 @@ export default {
     },
   },
   watch: {
+    tiktokEnabled(val) {
+      localStorage.setItem("noterender_tiktok_enabled", String(val));
+      if (val) {
+        if (this.playing && this.tiktokRtmpUrl && this.tiktokStreamKey) {
+          this.reCreate();
+          this.startVisualizer(false);
+        }
+      } else {
+        if (Streaming.isActive) {
+          Streaming.stop();
+          this.streamState = "";
+          this.streamMessage = "";
+        }
+      }
+    },
     drawer(val) {
       if (!val) {
         this.resetMouseTimer();
@@ -841,6 +891,7 @@ export default {
     }
   },
   methods: {
+    asset,
     updateTitle(val) { this.$store.dispatch("changeTitle", val); },
     updateSubtitle(val) { this.$store.dispatch("changeSubtitle", val); },
     soundSelected(file) { if (file) this.$store.dispatch("setSound", file); },
@@ -908,7 +959,7 @@ export default {
     async goLive() {
       this.paywallMode = 'live';
 
-      if (this.isTauri && this.monitors.length > 1) {
+      if (this.isDesktop && this.monitors.length > 1) {
         await this.openVisualizer();
         return;
       }
@@ -1143,29 +1194,36 @@ export default {
     },
 
     async loadMonitors() {
-      if (!this.isTauri) return;
+      if (!this.isDesktop) return;
       try {
-        this.monitors = await invoke("get_monitors");
+        this.monitors = await window.electronAPI.getMonitors();
       } catch (e) {
         console.error("Failed to get monitors:", e);
       }
     },
 
     async openVisualizer() {
-      if (!this.isTauri) return;
+      if (!this.isDesktop) return;
       try {
-        await invoke("spawn_visualizer", { monitorIndex: this.selectedMonitorIndex });
+        await window.electronAPI.spawnVisualizer({
+          monitorId: this.monitors[this.selectedMonitorIndex]?.id,
+          templateName: this.template,
+          config: {
+            ...this.config,
+            activeEffects: this.$store.state.activeEffects,
+            removeWatermark: this.$store.state.removeWatermark,
+          },
+        });
         this.visualizerOpen = true;
-        this.sendVisualizerUpdate();
       } catch (e) {
         console.error("Failed to open visualizer:", e);
       }
     },
 
     async closeVisualizerWindow() {
-      if (!this.isTauri) return;
+      if (!this.isDesktop) return;
       try {
-        await invoke("close_visualizer");
+        await window.electronAPI.closeVisualizer();
         this.visualizerOpen = false;
       } catch (e) {
         console.error("Failed to close visualizer:", e);
@@ -1173,22 +1231,8 @@ export default {
     },
 
     async sendVisualizerUpdate() {
-      if (!this.isTauri || !this.visualizerOpen) return;
-      try {
-        const { emit } = window.__TAURI__.event;
-        await emit("visualizer-update", {
-          template: this.template,
-          config: {
-            ...this.config,
-            title: this.config.title || "noterender",
-            subtitle: this.config.subtitle || "visualizer",
-            activeEffects: this.$store.state.activeEffects,
-            removeWatermark: this.$store.state.removeWatermark,
-          },
-        });
-      } catch (e) {
-        console.error("Failed to send visualizer update:", e);
-      }
+      if (!this.isDesktop || !this.visualizerOpen) return;
+      await this.openVisualizer();
     },
 
     handleMouseMove() {
@@ -1245,6 +1289,11 @@ export default {
 
     stopVisualizer() {
       this.playing = false;
+      if (Streaming.isActive) {
+        Streaming.stop();
+        this.streamState = "";
+        this.streamMessage = "";
+      }
       if (this.audio) {
         this.audio.stop(() => {
           if (this.scene) this.scene.dispose();
@@ -1254,6 +1303,44 @@ export default {
             this.isExporting = false;
           }
         });
+      }
+    },
+
+    saveTikTokSettings() {
+      localStorage.setItem("noterender_tiktok_rtmp", this.tiktokRtmpUrl.trim());
+      localStorage.setItem("noterender_tiktok_key", this.tiktokStreamKey.trim());
+      localStorage.setItem("noterender_tiktok_relay", this.tiktokRelayUrl.trim());
+    },
+
+    handleStreamStatus(state, message) {
+      this.streamState = state;
+      this.streamMessage = message;
+    },
+
+    buildRtmpUrl() {
+      if (!this.tiktokRtmpUrl || !this.tiktokStreamKey) return "";
+      const serverUrl = this.tiktokRtmpUrl.trim().replace(/\/+$/, "");
+      const key = this.tiktokStreamKey.trim();
+      return `${serverUrl}/${key}`;
+    },
+
+    async startTikTokStream(bitrate) {
+      if (!this.tiktokEnabled || !this.tiktokRtmpUrl || !this.tiktokStreamKey) return;
+      const rtmpUrl = this.buildRtmpUrl();
+      if (!rtmpUrl) return;
+      try {
+        const vstream = this.canvas.captureStream ? this.canvas.captureStream(30) : this.canvas.mozCaptureStream(30);
+        await Streaming.start(vstream, this.audio.getStream(), {
+          rtmpUrl,
+          relayUrl: this.tiktokRelayUrl,
+          bitrate,
+          onStatus: this.handleStreamStatus,
+        });
+        this.streamState = "connecting";
+      } catch (e) {
+        console.warn("TikTok streaming failed to start:", e);
+        this.streamState = "error";
+        this.streamMessage = e.message || "Streaming failed — is the relay running?";
       }
     },
 
@@ -1277,11 +1364,10 @@ export default {
           }
 
           if (record) {
-            if (this.audio.tauriNative && this.audioSource === 'system') {
-              await this.audio.startRecordingCapture();
-            }
             const stream = this.canvas.captureStream ? this.canvas.captureStream(30) : this.canvas.mozCaptureStream(30);
             Recording.start(stream, this.audio.getStream(), bitrate);
+          } else {
+            await this.startTikTokStream(bitrate);
           }
         } catch (e) {
           console.warn("Visualizer start audio error:", e);
@@ -1392,14 +1478,13 @@ export default {
         preserveDrawingBuffer: true, 
         stencil: true, 
         antialias: true,
-        adaptToDeviceRatio: true 
+        adaptToDeviceRatio: false
       });
       this.setupEngine();
     },
 
     async setupEngine() {
       console.log("Setting up engine...");
-      // CRISPY FIX: Set hardware scaling to match physical pixels
       const devicePixelRatio = window.devicePixelRatio || 1;
       this.engine.setHardwareScalingLevel(1 / devicePixelRatio);
       
@@ -1565,7 +1650,7 @@ export default {
       audioEl.muted = true;
     }
 
-    if (this.isTauri) {
+    if (this.isDesktop) {
       this.loadMonitors();
     }
   },

@@ -52,6 +52,8 @@
 </template>
 
 <script>
+import { asset } from "../js/assets";
+
 export default {
   name: "Blog",
   data() {
@@ -62,7 +64,7 @@ export default {
           title: "How to Create DJ Visuals for Live Club Sets",
           slug: "live-dj-visuals-guide",
           excerpt: "Learn how to use system audio capture to create immersive, reactive visuals for your next gig.",
-          image: "/img/templates/Smoke30Frames.png",
+          image: asset("/img/templates/Smoke30Frames.png"),
           content: `
             <p>In today's club scene, audio isn't enough. Venues are looking for an immersive experience that keeps the crowd engaged. If you're a DJ, having a custom visual set that reacts to your music can be the difference between a "good" set and a "legendary" one.</p>
             
@@ -80,7 +82,7 @@ export default {
           title: "Promoting Your Beats on TikTok: The Ultimate Guide",
           slug: "tiktok-music-promotion-tips",
           excerpt: "Static images are dead. Learn why high-quality 3D visualizers drive 5x more engagement.",
-          image: "/img/templates/Signature.png",
+          image: asset("/img/templates/Signature.png"),
           content: `
             <p>TikTok is the #1 platform for music discovery in 2026. But with millions of songs uploaded every day, how do you stand out? The answer is high-quality visual content.</p>
             
@@ -95,7 +97,7 @@ export default {
           title: "Understanding Audio Reactivity: Bass vs. Treble",
           slug: "audio-reactivity-explained",
           excerpt: "A deep dive into how FFT data translates into stunning 3D motion.",
-          image: "/img/templates/Smoke30Frames.png",
+          image: asset("/img/templates/Smoke30Frames.png"),
           content: `
             <p>Ever wondered how the visuals actually "know" what the music is doing? It all comes down to the Fast Fourier Transform (FFT).</p>
             

@@ -1,6 +1,7 @@
 import Vue from "vue";
 import Vuex from "vuex";
 import Socket from "../js/Socket.js";
+import { asset } from "../js/assets";
 
 Vue.use(Vuex);
 //Socket.start();
@@ -282,12 +283,12 @@ export default new Vuex.Store({
     ],
     selectedSize: "Auto",
     logoStyle: "None",
-    file: "/default_audio.mp3",
+    file: asset("/default_audio.mp3"),
     title: "Noterender",
     subtitle: "Elevate Your Sound",
     microphone: false,
     audioSource: "file",
-    emblem: "/img/logo.png",
+    emblem: asset("/img/logo.png"),
     colors: {
       r: 0,
       g: 229,
