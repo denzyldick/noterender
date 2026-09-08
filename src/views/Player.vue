@@ -570,7 +570,7 @@
 
     <audio style="display: none" id="audio" :src="soundFile" loop></audio>
 
-    <PaywallModal v-model="showPaywall" :mode="paywallMode" @trial-started="startLiveAfterTrial" />
+    <PaywallModal v-model="showPaywall" :mode="paywallMode" />
 
     <!-- Live Mode Explanation Dialog -->
     <v-dialog v-model="showLiveDialog" max-width="480" persistent>
@@ -688,7 +688,6 @@ export default {
         city, terrain, nebulacore, trap, solaris, infinity, tunnel, aether, monolith, prism, flora,
         clouds, aurora, cathedral, oscillate, reactor
       },
-      isPro: false,
       showPaywall: false,
       isExporting: false,
       isTransitioning: false,
@@ -765,27 +764,22 @@ export default {
     storeLight() { return this.$store.state.light; },
     cameraMove: { get() { return this.$store.state.options.camera.move; }, set(val) { this.$store.dispatch("toggleCamera", val); } },
     microphone: { get() { return this.$store.state.microphone; }, set(val) { this.$store.dispatch("toggleMicrophone", val); } },
-    livePro() { return this.$store.state.livePro; },
-    trialStartedAt() { return this.$store.state.trialStartedAt; },
+    livePro() { return this.$store.state.subscription.active; },
+    subscriptionActive() { return this.$store.state.subscription.active; },
+    isPro() { return this.$store.state.subscription.active; },
     highQuality: { get() { return this.$store.state.highQuality; }, set(val) { this.$store.dispatch("toggleHighQuality", val); } },
     removeWatermarkCheckbox: { 
       get() { return this.$store.state.removeWatermark; }, 
       set(val) { 
-        if(this.paywallMode === 'export' && !this.isPro) { 
+        if (!this.subscriptionActive) { 
           this.showPaywall = true; 
-        } else if(this.paywallMode === 'live' && !this.livePro) {
-          this.showPaywall = true;
         } else {
           this.$store.dispatch("toggleRemoveWatermark", val);
         }
       } 
     },
     removeWatermark() { 
-      if (this.appMode === 'studio') return this.isPro && this.$store.state.removeWatermark;
-      return (this.livePro || this.isTrialActive) && this.$store.state.removeWatermark;
-    },
-    isTrialActive() {
-      return this.trialStartedAt && (Date.now() - this.trialStartedAt < 7 * 24 * 60 * 60 * 1000);
+      return this.subscriptionActive && this.$store.state.removeWatermark;
     },
     activeEffects() { return this.$store.state.activeEffects; },
     sensitivity() { return this.$store.state.sensitivity; },
@@ -958,6 +952,10 @@ export default {
 
     async goLive() {
       this.paywallMode = 'live';
+      if (!this.subscriptionActive) {
+        this.showPaywall = true;
+        return;
+      }
 
       if (this.isDesktop && this.monitors.length > 1) {
         await this.openVisualizer();
@@ -982,7 +980,7 @@ export default {
       this.drawer = false;
       this.toggleFullscreen();
 
-      if (!this.livePro && !this.isTrialActive) {
+      if (!this.subscriptionActive) {
         this.$store.dispatch("toggleRemoveWatermark", false);
       }
 
@@ -1100,10 +1098,6 @@ export default {
 
     copyShoutoutUrl() {
       navigator.clipboard.writeText(this.shoutoutUrl).catch(() => {});
-    },
-
-    startLiveAfterTrial() {
-      this.goLive();
     },
 
     togglePlayLocal() {
@@ -1241,7 +1235,7 @@ export default {
 
     handleExport() {
       this.paywallMode = 'export';
-      if (!this.isPro) {
+      if (!this.subscriptionActive) {
         this.showPaywall = true;
         return;
       }
@@ -1325,6 +1319,7 @@ export default {
     },
 
     async startTikTokStream(bitrate) {
+      if (!this.subscriptionActive) { this.showPaywall = true; return; }
       if (!this.tiktokEnabled || !this.tiktokRtmpUrl || !this.tiktokStreamKey) return;
       const rtmpUrl = this.buildRtmpUrl();
       if (!rtmpUrl) return;
@@ -1590,26 +1585,26 @@ export default {
     }
   },
   mounted() {
-    // Check Trial from LocalStorage
-    const trialStart = localStorage.getItem('noterender_trial_start');
-    if (trialStart) {
-      const start = parseInt(trialStart);
-      this.$store.commit('setTrial', start);
-      // Check if expired
-      if (Date.now() - start < 7 * 24 * 60 * 60 * 1000) {
-        this.$store.commit('setLivePro', true);
-      } else {
-        this.$store.commit('setLivePro', false);
-      }
+    // Refresh subscription/auth state from server
+    if (this.isLoggedIn) {
+      this.$store.dispatch("fetchMe").then(() => {});
     }
 
-    // Check Pro Status from URL
+    // Check Stripe redirect: refresh subscription from /api/me once webhook has landed
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') === 'true') {
-      this.isPro = true;
-      this.$store.dispatch("toggleRemoveWatermark", true);
-      // Optional: Clear URL params to clean up
-      window.history.replaceState({}, document.title, window.location.pathname);
+      const retry = (attempt) => {
+        if (this.isLoggedIn) {
+          this.$store.dispatch("fetchMe").then((data) => {
+            if (!data.subscriptionActive && attempt < 10) {
+              setTimeout(() => retry(attempt + 1), 2000);
+            } else {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+          });
+        }
+      };
+      retry(0);
     }
 
     this.mountScene();

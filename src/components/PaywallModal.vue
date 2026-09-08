@@ -13,7 +13,7 @@
                 <v-icon color="primary" size="28">mdi-account-circle</v-icon>
               </v-avatar>
               <div class="text-h6 font-weight-black white--text letter-spacing-1">{{ isLogin ? 'WELCOME BACK' : 'CREATE ACCOUNT' }}</div>
-              <div class="text-caption grey--text mt-1">{{ isLogin ? 'Sign in to access premium features' : 'Register to unlock export & live tools' }}</div>
+              <div class="text-caption grey--text mt-1">{{ isLogin ? 'Sign in to access Noterender Pro' : 'Register to unlock all features' }}</div>
             </div>
 
             <v-alert v-if="authError" dense text type="error" class="mb-4">{{ authError }}</v-alert>
@@ -37,66 +37,48 @@
             </div>
           </div>
 
-          <!-- Step 2: Paywall -->
+          <!-- Step 2: Subscription -->
           <div v-else key="paywall">
             <div class="text-center mb-5">
               <v-avatar size="56" color="rgba(255,64,129,0.1)" class="mb-3">
                 <v-icon color="secondary" size="28">mdi-crown</v-icon>
               </v-avatar>
-              <div class="text-h6 font-weight-black white--text letter-spacing-1">
-                {{ mode === 'export' ? 'EXPORT VIDEO' : 'LIVE PERFORMANCE' }}
-              </div>
-              <div class="text-caption grey--text mt-1">Unlock this feature for your account</div>
+              <div class="text-h6 font-weight-black white--text letter-spacing-1">NOTERENDER PRO</div>
+              <div class="text-caption grey--text mt-1">One subscription unlocks everything</div>
             </div>
 
             <div class="mb-4 pa-4 rounded-lg" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06)">
-              <template v-if="mode === 'export'">
-                <div class="d-flex align-center mb-3">
-                  <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
-                  <span class="text-body-2">High-quality MP4 export (up to 8Mbps)</span>
-                </div>
-                <div class="d-flex align-center mb-3">
-                  <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
-                  <span class="text-body-2">No watermarks on exported videos</span>
-                </div>
-                <div class="d-flex align-center">
-                  <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
-                  <span class="text-body-2">Multiple aspect ratios & resolutions</span>
-                </div>
-              </template>
-              <template v-else>
-                <div class="d-flex align-center mb-3">
-                  <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
-                  <span class="text-body-2">System audio capture & fullscreen mode</span>
-                </div>
-                <div class="d-flex align-center mb-3">
-                  <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
-                  <span class="text-body-2">Auto-hiding UI for clean big-screen output</span>
-                </div>
-                <div class="d-flex align-center">
-                  <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
-                  <span class="text-body-2">Shoutout & announcement system</span>
-                </div>
-              </template>
+              <div class="d-flex align-center mb-3">
+                <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
+                <span class="text-body-2">High-quality MP4 export (up to 8Mbps)</span>
+              </div>
+              <div class="d-flex align-center mb-3">
+                <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
+                <span class="text-body-2">No watermarks on exported videos</span>
+              </div>
+              <div class="d-flex align-center mb-3">
+                <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
+                <span class="text-body-2">System audio, fullscreen & shoutouts</span>
+              </div>
+              <div class="d-flex align-center">
+                <v-icon color="success" size="20" class="mr-3">mdi-check-circle</v-icon>
+                <span class="text-body-2">All templates, effects & resolutions</span>
+              </div>
             </div>
 
-            <template v-if="mode === 'export'">
-              <v-btn block color="primary" x-large class="font-weight-bold rounded-lg elevation-4" style="height: 48px" @click="payNow('pro_export')" :loading="loadingPay">
-                <v-icon left size="20">mdi-export</v-icon>
-                Pay $0.99 — Export Now
-              </v-btn>
-            </template>
+            <v-btn block color="primary" x-large class="font-weight-bold rounded-lg elevation-4 mb-3" style="height: 48px" @click="subscribe('monthly')" :loading="loadingPay && selectedPlan === 'monthly'">
+              <v-icon left size="20">mdi-crown</v-icon>
+              $99 / month
+            </v-btn>
 
-            <template v-else>
-              <v-btn v-if="!hasUsedTrial" block color="success" x-large class="font-weight-bold rounded-lg elevation-4 mb-3" style="height: 48px" @click="startTrial">
-                <v-icon left size="20">mdi-flash</v-icon>
-                Start 7-Day Free Trial
-              </v-btn>
-              <v-btn block color="primary" x-large class="font-weight-bold rounded-lg elevation-4" style="height: 48px" @click="payNow('live_pass')" :loading="loadingPay">
-                <v-icon left size="20">mdi-crown</v-icon>
-                {{ hasUsedTrial ? 'Get Live Pass — $4.99/mo' : 'Buy Now — $4.99/mo' }}
-              </v-btn>
-            </template>
+            <v-btn block color="secondary" x-large class="font-weight-bold rounded-lg elevation-4" style="height: 48px" @click="subscribe('yearly')" :loading="loadingPay && selectedPlan === 'yearly'">
+              <v-icon left size="20">mdi-star-circle</v-icon>
+              $990 / year <span class="text-caption ml-2 opacity-70">(2 months free)</span>
+            </v-btn>
+
+            <div class="text-center mt-3">
+              <span class="text-caption grey--text">Cancel anytime. No trial.</span>
+            </div>
 
             <v-divider class="my-5" style="border-color: rgba(255,255,255,0.06)"></v-divider>
 
@@ -137,6 +119,7 @@ export default {
       authLoading: false,
       authError: "",
       loadingPay: false,
+      selectedPlan: '',
       loadingWaitlist: false,
       joined: false,
       waitlistEmail: "",
@@ -146,9 +129,6 @@ export default {
     dialog: {
       get() { return this.value; },
       set(val) { this.$emit("input", val); },
-    },
-    hasUsedTrial() {
-      return this.$store.state.trialStartedAt !== null;
     },
     isLoggedIn() {
       return !!this.$store.state.auth.token;
@@ -180,22 +160,16 @@ export default {
         this.authLoading = false;
       }
     },
-    startTrial() {
-      const now = Date.now();
-      this.$store.commit('setTrial', now);
-      this.$store.commit('setLivePro', true);
-      localStorage.setItem('noterender_trial_start', now.toString());
-      this.closeModal();
-      this.$emit('trial-started');
-    },
-    async payNow(item) {
+    async subscribe(plan) {
       this.loadingPay = true;
+      this.selectedPlan = plan;
       try {
         const API_BASE = process.env.VUE_APP_API_URL || "";
+        const token = localStorage.getItem("noterender_token");
         const response = await fetch(`${API_BASE}/api/checkout`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ item: item }),
+          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({ plan: plan }),
         });
         const session = await response.json();
         if (session.error) throw new Error(session.error);
@@ -235,6 +209,7 @@ export default {
   width: 100%;
 }
 .letter-spacing-1 { letter-spacing: 1px; }
+.opacity-70 { opacity: 0.7; }
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
 }

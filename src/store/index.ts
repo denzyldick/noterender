@@ -323,8 +323,6 @@ export default new Vuex.Store({
     soundFile: null,
     highQuality: false,
     removeWatermark: false,
-    livePro: false,
-    trialStartedAt: null,
     sensitivity: {
       fftSmoothing: 0.8,
       bassBoost: 1.0,
@@ -333,6 +331,11 @@ export default new Vuex.Store({
       token: localStorage.getItem("noterender_token") || null,
       user: JSON.parse(localStorage.getItem("noterender_user") || "null"),
       userId: parseInt(localStorage.getItem("noterender_user_id") || "0"),
+    },
+    subscription: {
+      active: false,
+      status: "none",
+      plan: null,
     },
     announcement: { text: "", visible: false, duration: 5 },
     shoutouts: [] as any[],
@@ -400,12 +403,6 @@ export default new Vuex.Store({
     setRemoveWatermark: function (state, val) {
       state.removeWatermark = val;
     },
-    setLivePro: function (state, val) {
-      state.livePro = val;
-    },
-    setTrial: function (state, timestamp) {
-      state.trialStartedAt = timestamp;
-    },
     templateSelected: function (state, template) {
       state.template = template;
     },
@@ -447,7 +444,11 @@ export default new Vuex.Store({
     },
     logout: function (state) {
       state.auth = { token: null, user: null, userId: 0 };
+      state.subscription = { active: false, status: "none", plan: null };
       localStorage.removeItem("noterender_token"); localStorage.removeItem("noterender_user"); localStorage.removeItem("noterender_user_id");
+    },
+    setSubscription: function (state, { active, status, plan }) {
+      state.subscription = { active: !!active, status: status || "none", plan: plan || null };
     },
     setAnnouncement: function (state, { text, visible, duration }) {
       state.announcement = { text, visible, duration: duration || 5 };
@@ -604,7 +605,14 @@ export default new Vuex.Store({
     },
     fetchMe: async function (context) {
       const data = await api("/api/me");
-      if (!data.error) context.commit("setAuth", { token: context.state.auth.token, user: data });
+      if (!data.error) {
+        context.commit("setAuth", { token: context.state.auth.token, user: data });
+        context.commit("setSubscription", {
+          active: data.subscriptionActive,
+          status: data.subscriptionStatus,
+          plan: data.subscriptionPlan,
+        });
+      }
       return data;
     },
     saveProject: async function (context, { name, data }) {
