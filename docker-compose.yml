@@ -19,6 +19,7 @@ services:
     build:
       context: ../noterender-api
       dockerfile: Dockerfile
+      network: host
     container_name: noterender_api
     ports:
       - "8000:80"
@@ -51,6 +52,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
+      network: host
     container_name: noterender_frontend_dev
     ports:
       - "8080:8080"
@@ -69,6 +71,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
     container_name: noterender_frontend
     ports:
       - "80:80"

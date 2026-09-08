@@ -2,8 +2,8 @@
 FROM node:20-bookworm-slim AS build
 
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json yarn.lock ./
+RUN corepack enable && yarn install --frozen-lockfile
 
 COPY . .
 RUN npm run build
