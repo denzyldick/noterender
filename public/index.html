@@ -183,39 +183,37 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@mdi/font@latest/css/materialdesignicons.min.css"
     />
-    <!-- Google Tag Manager -->
+    <!-- Google Tag Manager & GA4 (production only) -->
     <script>
       if (!crossOriginIsolated) SharedArrayBuffer = ArrayBuffer;
 
-      (function (w, d, s, l, i) {
-        w[l] = w[l] || [];
-        w[l].push({
-          "gtm.start": new Date().getTime(),
-          event: "gtm.js",
-        });
-        var f = d.getElementsByTagName(s)[0],
-          j = d.createElement(s),
-          dl = l != "dataLayer" ? "&l=" + l : "";
-        j.async = true;
-        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
-        f.parentNode.insertBefore(j, f);
-      })(window, document, "script", "dataLayer", "GTM-T4VDGKR");
-    </script>
-    <!-- End Google Tag Manager -->
-    <!-- Google tag (gtag.js) -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-8Q72K460VG"
-    ></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag("js", new Date());
+      if (window.location.hostname === "noterender.denzyl.io") {
+        (function (w, d, s, l, i) {
+          w[l] = w[l] || [];
+          w[l].push({
+            "gtm.start": new Date().getTime(),
+            event: "gtm.js",
+          });
+          var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s),
+            dl = l != "dataLayer" ? "&l=" + l : "";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+          f.parentNode.insertBefore(j, f);
+        })(window, document, "script", "dataLayer", "GTM-T4VDGKR");
 
-      gtag("config", "G-8Q72K460VG");
+        var gtagScript = document.createElement("script");
+        gtagScript.async = true;
+        gtagScript.src = "https://www.googletagmanager.com/gtag/js?id=G-8Q72K460VG";
+        document.head.appendChild(gtagScript);
+
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag("js", new Date());
+        gtag("config", "G-8Q72K460VG");
+      }
     </script>
+    <!-- End Google Tag Manager & GA4 -->
     <style>
       * { margin: 0; padding: 0; }
       body { background: #000; overflow: hidden; }
@@ -296,12 +294,18 @@
     </div>
 
     <noscript>
-      <iframe
-        src="https://www.googletagmanager.com/ns.html?id=GTM-T4VDGKR"
-        height="0"
-        width="0"
-        style="display: none; visibility: hidden"
-      ></iframe>
+      <div id="gtm-nojs-placeholder" style="display:none"></div>
+      <script>
+        if (window.location.hostname === "noterender.denzyl.io") {
+          var f = document.createElement("iframe");
+          f.src = "https://www.googletagmanager.com/ns.html?id=GTM-T4VDGKR";
+          f.height = 0;
+          f.width = 0;
+          f.style.display = "none";
+          f.style.visibility = "hidden";
+          document.getElementById("gtm-nojs-placeholder").appendChild(f);
+        }
+      </script>
     </noscript>
 
     <div id="app"></div>

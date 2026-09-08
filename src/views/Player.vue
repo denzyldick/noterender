@@ -806,7 +806,7 @@ export default {
     isLoggedIn() { return !!this.$store.state.auth.token; },
     currentUserId() { return this.$store.state.auth.userId; },
     shoutoutUrl() {
-      return `${window.location.origin}/shout?club=${this.currentUserId || 1}`;
+      return `${window.location.origin}/shout?club=${this.currentUserId || 1}&utm_source=shoutout&utm_medium=qr&utm_campaign=audience_participation`;
     },
   },
   watch: {
@@ -1626,7 +1626,7 @@ export default {
     navigator.mediaDevices?.addEventListener("devicechange", () => this.enumerateAudioDevices());
 
     // Set QR URL for shoutouts
-    const shoutoutUrl = `${window.location.origin}/shout?club=${this.currentUserId || 1}`;
+    const shoutoutUrl = `${window.location.origin}/shout?club=${this.currentUserId || 1}&utm_source=shoutout&utm_medium=qr&utm_campaign=audience_participation`;
     TEXT.setQrUrl(shoutoutUrl);
 
     // Start shoutout polling

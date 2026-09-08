@@ -6,9 +6,11 @@ import store from "@/store";
 import vuetify from "@/plugins/vuetify";
 import VueGtag from "vue-gtag";
 
-Vue.use(VueGtag, {
-  config: { id: "GTM-T4VDGKR" },
-});
+if (window.location.hostname === "noterender.denzyl.io") {
+  Vue.use(VueGtag, {
+    config: { id: "GTM-T4VDGKR" },
+  });
+}
 Vue.config.productionTip = false;
 
 new Vue({

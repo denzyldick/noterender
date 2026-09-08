@@ -81,7 +81,7 @@ export default {
     qrContainer.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     qrContainer.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
 
-    const qrDataUrl = await QRCode.toDataURL("https://noterender.denzyl.io?utm_source=watermark", {
+    const qrDataUrl = await QRCode.toDataURL("https://noterender.denzyl.io?utm_source=watermark&utm_medium=qr&utm_campaign=video_watermark", {
       margin: 1, width: 250, color: { dark: "#000000", light: "#ffffff" }
     });
 

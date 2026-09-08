@@ -55,7 +55,7 @@
         <v-divider class="my-3 opacity-10"></v-divider>
         <div class="text-caption grey--text text-center">
           <v-icon x-small>mdi-qrcode</v-icon> 
-          Share QR: <code class="primary--text">{{ baseUrl }}/shout?club={{ userId }}</code>
+          Share QR: <code class="primary--text">{{ baseUrl }}/shout?club={{ userId }}&utm_source=shoutout&utm_medium=qr&utm_campaign=audience_participation</code>
         </div>
       </v-card>
 
