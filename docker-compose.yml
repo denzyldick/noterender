@@ -1,21 +1,51 @@
 services:
-  api:
+  db:
+    image: postgres:16-alpine
+    container_name: noterender_db
+    environment:
+      POSTGRES_DB: noterender
+      POSTGRES_USER: noterender
+      POSTGRES_PASSWORD: noterender
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noterender -d noterender"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  noterender-api:
     build:
-      context: .
-      dockerfile: Dockerfile.api
+      context: ../noterender-api
+      dockerfile: Dockerfile
     container_name: noterender_api
     ports:
-      - "8081:8080"
+      - "8000:80"
     volumes:
-      - api_storage:/app/api/public/storage
+      - ../noterender-api/env.local.file:/app/.env.local:ro
     environment:
-      - APP_ENV=prod
+      APP_ENV: prod
+      SERVER_NAME: localhost
+      DATABASE_URL: postgresql://noterender:noterender@db:5432/noterender?serverVersion=16&charset=utf8
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "php", "-r", "echo 'ok';"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
+
+  rtmp-relay:
+    image: node:20-alpine
+    container_name: noterender_rtmp_relay
+    working_dir: /app
+    volumes:
+      - ../noterender-api/rtmp-relay:/app
+    command: sh -c "apk add --no-cache ffmpeg && npm install --omit=dev && node server.js"
+    environment:
+      RELAY_HOST: 0.0.0.0
+      RELAY_PORT: 8090
+    ports:
+      - "8090:8090"
+    restart: unless-stopped
 
   frontend-dev:
     build:
@@ -28,11 +58,10 @@ services:
       - .:/app
       - /app/node_modules
     depends_on:
-      api:
-        condition: service_healthy
+      - noterender-api
     environment:
       - NODE_ENV=development
-      - VUE_APP_API_URL=
+      - VUE_APP_API_URL=http://localhost:8000
     stdin_open: true
     tty: true
 
@@ -44,9 +73,8 @@ services:
     ports:
       - "80:80"
     depends_on:
-      api:
-        condition: service_healthy
+      - noterender-api
     restart: unless-stopped
 
 volumes:
-  api_storage:
+  db_data:
