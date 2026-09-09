@@ -140,7 +140,7 @@ export default {
   },
   mounted() {
     this.emptyFft = new Uint8Array(512).fill(0);
-    window.addEventListener("resize", () => this.handleResize());
+    window.addEventListener("resize", this.handleResize);
 
     this.$nextTick(() => {
       this.initScene("terrain", {
@@ -170,7 +170,7 @@ export default {
     if (this.scene) {
       this.scene.dispose();
     }
-    window.removeEventListener("resize", () => this.handleResize());
+    window.removeEventListener("resize", this.handleResize);
   },
 };
 </script>

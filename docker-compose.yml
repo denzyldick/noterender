@@ -23,6 +23,7 @@ services:
     container_name: noterender_api
     ports:
       - "8000:80"
+      - "8443:443"
     volumes:
       - ../noterender-api/env.local.file:/app/.env.local:ro
     environment:

@@ -9,16 +9,48 @@ Vue.use(Vuex);
 const API_BASE =
   process.env.VUE_APP_API_URL || "";
 
+let vuexStore: any = null;
+
+const BANNED_KEYS = ["__proto__", "constructor", "prototype"];
+
+function sanitizePersisted(value: any): any {
+  if (Array.isArray(value)) return value.map(sanitizePersisted);
+  if (value && typeof value === "object") {
+    const out: any = {};
+    for (const k of Object.keys(value)) {
+      if (BANNED_KEYS.indexOf(k) !== -1) continue;
+      out[k] = sanitizePersisted(value[k]);
+    }
+    return out;
+  }
+  return value;
+}
+
 function api(path: string, options: any = {}) {
   const token = localStorage.getItem("noterender_token");
   const headers: any = { "Content-Type": "application/json", ...options.headers };
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  return fetch(`${API_BASE}${path}`, { ...options, headers }).then((r) => {
-    if (r.status === 401) {
+  return fetch(`${API_BASE}${path}`, { ...options, headers }).then(async (r) => {
+    let body: any = null;
+    try {
+      body = await r.json();
+    } catch (_) {
+      body = null;
+    }
+
+    if (r.status === 401 && token && !path.startsWith("/api/auth/")) {
       localStorage.removeItem("noterender_token");
       localStorage.removeItem("noterender_user");
+      localStorage.removeItem("noterender_user_id");
+      if (vuexStore) vuexStore.commit("logout");
     }
-    return r.json();
+
+    if (body === null) {
+      const err: any = new Error(`Server error (${r.status})`);
+      err.status = r.status;
+      throw err;
+    }
+    return body;
   });
 }
 
@@ -27,7 +59,7 @@ const PERSISTED_KEYS = [
   "template", "templates", "activeEffects", "colors", "light",
   "dynamicColors", "selectedSize", "logoStyle", "title", "subtitle",
   "emblem", "sensitivity", "options", "audioSource", "highQuality",
-  "removeWatermark", "announcement"
+  "announcement"
 ];
 
 function saveState(state) {
@@ -43,7 +75,7 @@ function saveState(state) {
 function loadState() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    return raw ? sanitizePersisted(JSON.parse(raw)) : {};
   } catch (_) {
     return {};
   }
@@ -51,7 +83,7 @@ function loadState() {
 
 const persisted = loadState();
 
-export default new Vuex.Store({
+const store = new Vuex.Store({
   plugins: [store => {
     // Deep-merge persisted state into store
     if (persisted.colors) {
@@ -248,36 +280,42 @@ export default new Vuex.Store({
       },
     ],
     presets: [
-      { name: "Dynamic", dynamic: true, colors: { r: 0, g: 229, b: 255 }, light: { r: 255, g: 255, b: 255 } },
-      { name: "Cyberpunk", colors: { r: 255, g: 0, b: 255 }, light: { r: 0, g: 255, b: 255 } },
-      { name: "Gold", colors: { r: 255, g: 215, b: 0 }, light: { r: 255, g: 255, b: 255 } },
-      { name: "Deep Sea", colors: { r: 0, g: 100, b: 255 }, light: { r: 0, g: 255, b: 150 } },
-      { name: "Lava", colors: { r: 255, g: 50, b: 0 }, light: { r: 255, g: 150, b: 0 } },
-      { name: "Forest", colors: { r: 50, g: 255, b: 50 }, light: { r: 150, g: 255, b: 0 } },
+      { name: "Dynamic", nameKey: "dynamic", dynamic: true, colors: { r: 0, g: 229, b: 255 }, light: { r: 255, g: 255, b: 255 } },
+      { name: "Cyberpunk", nameKey: "cyberpunk", colors: { r: 255, g: 0, b: 255 }, light: { r: 0, g: 255, b: 255 } },
+      { name: "Gold", nameKey: "gold", colors: { r: 255, g: 215, b: 0 }, light: { r: 255, g: 255, b: 255 } },
+      { name: "Deep Sea", nameKey: "deepsea", colors: { r: 0, g: 100, b: 255 }, light: { r: 0, g: 255, b: 150 } },
+      { name: "Lava", nameKey: "lava", colors: { r: 255, g: 50, b: 0 }, light: { r: 255, g: 150, b: 0 } },
+      { name: "Forest", nameKey: "forest", colors: { r: 50, g: 255, b: 50 }, light: { r: 150, g: 255, b: 0 } },
     ],
     sizes: [
       {
         name: "Auto",
+        nameKey: "auto",
         size: { x: null, y: null },
       },
       {
         name: "YouTube / Desktop (16:9)",
+        nameKey: "yt",
         size: { x: 1920, y: 1080 },
       },
       {
         name: "Instagram Post (1:1)",
+        nameKey: "ig",
         size: { x: 1080, y: 1080 },
       },
       {
         name: "TikTok / Story / Reel (9:16)",
+        nameKey: "tt",
         size: { x: 1080, y: 1920 },
       },
       {
         name: "Instagram Portrait (4:5)",
+        nameKey: "igp",
         size: { x: 1080, y: 1350 },
       },
       {
         name: "Twitter / Landscape (16:9)",
+        nameKey: "tw",
         size: { x: 1280, y: 720 },
       },
     ],
@@ -647,3 +685,6 @@ export default new Vuex.Store({
   },
   modules: {},
 });
+
+vuexStore = store;
+export default store;

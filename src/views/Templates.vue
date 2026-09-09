@@ -13,7 +13,7 @@
             {{ template.name }}
           </v-list-item-title>
           <v-list-item-subtitle class="text-caption">
-            {{ template.description }}
+            {{ $te('templates.' + template.name + '.desc') ? $t('templates.' + template.name + '.desc') : template.description }}
           </v-list-item-subtitle>
         </v-list-item-content>
         <v-list-item-action>

@@ -1,16 +1,19 @@
 <template>
   <v-app dark class="dj-app">
+    <div class="locale-switcher-fixed">
+      <LocaleSwitcher />
+    </div>
     <v-container class="pa-4" style="max-width: 500px">
       <div class="text-center mb-4">
         <img :src="asset('/img/logo.png')" width="48" alt="Noterender" />
-        <div class="text-h6 font-weight-black primary--text mt-2">DJ REMOTE</div>
-        <div class="text-caption grey--text">Moderate shoutouts & control the show</div>
+        <div class="text-h6 font-weight-black primary--text mt-2">{{ $t('dj.remote') }}</div>
+        <div class="text-caption grey--text">{{ $t('dj.subtitle') }}</div>
       </div>
 
       <!-- Shoutouts -->
       <v-card class="pa-4 mb-4 rounded-xl" color="rgba(15,15,15,0.95)" style="border:1px solid rgba(255,255,255,0.1)">
-        <div class="text-overline primary--text font-weight-bold mb-3">PENDING SHOUTOUTS</div>
-        <div v-if="pending.length === 0" class="text-caption grey--text text-center py-4">No pending messages</div>
+        <div class="text-overline primary--text font-weight-bold mb-3">{{ $t('dj.pendingShoutouts') }}</div>
+        <div v-if="pending.length === 0" class="text-caption grey--text text-center py-4">{{ $t('dj.noPending') }}</div>
         <div v-for="s in pending" :key="s.id" class="pa-3 mb-2 rounded-lg" style="background:rgba(255,255,255,0.05)">
           <div class="d-flex justify-space-between align-start">
             <div>
@@ -27,15 +30,15 @@
 
       <!-- Announcement -->
       <v-card class="pa-4 mb-4 rounded-xl" color="rgba(15,15,15,0.95)" style="border:1px solid rgba(255,255,255,0.1)">
-        <div class="text-overline primary--text font-weight-bold mb-3">ANNOUNCEMENT</div>
-        <v-text-field v-model="announceText" label="Announcement text" outlined dense hide-details class="mb-3"></v-text-field>
+        <div class="text-overline primary--text font-weight-bold mb-3">{{ $t('dj.announcement') }}</div>
+        <v-text-field v-model="announceText" :label="$t('dj.announcementText')" outlined dense hide-details class="mb-3"></v-text-field>
         <v-row dense>
           <v-col cols="4">
-            <v-text-field v-model="announceDuration" label="Seconds" outlined dense type="number" hide-details></v-text-field>
+            <v-text-field v-model="announceDuration" :label="$t('common.seconds')" outlined dense type="number" hide-details></v-text-field>
           </v-col>
           <v-col cols="8">
             <v-btn block color="primary" @click="sendAnnouncement" class="fill-height">
-              <v-icon left>mdi-bullhorn</v-icon> Show on Screen
+              <v-icon left>mdi-bullhorn</v-icon> {{ $t('dj.showOnScreen') }}
             </v-btn>
           </v-col>
         </v-row>
@@ -45,22 +48,22 @@
       <v-card class="pa-4 rounded-xl" color="rgba(15,15,15,0.95)" style="border:1px solid rgba(255,255,255,0.1)">
         <div class="d-flex justify-space-between align-center">
           <div>
-            <div class="text-caption grey--text">Logged in as</div>
-            <div class="text-body-2 white--text">{{ user?.email || 'Guest' }}</div>
+            <div class="text-caption grey--text">{{ $t('dj.loggedInAs') }}</div>
+            <div class="text-body-2 white--text">{{ user?.email || $t('dj.guest') }}</div>
           </div>
           <v-btn small outlined color="primary" :to="user ? '/' : '/auth'">
-            {{ user ? 'Open Visualizer' : 'Login' }}
+            {{ user ? $t('dj.openVisualizer') : $t('dj.login') }}
           </v-btn>
         </div>
         <v-divider class="my-3 opacity-10"></v-divider>
         <div class="text-caption grey--text text-center">
           <v-icon x-small>mdi-qrcode</v-icon> 
-          Share QR: <code class="primary--text">{{ baseUrl }}/shout?club={{ userId }}&utm_source=shoutout&utm_medium=qr&utm_campaign=audience_participation</code>
+          {{ $t('dj.shareQr') }} <code class="primary--text">{{ baseUrl }}/shout?club={{ userId }}&utm_source=shoutout&utm_medium=qr&utm_campaign=audience_participation</code>
         </div>
       </v-card>
 
       <div class="text-center mt-4">
-        <v-btn text small color="grey" @click="logout">Logout</v-btn>
+        <v-btn text small color="grey" @click="logout">{{ $t('common.logout') }}</v-btn>
       </div>
     </v-container>
   </v-app>
@@ -68,9 +71,11 @@
 
 <script lang="ts">
 import { asset } from "../js/assets";
+import LocaleSwitcher from "@/components/LocaleSwitcher.vue";
 
 export default {
   name: "DJPanel",
+  components: { LocaleSwitcher },
   data() {
     return {
       pending: [],
@@ -128,4 +133,10 @@ export default {
 <style>
 .dj-app { background: #050505 !important; }
 .opacity-10 { opacity: 0.1; }
+.locale-switcher-fixed {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 200;
+}
 </style>

@@ -24,7 +24,7 @@ module.exports = (env, argv) => {
       main: './src/main.ts',
     },
     mode: isProduction ? 'production' : 'development',
-    devtool: isProduction ? 'source-map' : 'eval-cheap-module-source-map',
+    devtool: isProduction ? false : 'eval-cheap-module-source-map',
     module: {
       rules: [
         {

@@ -18,7 +18,10 @@
     >
       <div class="d-flex flex-column fill-height">
         <!-- Brand Section -->
-        <div class="pa-8 text-center flex-shrink-0">
+        <div class="pa-8 text-center flex-shrink-0" style="position: relative">
+          <div class="locale-switcher-slot">
+            <LocaleSwitcher />
+          </div>
           <div class="logo-wrapper mb-3 pa-4 rounded-xl d-inline-block">
             <img :src="asset('/img/logo.png')" width="80" alt="Noterender logo" />
           </div>
@@ -36,11 +39,11 @@
           >
             <v-btn value="studio" block class="flex-grow-1" height="44">
               <v-icon left size="20">mdi-pencil-ruler</v-icon>
-              Studio
+              {{ $t('modes.studio') }}
             </v-btn>
             <v-btn value="live" block class="flex-grow-1" height="44">
               <v-icon left size="20">mdi-broadcast</v-icon>
-              Live
+              {{ $t('modes.live') }}
             </v-btn>
           </v-btn-toggle>
         </div>
@@ -57,28 +60,28 @@
           hide-slider
         >
           <div class="tabs-scroll-area no-scrollbar">
-            <v-tab class="justify-center px-4"><v-icon size="22">mdi-aspect-ratio</v-icon><span class="tab-text ml-2">Canvas</span></v-tab>
-            <v-tab class="justify-center px-4"><v-icon size="22">mdi-palette-swatch</v-icon><span class="tab-text ml-2">Style</span></v-tab>
-            <v-tab class="justify-center px-4"><v-icon size="22">mdi-sine-wave</v-icon><span class="tab-text ml-2">Sound</span></v-tab>
-            <v-tab class="justify-center px-4"><v-icon size="22">mdi-video-3d</v-icon><span class="tab-text ml-2">Camera</span></v-tab>
-            <v-tab class="justify-center px-4"><v-icon size="22">mdi-auto-fix</v-icon><span class="tab-text ml-2">Effects</span></v-tab>
-            <v-tab class="justify-center px-4"><v-icon size="22">mdi-text-recognition</v-icon><span class="tab-text ml-2">Branding</span></v-tab>
-            <v-tab v-if="appMode === 'studio'" class="justify-center px-4"><v-icon size="22">mdi-movie-filter</v-icon><span class="tab-text ml-2">Render</span></v-tab>
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-aspect-ratio</v-icon><span class="tab-text ml-2">{{ $t('tabs.canvas') }}</span></v-tab>
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-palette-swatch</v-icon><span class="tab-text ml-2">{{ $t('tabs.style') }}</span></v-tab>
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-sine-wave</v-icon><span class="tab-text ml-2">{{ $t('tabs.sound') }}</span></v-tab>
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-video-3d</v-icon><span class="tab-text ml-2">{{ $t('tabs.camera') }}</span></v-tab>
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-auto-fix</v-icon><span class="tab-text ml-2">{{ $t('tabs.effects') }}</span></v-tab>
+            <v-tab class="justify-center px-4"><v-icon size="22">mdi-text-recognition</v-icon><span class="tab-text ml-2">{{ $t('tabs.branding') }}</span></v-tab>
+            <v-tab v-if="appMode === 'studio'" class="justify-center px-4"><v-icon size="22">mdi-movie-filter</v-icon><span class="tab-text ml-2">{{ $t('tabs.render') }}</span></v-tab>
           </div>
 
           <v-tabs-items v-model="activeTab" class="transparent-bg studio-tab-content no-scrollbar">
             <!-- Canvas -->
             <v-tab-item>
               <div class="pa-6">
-                <div class="text-overline mb-4 primary--text">Dimensions</div>
+                <div class="text-overline mb-4 primary--text">{{ $t('canvas.dimensions') }}</div>
                 <v-list dark dense flat class="transparent">
                   <v-list-item-group v-model="selectedSize" color="primary">
                     <v-list-item v-for="s in sizes" :key="s.name" :value="s.name" @click="setSize(s.name)">
-                      <v-list-item-icon><v-icon>{{ s.name === 'Auto' ? 'mdi-auto-fix' : 'mdi-crop-free' }}</v-icon></v-list-item-icon>
+                      <v-list-item-icon><v-icon>{{ s.nameKey === 'auto' ? 'mdi-auto-fix' : 'mdi-crop-free' }}</v-icon></v-list-item-icon>
                       <v-list-item-content>
-                        <v-list-item-title>{{ s.name }}</v-list-item-title>
+                        <v-list-item-title>{{ $t(`canvas.size_${s.nameKey}`) }}</v-list-item-title>
                         <v-list-item-subtitle v-if="s.size.x">{{ s.size.x }} x {{ s.size.y }}</v-list-item-subtitle>
-                        <v-list-item-subtitle v-else>Adapts to screen</v-list-item-subtitle>
+                        <v-list-item-subtitle v-else>{{ $t('canvas.adaptsToScreen') }}</v-list-item-subtitle>
                       </v-list-item-content>
                     </v-list-item>
                   </v-list-item-group>
@@ -90,7 +93,7 @@
             <v-tab-item>
               <div class="pa-0">
                 <div class="pa-6 pb-0">
-                  <div class="text-overline mb-4 primary--text">Templates</div>
+                  <div class="text-overline mb-4 primary--text">{{ $t('tabs.templates') }}</div>
                   <Templates />
                 </div>
                 <v-divider class="mx-6 my-2 opacity-10"></v-divider>
@@ -101,35 +104,35 @@
             <!-- Sound -->
             <v-tab-item>
               <div class="pa-6">
-                <div class="text-overline mb-4 primary--text">Audio Source</div>
+                <div class="text-overline mb-4 primary--text">{{ $t('sound.audioSource') }}</div>
                 <v-list dark dense flat class="transparent">
                   <v-list-item-group v-model="audioSource" color="primary" mandatory>
                     <v-list-item value="file" v-if="appMode === 'studio'">
                       <v-list-item-icon><v-icon>mdi-file-music</v-icon></v-list-item-icon>
                       <v-list-item-content>
-                        <v-list-item-title>Local File</v-list-item-title>
-                        <v-list-item-subtitle>Upload an MP3/WAV</v-list-item-subtitle>
+                        <v-list-item-title>{{ $t('sound.localFile') }}</v-list-item-title>
+                        <v-list-item-subtitle>{{ $t('sound.uploadMp3') }}</v-list-item-subtitle>
                       </v-list-item-content>
                     </v-list-item>
                     <v-list-item value="mic">
                       <v-list-item-icon><v-icon>mdi-microphone</v-icon></v-list-item-icon>
                       <v-list-item-content>
-                        <v-list-item-title>Microphone</v-list-item-title>
-                        <v-list-item-subtitle>Live room audio</v-list-item-subtitle>
+                        <v-list-item-title>{{ $t('sound.microphone') }}</v-list-item-title>
+                        <v-list-item-subtitle>{{ $t('sound.liveRoomAudio') }}</v-list-item-subtitle>
                       </v-list-item-content>
                     </v-list-item>
                     <v-list-item value="system">
                       <v-list-item-icon><v-icon>mdi-monitor-speaker</v-icon></v-list-item-icon>
                       <v-list-item-content>
-                        <v-list-item-title>System Audio</v-list-item-title>
-                        <v-list-item-subtitle>Screen/window capture</v-list-item-subtitle>
+                        <v-list-item-title>{{ $t('sound.systemAudio') }}</v-list-item-title>
+                        <v-list-item-subtitle>{{ $t('sound.screenWindowCapture') }}</v-list-item-subtitle>
                       </v-list-item-content>
                     </v-list-item>
                     <v-list-item value="device">
                       <v-list-item-icon><v-icon>mdi-cable-data</v-icon></v-list-item-icon>
                       <v-list-item-content>
-                        <v-list-item-title>Capture Device</v-list-item-title>
-                        <v-list-item-subtitle>Virtual cable / audio interface</v-list-item-subtitle>
+                        <v-list-item-title>{{ $t('sound.captureDevice') }}</v-list-item-title>
+                        <v-list-item-subtitle>{{ $t('sound.virtualCableInterface') }}</v-list-item-subtitle>
                       </v-list-item-content>
                     </v-list-item>
                   </v-list-item-group>
@@ -141,7 +144,7 @@
                   :items="audioDevices"
                   item-title="label"
                   item-value="deviceId"
-                  label="Select Audio Device"
+                  :label="$t('sound.selectAudioDevice')"
                   outlined
                   dense
                   class="mt-4"
@@ -164,37 +167,37 @@
                   class="mt-2"
                   @click="showAudioSetupGuide = true"
                 >
-                  <v-icon left small>mdi-help-circle</v-icon> How to set up a virtual audio cable
+                  <v-icon left small>mdi-help-circle</v-icon> {{ $t('sound.virtualCableHowTo') }}
                 </v-btn>
 
                 <v-alert v-if="audioSource === 'system'" dense text type="info" class="mt-4 text-caption">
-                  Tip: When the browser asks to share your screen, go to the <strong>"Tab"</strong> or <strong>"Window"</strong> section and ensure <strong>"Also share system audio"</strong> is checked.
+                  {{ $t('sound.systemShareTip1') }} <strong>{{ $t('sound.systemShareTipTab') }}</strong> {{ $t('sound.systemShareTipOr') }} <strong>{{ $t('sound.systemShareTipWindow') }}</strong> {{ $t('sound.systemShareTipCheck') }} <strong>{{ $t('sound.systemShareTipChecked') }}</strong> {{ $t('sound.systemShareTipCheckedEnd') }}
                 </v-alert>
 
-                <v-file-input v-if="audioSource === 'file' && appMode === 'studio'" label="Choose Audio" outlined dense @change="soundSelected" prepend-inner-icon="mdi-music-circle" class="mt-4"></v-file-input>
+                <v-file-input v-if="audioSource === 'file' && appMode === 'studio'" :label="$t('sound.audioSource')" outlined dense @change="soundSelected" prepend-inner-icon="mdi-music-circle" class="mt-4"></v-file-input>
                 
                 <div v-if="appMode === 'live'">
-                  <div class="text-overline mt-6 mb-2 primary--text">Performance</div>
+                  <div class="text-overline mt-6 mb-2 primary--text">{{ $t('sound.performance') }}</div>
 
                   <v-alert dense text type="info" class="mb-4 text-caption" style="border-left: 4px solid #00E5FF; background-color: rgba(0, 229, 255, 0.05) !important;">
-                    <strong>For clean big-screen output:</strong> Use a <strong>virtual audio cable</strong> (VB-Cable / BlackHole) and select it under "Capture Device" in the Sound tab. This avoids the browser "Sharing" bar.
+                    <strong>{{ $t('sound.bigScreenTip1') }}</strong> {{ $t('sound.bigScreenTip2') }} <strong>{{ $t('sound.bigScreenTip3') }}</strong> {{ $t('sound.bigScreenTip4') }}
                   </v-alert>
 
-                  <v-switch v-model="removeWatermarkCheckbox" label="Clean Performance (No Branding)" color="primary" dense class="mb-4" @click.native="paywallMode = 'live'"></v-switch>
+                  <v-switch v-model="removeWatermarkCheckbox" :label="$t('sound.cleanPerformance')" color="primary" dense class="mb-4" @click.native="paywallMode = 'live'"></v-switch>
 
                   <v-divider class="my-2 opacity-10"></v-divider>
 
-                  <div class="text-overline mt-4 mb-2 primary--text">TikTok Live</div>
+                  <div class="text-overline mt-4 mb-2 primary--text">{{ $t('sound.tiktokLive') }}</div>
 
-                  <v-switch v-model="tiktokEnabled" label="Stream to TikTok Live" color="error" dense class="mb-2"></v-switch>
+                  <v-switch v-model="tiktokEnabled" :label="$t('sound.streamToTiktok')" color="error" dense class="mb-2"></v-switch>
 
                   <template v-if="tiktokEnabled">
-                    <v-text-field v-model="tiktokRtmpUrl" label="TikTok RTMP URL (Server URL)" outlined dense hide-details class="mb-3" prepend-inner-icon="mdi-radio-tower" @blur="saveTikTokSettings" placeholder="rtmps://xxxx.ts.tiktoklive.com:443/live"></v-text-field>
-                    <v-text-field v-model="tiktokStreamKey" label="TikTok Stream Key" outlined dense hide-details class="mb-3" prepend-inner-icon="mdi-key-variant" @blur="saveTikTokSettings" type="password"></v-text-field>
-                    <v-text-field v-model="tiktokRelayUrl" label="Relay Server" outlined dense hide-details class="mb-3" prepend-inner-icon="mdi-server-network" @blur="saveTikTokSettings" placeholder="ws://localhost:8090"></v-text-field>
+                    <v-text-field v-model="tiktokRtmpUrl" :label="$t('sound.tiktokRtmp')" outlined dense hide-details class="mb-3" prepend-inner-icon="mdi-radio-tower" @blur="saveTikTokSettings" placeholder="rtmps://xxxx.ts.tiktoklive.com:443/live"></v-text-field>
+                    <v-text-field v-model="tiktokStreamKey" :label="$t('sound.tiktokStreamKey')" outlined dense hide-details class="mb-3" prepend-inner-icon="mdi-key-variant" @blur="saveTikTokSettings" type="password"></v-text-field>
+                    <v-text-field v-model="tiktokRelayUrl" :label="$t('sound.relayServer')" outlined dense hide-details class="mb-3" prepend-inner-icon="mdi-server-network" @blur="saveTikTokSettings" placeholder="ws://localhost:8090"></v-text-field>
 
                     <v-alert dense text type="info" class="mb-4 text-caption">
-                      <strong>Get keys:</strong> Open TikTok &rarr; your profile &rarr; LIVE &rarr; tools &rarr; "Stream Key", then paste Server URL + Stream Key above. The stream is relayed through ffmpeg — start it once with <code>node rtmp-relay/server.js</code>.
+                      <strong>{{ $t('sound.getKeys') }}</strong> {{ $t('sound.getKeysDesc1') }} <code>node rtmp-relay/server.js</code>.
                     </v-alert>
 
                     <v-alert
@@ -204,22 +207,22 @@
                       class="mb-4 text-caption"
                       :type="streamState === 'error' ? 'error' : (streamState === 'live' ? 'success' : 'info')"
                     >
-                      {{ streamState === 'live' ? 'Live on TikTok' : streamMessage }}
+                      {{ streamState === 'live' ? $t('sound.liveOnTiktok') : streamMessage }}
                     </v-alert>
                   </template>
 
                   <v-btn block color="error" x-large @click="goLive" class="rounded-lg font-weight-bold">
                     <v-icon left>mdi-broadcast</v-icon>
-                    START LIVE SESSION
+                    {{ $t('sound.startLiveSession') }}
                   </v-btn>
 
                   <v-btn block text color="primary" class="mt-2" @click="toggleFullscreen">
                     <v-icon left>mdi-fullscreen</v-icon>
-                    Toggle Fullscreen
+                    {{ $t('sound.toggleFullscreen') }}
                   </v-btn>
                 </div>
 
-                <div class="text-overline mt-6 mb-4 primary--text">Sensitivity Presets</div>
+                <div class="text-overline mt-6 mb-4 primary--text">{{ $t('sound.sensitivityPresets') }}</div>
                 <div class="d-flex flex-wrap mb-6" style="gap: 8px">
                   <v-chip
                     v-for="p in ['Smooth', 'Standard', 'Dynamic', 'Jumpy']"
@@ -231,14 +234,14 @@
                     class="preset-chip"
                     :style="{ borderColor: 'rgba(255,255,255,0.2)' }"
                   >
-                    {{ p }}
+                    {{ $t('sound.presets.' + p) }}
                   </v-chip>
                 </div>
 
-                <div class="text-overline mb-2 primary--text">Manual Controls</div>
+                <div class="text-overline mb-2 primary--text">{{ $t('sound.manualControls') }}</div>
                 <div class="mb-4">
                   <div class="text-caption d-flex justify-space-between grey--text">
-                    <span>FFT Smoothing</span>
+                    <span>{{ $t('sound.fftSmoothing') }}</span>
                     <span>{{ Math.round(sensitivity.fftSmoothing * 100) }}%</span>
                   </div>
                   <v-slider
@@ -253,7 +256,7 @@
 
                 <div class="mb-4">
                   <div class="text-caption d-flex justify-space-between grey--text">
-                    <span>Bass Sensitivity</span>
+                    <span>{{ $t('sound.bassSensitivity') }}</span>
                     <span>{{ sensitivity.bassBoost.toFixed(1) }}x</span>
                   </div>
                   <v-slider
@@ -271,22 +274,22 @@
             <!-- Camera -->
             <v-tab-item>
               <div class="pa-6">
-                <div class="text-overline mb-4 primary--text">Motion</div>
-                <v-switch v-model="cameraMove" :label="cameraMove ? 'Auto-Orbiting' : 'Stationary'" color="primary" inset></v-switch>
-                <div class="text-caption grey--text">Toggle automatic camera rotation around the scene.</div>
+                <div class="text-overline mb-4 primary--text">{{ $t('camera.motion') }}</div>
+                <v-switch v-model="cameraMove" :label="cameraMove ? $t('camera.orbiting') : $t('camera.stationary')" color="primary" inset></v-switch>
+                <div class="text-caption grey--text">{{ $t('camera.autoRotateDesc') }}</div>
               </div>
             </v-tab-item>
 
             <!-- Effects -->
             <v-tab-item>
               <div class="pa-6">
-                <div class="text-overline mb-4 primary--text">Visual Enhancements</div>
+                <div class="text-overline mb-4 primary--text">{{ $t('effects.enhancements') }}</div>
                 <v-list dark dense flat class="transparent">
                   <v-list-item v-for="effect in effectList" :key="effect.id" @click="toggleEffect(effect.id)">
                     <v-list-item-action><v-checkbox :input-value="activeEffects.includes(effect.id)" color="primary" hide-details></v-checkbox></v-list-item-action>
                     <v-list-item-content>
-                      <v-list-item-title>{{ effect.name }}</v-list-item-title>
-                      <v-list-item-subtitle>{{ effect.desc }}</v-list-item-subtitle>
+                      <v-list-item-title>{{ $t('effects.' + effect.id + 'Name') }}</v-list-item-title>
+                      <v-list-item-subtitle>{{ $t('effects.' + effect.id + 'Desc') }}</v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
                 </v-list>
@@ -296,27 +299,27 @@
             <!-- Branding -->
             <v-tab-item>
               <div class="pa-6">
-                <div class="text-overline mb-4 primary--text">Text Content</div>
-                <v-text-field v-model="title" label="Title Text" outlined dense @input="updateTitle" class="mb-2"></v-text-field>
-                <v-text-field v-model="subtitle" label="Subtitle" outlined dense @input="updateSubtitle" class="mb-6"></v-text-field>
+                <div class="text-overline mb-4 primary--text">{{ $t('branding.textContent') }}</div>
+                <v-text-field v-model="title" :label="$t('branding.titleText')" outlined dense @input="updateTitle" class="mb-2"></v-text-field>
+                <v-text-field v-model="subtitle" :label="$t('branding.subtitle')" outlined dense @input="updateSubtitle" class="mb-6"></v-text-field>
                 
-                <div class="text-overline mb-4 primary--text">Visualizer Style</div>
+                <div class="text-overline mb-4 primary--text">{{ $t('branding.visualizerStyle') }}</div>
                 <div class="d-flex flex-wrap mb-6" style="gap: 8px">
                   <v-chip
-                    v-for="s in ['Liquid', 'None']"
-                    :key="s"
+                    v-for="s in logoStyles"
+                    :key="s.value"
                     small
                     label
-                    :color="logoStyle === s ? 'primary' : ''"
+                    :color="logoStyle === s.value ? 'primary' : ''"
                     outlined
-                    @click="setLogoStyle(s)"
+                    @click="setLogoStyle(s.value)"
                     class="preset-chip"
                   >
-                    {{ s }}
+                    {{ $t('branding.' + s.labelKey) }}
                   </v-chip>
                 </div>
 
-                <div class="text-overline mb-2 primary--text">Color Presets</div>
+                <div class="text-overline mb-2 primary--text">{{ $t('branding.colorPresets') }}</div>
                 <div class="d-flex flex-wrap mb-6" style="gap: 8px">
                   <v-chip
                     v-for="p in colorPresets"
@@ -329,49 +332,49 @@
                     :style="{ borderColor: 'rgba(255,255,255,0.2)' }"
                   >
                     <div class="preset-preview mr-2" :style="{ background: p.dynamic ? 'linear-gradient(45deg, #ff0000, #00ff00, #0000ff)' : `linear-gradient(45deg, rgb(${p.colors.r},${p.colors.g},${p.colors.b}), rgb(${p.light.r},${p.light.g},${p.light.b}))` }"></div>
-                    {{ p.name }}
+                    {{ $t('branding.preset_' + p.nameKey) }}
                   </v-chip>
                 </div>
 
-                <div class="text-overline mb-2 primary--text">Custom Colors</div>
+                <div class="text-overline mb-2 primary--text">{{ $t('branding.customColors') }}</div>
                 <div class="d-flex mb-6 mt-2">
                   <div class="mr-4 flex-grow-1">
-                    <div class="text-caption mb-2 grey--text">Primary</div>
+                    <div class="text-caption mb-2 grey--text">{{ $t('branding.primary') }}</div>
                     <v-menu offset-y :close-on-content-click="false">
-                      <template v-slot:activator="{ on }"><v-btn block small v-on="on" :color="accentColorHex" class="rounded-pill border-thin elevation-0">Pick</v-btn></template>
+                      <template v-slot:activator="{ on }"><v-btn block small v-on="on" :color="accentColorHex" class="rounded-pill border-thin elevation-0">{{ $t('common.pick') }}</v-btn></template>
                       <v-color-picker :value="accentColorHex" @update:color="colorSelected" flat mode="hex"></v-color-picker>
                     </v-menu>
                   </div>
                   <div class="flex-grow-1">
-                    <div class="text-caption mb-2 grey--text">Accent</div>
+                    <div class="text-caption mb-2 grey--text">{{ $t('branding.accent') }}</div>
                     <v-menu offset-y :close-on-content-click="false">
-                      <template v-slot:activator="{ on }"><v-btn block small v-on="on" :color="lightColorHex" class="rounded-pill border-thin elevation-0">Pick</v-btn></template>
+                      <template v-slot:activator="{ on }"><v-btn block small v-on="on" :color="lightColorHex" class="rounded-pill border-thin elevation-0">{{ $t('common.pick') }}</v-btn></template>
                       <v-color-picker :value="lightColorHex" @update:color="setLightColor" flat mode="hex"></v-color-picker>
                     </v-menu>
                   </div>
                 </div>
 
-                <v-file-input label="Center Logo" dense outlined @change="emblemSelected" prepend-inner-icon="mdi-sticker-emoji"></v-file-input>
+                <v-file-input :label="$t('branding.centerLogo')" dense outlined @change="emblemSelected" prepend-inner-icon="mdi-sticker-emoji"></v-file-input>
 
                 <v-divider class="my-4 opacity-10"></v-divider>
 
-                <div class="text-overline mb-2 primary--text">Announcements</div>
-                <v-text-field v-model="announcementInput" label="Announcement text" outlined dense hide-details class="mb-2"></v-text-field>
+                <div class="text-overline mb-2 primary--text">{{ $t('branding.announcements') }}</div>
+                <v-text-field v-model="announcementInput" :label="$t('branding.announcementText')" outlined dense hide-details class="mb-2"></v-text-field>
                 <v-row dense class="mb-2">
                   <v-col cols="4">
-                    <v-text-field v-model.number="announcementDuration" label="Seconds" outlined dense type="number" hide-details></v-text-field>
+                    <v-text-field v-model.number="announcementDuration" :label="$t('common.seconds')" outlined dense type="number" hide-details></v-text-field>
                   </v-col>
                   <v-col cols="8">
                     <v-btn block color="warning" @click="showAnnouncement" :disabled="!announcementInput">
-                      <v-icon left>mdi-bullhorn</v-icon> Show Announcement
+                      <v-icon left>mdi-bullhorn</v-icon> {{ $t('branding.showAnnouncement') }}
                     </v-btn>
                   </v-col>
                 </v-row>
 
                 <v-divider class="my-4 opacity-10"></v-divider>
 
-                <div class="text-overline mb-2 primary--text">Shoutouts</div>
-                <div class="text-caption grey--text mb-3">Audience can submit shoutouts at this URL:</div>
+                <div class="text-overline mb-2 primary--text">{{ $t('branding.shoutouts') }}</div>
+                <div class="text-caption grey--text mb-3">{{ $t('branding.shoutoutsUrlDesc') }}</div>
                 <v-text-field :value="shoutoutUrl" readonly outlined dense hide-details class="mb-3" prepend-inner-icon="mdi-link" @click:prepend="copyShoutoutUrl" @click="copyShoutoutUrl" bg-color="rgba(255,255,255,0.03)">
                   <template v-slot:append>
                     <v-btn icon x-small @click="copyShoutoutUrl">
@@ -382,12 +385,12 @@
 
                 <div v-if="isLoggedIn">
                   <div class="d-flex align-center mb-2">
-                    <span class="text-body-2 font-weight-bold white--text">Pending Messages</span>
+                    <span class="text-body-2 font-weight-bold white--text">{{ $t('branding.pendingMessages') }}</span>
                     <v-spacer></v-spacer>
                     <v-chip x-small label color="primary" class="font-weight-bold">{{ pendingShoutouts.length }}</v-chip>
                   </div>
                   <div v-if="pendingShoutouts.length === 0" class="text-caption grey--text text-center py-4" style="background:rgba(255,255,255,0.02); border-radius:8px">
-                    No pending shoutouts
+                    {{ $t('branding.noPendingShoutouts') }}
                   </div>
                   <div v-for="s in pendingShoutouts" :key="s.id" class="d-flex align-start pa-3 mb-2 rounded-lg" style="background:rgba(255,255,255,0.04)">
                     <div class="flex-grow-1" style="min-width:0">
@@ -395,14 +398,14 @@
                       <div class="text-caption grey--text truncate-text">{{ s.message }}</div>
                     </div>
                     <div class="d-flex ml-2" style="gap:4px; flex-shrink:0">
-                      <v-btn x-small icon color="success" @click="approveShoutout(s.id)" title="Approve"><v-icon size="16">mdi-check</v-icon></v-btn>
-                      <v-btn x-small icon color="error" @click="rejectShoutout(s.id)" title="Reject"><v-icon size="16">mdi-close</v-icon></v-btn>
+                      <v-btn x-small icon color="success" @click="approveShoutout(s.id)" :title="$t('branding.pendingApprove')"><v-icon size="16">mdi-check</v-icon></v-btn>
+                      <v-btn x-small icon color="error" @click="rejectShoutout(s.id)" :title="$t('branding.pendingReject')"><v-icon size="16">mdi-close</v-icon></v-btn>
                     </div>
                   </div>
                 </div>
                 <div v-else class="text-caption grey--text text-center py-4" style="background:rgba(255,255,255,0.02); border-radius:8px">
                   <v-icon small class="mr-1">mdi-lock</v-icon>
-                  Sign in to moderate shoutouts
+                  {{ $t('branding.signInToModerate') }}
                 </div>
               </div>
             </v-tab-item>
@@ -418,16 +421,16 @@
                   class="mb-6 mb-4 text-caption"
                   style="border-left: 4px solid #ff9800; background-color: rgba(255, 152, 0, 0.1) !important;"
                 >
-                  <strong class="d-block mb-1">Warning: Browser Export</strong>
-                  Video quality depends on your machine's performance. <strong>Do not resize the window</strong> while recording, as it will change the video resolution mid-render.
+                  <strong class="d-block mb-1">{{ $t('exportTab.warningTitle') }}</strong>
+                  {{ $t('exportTab.warningBody1') }} <strong>{{ $t('exportTab.warningBody2') }}</strong> {{ $t('exportTab.warningBody3') }}
                 </v-alert>
 
-                <v-checkbox v-model="removeWatermarkCheckbox" label="Remove Watermark (Pro Only)" dense color="primary" @click.native="paywallMode = 'export'"></v-checkbox>
-                <v-checkbox v-model="highQuality" label="8Mbps High Bitrate" dense color="primary" class="mb-4"></v-checkbox>
+                <v-checkbox v-model="removeWatermarkCheckbox" :label="$t('exportTab.removeWatermark')" dense color="primary" @click.native="paywallMode = 'export'"></v-checkbox>
+                <v-checkbox v-model="highQuality" :label="$t('exportTab.highBitrate')" dense color="primary" class="mb-4"></v-checkbox>
                 
                 <v-btn block color="primary" x-large @click="handleExport" class="rounded-lg font-weight-bold elevation-4">
                   <v-icon left>{{ isExporting ? 'mdi-stop' : 'mdi-export' }}</v-icon>
-                  {{ isExporting ? 'Stop & Save' : 'Export Video' }}
+                  {{ isExporting ? $t('exportTab.stopAndSave') : $t('exportTab.exportVideo') }}
                 </v-btn>
               </div>
             </v-tab-item>
@@ -438,14 +441,14 @@
         <div class="pa-6 mt-auto flex-shrink-0" style="background: rgba(0,0,0,0.2)">
           <div class="d-flex align-center mb-4">
             <div class="status-dot mr-2"></div>
-            <span class="text-caption grey--text font-weight-bold">ENGINE STATUS: <span class="success--text">ACTIVE</span></span>
+            <span class="text-caption grey--text font-weight-bold">{{ $t('footer.engineStatus') }} <span class="success--text">{{ $t('footer.active') }}</span></span>
           </div>
           
           <v-row no-gutters>
-            <v-col cols="6"><v-btn v-if="isLoggedIn" text x-small color="grey" block class="justify-start px-0" to="/dj" target="_blank"><v-icon x-small class="mr-1">mdi-open-in-new</v-icon>DJ Remote</v-btn></v-col>
-            <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" to="/blog">Blog</v-btn></v-col>
-            <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" to="/legal">Legal</v-btn></v-col>
-            <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" href="mailto:support@noterender.com">Support</v-btn></v-col>
+            <v-col cols="6"><v-btn v-if="isLoggedIn" text x-small color="grey" block class="justify-start px-0" to="/dj" target="_blank"><v-icon x-small class="mr-1">mdi-open-in-new</v-icon>{{ $t('footer.djRemote') }}</v-btn></v-col>
+            <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" to="/blog">{{ $t('footer.blog') }}</v-btn></v-col>
+            <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" to="/legal">{{ $t('footer.legal') }}</v-btn></v-col>
+            <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" href="mailto:support@noterender.com">{{ $t('footer.support') }}</v-btn></v-col>
           </v-row>
         </div>
       </div>
@@ -479,7 +482,7 @@
       small
       elevation="12"
       class="mt-4 mr-4"
-      :class="{ 'ui-hidden': playing && !isMouseMoving && !showHelp }"
+      :class="{ 'ui-hidden': playing }"
       @click="showHelp = true"
       @mouseover="resetMouseTimer"
       style="z-index: 100; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2)"
@@ -490,12 +493,12 @@
     <!-- Shortcut Help Dialog -->
     <v-dialog v-model="showHelp" max-width="400">
       <v-card color="rgba(15, 15, 15, 0.95)" style="backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.1)">
-        <v-card-title class="headline primary--text font-weight-black letter-spacing-2">SHORTCUTS</v-card-title>
+        <v-card-title class="headline primary--text font-weight-black letter-spacing-2">{{ $t('help.title') }}</v-card-title>
         <v-card-text class="pa-6">
           <v-list dark dense flat class="transparent">
             <v-list-item v-for="s in shortcuts" :key="s.key" class="px-0">
               <v-list-item-content>
-                <v-list-item-title class="grey--text text--lighten-1">{{ s.desc }}</v-list-item-title>
+                <v-list-item-title class="grey--text text--lighten-1">{{ $t('help.' + s.i18nKey) }}</v-list-item-title>
               </v-list-item-content>
               <v-list-item-action>
                 <v-chip label small outlined color="primary" class="font-weight-black">{{ s.key }}</v-chip>
@@ -505,7 +508,7 @@
         </v-card-text>
         <v-card-actions class="pa-6">
           <v-spacer></v-spacer>
-          <v-btn color="primary" text @click="showHelp = false">Close</v-btn>
+          <v-btn color="primary" text @click="showHelp = false">{{ $t('common.close') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -521,29 +524,29 @@
           </div>
           <v-chip v-if="streamState === 'live'" color="error" dark class="ml-3 pulse-red font-weight-bold">
             <v-icon left size="16">mdi-access-point</v-icon>
-            LIVE
+            {{ $t('transport.live') }}
           </v-chip>
           <v-chip v-else-if="streamState" :color="streamState === 'error' ? 'grey' : 'amber'" dark class="ml-3">
             <v-icon left size="16">{{ streamState === 'error' ? 'mdi-alert' : 'mdi-access-point' }}</v-icon>
-            {{ streamState === 'error' ? 'STREAM ERROR' : 'CONNECTING' }}
+            {{ streamState === 'error' ? $t('transport.streamError') : $t('transport.connecting') }}
           </v-chip>
           <v-btn-toggle v-model="appMode" mandatory background-color="transparent" color="primary" dense class="ml-4 border-thin rounded-pill px-2">
-            <v-btn value="studio" small text class="rounded-pill px-4">Studio</v-btn>
-            <v-btn value="live" small text class="rounded-pill px-4">Live</v-btn>
+            <v-btn value="studio" small text class="rounded-pill px-4">{{ $t('modes.studio') }}</v-btn>
+            <v-btn value="live" small text class="rounded-pill px-4">{{ $t('modes.live') }}</v-btn>
           </v-btn-toggle>
           <v-btn v-if="appMode === 'studio'" color="primary" rounded class="ml-4 font-weight-bold elevation-4 px-6" style="height: 36px" @click="handleExport">
             <v-icon left size="18">{{ isExporting ? 'mdi-stop' : 'mdi-export' }}</v-icon> 
-            {{ isExporting ? 'Stop & Save' : 'Export' }}
+            {{ isExporting ? $t('exportTab.stopAndSave') : $t('exportTab.export') }}
           </v-btn>
           <v-btn v-else color="error" rounded class="ml-4 font-weight-bold elevation-4 px-6 pulse-red" style="height: 36px" @click="goLive">
-            <v-icon left size="18">mdi-broadcast</v-icon> 
-            START LIVE
+            <v-icon left size="18">mdi-broadcast</v-icon> {{ $t('transport.live') }} 
+            {{ $t('transport.startLive') }}
           </v-btn>
           <template v-if="isDesktop && monitors.length > 0">
             <v-divider vertical class="mx-4 grey darken-3 my-4"></v-divider>
             <v-select
               v-model="selectedMonitorIndex"
-              :items="monitors.map((m, i) => ({ text: m.name || `Monitor ${i + 1}`, value: i }))"
+              :items="monitors.map((m, i) => ({ text: m.name || $t('transport.monitorName', { index: i + 1 }), value: i }))"
               dense
               dark
               outlined
@@ -552,16 +555,16 @@
               style="max-width: 180px"
               prepend-inner-icon="mdi-monitor"
             ></v-select>
-            <v-btn v-if="!visualizerOpen" icon color="green" class="ml-2" @click="openVisualizer" title="Open visualizer on selected monitor">
+            <v-btn v-if="!visualizerOpen" icon color="green" class="ml-2" @click="openVisualizer" :title="$t('transport.openVisualizer')">
               <v-icon>mdi-monitor-dashboard</v-icon>
             </v-btn>
-            <v-btn v-else icon color="red" class="ml-2" @click="closeVisualizerWindow" title="Close visualizer">
+            <v-btn v-else icon color="red" class="ml-2" @click="closeVisualizerWindow" :title="$t('transport.closeVisualizer')">
               <v-icon>mdi-close-circle</v-icon>
             </v-btn>
           </template>
           <v-divider vertical class="mx-6 grey darken-3 my-4"></v-divider>
           <div class="d-none d-sm-block mr-2" style="min-width: 120px">
-            <div class="text-overline primary--text font-weight-black mb-n1" style="letter-spacing: 3px !important">ACTIVE</div>
+            <div class="text-overline primary--text font-weight-black mb-n1" style="letter-spacing: 3px !important">{{ $t('transport.activeNote') }}</div>
             <div class="text-h6 white--text text-uppercase font-weight-light truncate-text">{{ template }}</div>
           </div>
         </v-card>
@@ -575,59 +578,59 @@
     <!-- Live Mode Explanation Dialog -->
     <v-dialog v-model="showLiveDialog" max-width="480" persistent>
       <v-card color="rgba(15,15,15,0.95)" class="pa-6 rounded-xl" style="border:1px solid rgba(255,255,255,0.1)">
-        <v-card-title class="pa-0 primary--text font-weight-black text-h5 mb-4 letter-spacing-2">LIVE MODE</v-card-title>
+        <v-card-title class="pa-0 primary--text font-weight-black text-h5 mb-4 letter-spacing-2">{{ $t('transport.liveModeTitle') }}</v-card-title>
 
         <div class="mb-4">
           <div class="d-flex mb-3">
             <v-icon color="primary" class="mr-3">mdi-monitor-speaker</v-icon>
             <div>
-              <div class="font-weight-bold white--text">1. Select your audio source</div>
-              <div class="text-caption grey--text">Choose "Capture Device" for clean big-screen output (recommended), or "System Audio" to share a window</div>
+              <div class="font-weight-bold white--text">{{ $t('transport.liveDialog1') }}</div>
+              <div class="text-caption grey--text">{{ $t('transport.liveDialog1Desc') }}</div>
             </div>
           </div>
           <div class="d-flex mb-3">
             <v-icon color="primary" class="mr-3">mdi-monitor-screenshot</v-icon>
             <div>
-              <div class="font-weight-bold white--text">2. Choose what to share</div>
-              <div class="text-caption grey--text">Your browser will ask you to select a window or screen. Make sure to check "Also share system audio"</div>
+              <div class="font-weight-bold white--text">{{ $t('transport.liveDialog2') }}</div>
+              <div class="text-caption grey--text">{{ $t('transport.liveDialog2Desc') }}</div>
             </div>
           </div>
           <div class="d-flex">
             <v-icon color="primary" class="mr-3">mdi-fullscreen</v-icon>
             <div>
-              <div class="font-weight-bold white--text">3. Go fullscreen</div>
-              <div class="text-caption grey--text">The visualizer will enter fullscreen mode. Move your mouse to reveal controls</div>
+              <div class="font-weight-bold white--text">{{ $t('transport.liveDialog3') }}</div>
+              <div class="text-caption grey--text">{{ $t('transport.liveDialog3Desc') }}</div>
             </div>
           </div>
         </div>
 
-        <v-checkbox v-model="dontShowLiveDialog" label="Don't show this again" dense color="primary" class="mb-2"></v-checkbox>
+        <v-checkbox v-model="dontShowLiveDialog" :label="$t('transport.dontShowAgain')" dense color="primary" class="mb-2"></v-checkbox>
 
-        <v-btn block x-large color="primary" @click="startLiveCapture" class="font-weight-bold rounded-lg">Continue</v-btn>
-        <v-btn block text color="grey" @click="showLiveDialog = false" class="mt-2">Cancel</v-btn>
+        <v-btn block x-large color="primary" @click="startLiveCapture" class="font-weight-bold rounded-lg">{{ $t('common.continue') }}</v-btn>
+        <v-btn block text color="grey" @click="showLiveDialog = false" class="mt-2">{{ $t('common.cancel') }}</v-btn>
       </v-card>
     </v-dialog>
 
     <!-- Audio Setup Guide Dialog -->
     <v-dialog v-model="showAudioSetupGuide" max-width="500">
       <v-card color="rgba(15,15,15,0.95)" class="pa-6 rounded-xl" style="border:1px solid rgba(255,255,255,0.1)">
-        <v-card-title class="pa-0 primary--text font-weight-black text-h5 mb-4 letter-spacing-2">SETUP GUIDE</v-card-title>
+        <v-card-title class="pa-0 primary--text font-weight-black text-h5 mb-4 letter-spacing-2">{{ $t('sound.setupGuide') }}</v-card-title>
 
         <div class="mb-4">
-          <div class="font-weight-bold white--text mb-2">What is a virtual audio cable?</div>
-          <div class="text-caption grey--text mb-4">It lets you route audio from your DJ software (Ableton, Serato, Spotify, etc.) directly into the visualizer — no screen sharing needed, so no Chrome "Sharing" bar appears on the big screen.</div>
+          <div class="font-weight-bold white--text mb-2">{{ $t('sound.setupWhatIs') }}</div>
+          <div class="text-caption grey--text mb-4">{{ $t('sound.setupWhatIsDesc') }}</div>
 
-          <div class="font-weight-bold white--text mb-2">Windows</div>
-          <div class="text-caption grey--text mb-3">Download <strong>VB-Cable</strong> from vb-audio.com/Cable — install, restart. Your DJ software outputs to "CABLE Input", visualizer captures from "CABLE Output".</div>
+          <div class="font-weight-bold white--text mb-2">{{ $t('sound.setupWindows') }}</div>
+          <div class="text-caption grey--text mb-3">{{ $t('sound.setupWindowsDesc') }}</div>
 
-          <div class="font-weight-bold white--text mb-2">macOS</div>
-          <div class="text-caption grey--text mb-3">Install <strong>BlackHole</strong> from github.com/ExistentialAudio/BlackHole. Create a Multi-Output Device in Audio MIDI Setup. Route DJ software to it.</div>
+          <div class="font-weight-bold white--text mb-2">{{ $t('sound.setupMac') }}</div>
+          <div class="text-caption grey--text mb-3">{{ $t('sound.setupMacDesc') }}</div>
 
-          <div class="font-weight-bold white--text mb-2">Linux</div>
-          <div class="text-caption grey--text">Use PipeWire's loopback module or `pactl load-module module-null-sink`.</div>
+          <div class="font-weight-bold white--text mb-2">{{ $t('sound.setupLinux') }}</div>
+          <div class="text-caption grey--text">{{ $t('sound.setupLinuxDesc') }}</div>
         </div>
 
-        <v-btn block color="primary" @click="showAudioSetupGuide = false" class="font-weight-bold">Got it</v-btn>
+        <v-btn block color="primary" @click="showAudioSetupGuide = false" class="font-weight-bold">{{ $t('common.gotIt') }}</v-btn>
       </v-card>
     </v-dialog>
   </v-app>
@@ -641,6 +644,7 @@ import Recording from "./../js/Recording";
 import Templates from "./Templates.vue";
 import TemplateConfig from "./TemplateConfig.vue";
 import PaywallModal from "@/components/PaywallModal.vue";
+import LocaleSwitcher from "@/components/LocaleSwitcher.vue";
 import TEXT from "@/js/templates/components/text";
 import Effects from "@/js/Effects";
 import CAMERA from "@/js/templates/components/camera";
@@ -667,7 +671,7 @@ import reactor from "../js/templates/reactor";
 
 export default {
   name: "Player",
-  components: { Templates, TemplateConfig, PaywallModal },
+  components: { Templates, TemplateConfig, PaywallModal, LocaleSwitcher },
   data() {
     return {
       drawer: false,
@@ -699,7 +703,8 @@ export default {
       paywallMode: "export",
       tiktokEnabled: localStorage.getItem("noterender_tiktok_enabled") === "true",
       tiktokRtmpUrl: localStorage.getItem("noterender_tiktok_rtmp") || "",
-      tiktokStreamKey: localStorage.getItem("noterender_tiktok_key") || "",
+
+      tiktokStreamKey: "",
       tiktokRelayUrl: localStorage.getItem("noterender_tiktok_relay") || "ws://localhost:8090",
       streamState: "",
       streamMessage: "",
@@ -717,30 +722,34 @@ export default {
       pendingShoutouts: [],
       autoSaveTimer: null,
       effectList: [
-        { id: 'smoke', name: 'Smoke Atmosphere', desc: 'Reactive particle fog system' },
-        { id: 'thunder', name: 'Dynamic Thunder', desc: 'Bass-triggered lightning flashes' },
-        { id: 'birds', name: 'Flying Creatures', desc: 'Abstract birds following the beat' },
-        { id: 'glitch', name: 'Glitch Mode', desc: 'Digital distortion and chromatic shifts' },
-        { id: 'grid', name: 'Neon Grid', desc: 'Retro-futuristic pulsing floor grid' },
-        { id: 'fireflies', name: 'Organic Fireflies', desc: 'Wandering glowing light particles' },
-        { id: 'rain', name: 'Matrix Rain', desc: 'Vertical falling streaks of code-light' },
-        { id: 'shockwave', name: 'Bass Shockwaves', desc: 'Expanding rings on heavy sub-hits' },
-        { id: 'lasers', name: 'Scanning Lasers', desc: 'Volumetric beams sweeping the scene' },
-        { id: 'dust', name: 'Cosmic Dust', desc: 'Floating deep-space particles' },
-        { id: 'crystals', name: 'Floating Shards', desc: 'Rotating geometric glass crystals' },
-        { id: 'vignette', name: 'Cinematic Border', desc: 'Pulsing edge focus and framing' },
-        { id: 'bloom', name: 'Bloom Flash', desc: 'Intense brightness peaks on snare' }
+        { id: 'smoke' },
+        { id: 'thunder' },
+        { id: 'birds' },
+        { id: 'glitch' },
+        { id: 'grid' },
+        { id: 'fireflies' },
+        { id: 'rain' },
+        { id: 'shockwave' },
+        { id: 'lasers' },
+        { id: 'dust' },
+        { id: 'crystals' },
+        { id: 'vignette' },
+        { id: 'bloom' }
+      ],
+      logoStyles: [
+        { value: 'Liquid', labelKey: 'liquid' },
+        { value: 'None', labelKey: 'none' }
       ],
       shortcuts: [
-        { key: 'j / k', desc: 'Next / Previous Tab' },
-        { key: 'h / l', desc: 'Toggle Sidebar' },
-        { key: '[ / ]', desc: 'Next / Previous Template' },
-        { key: '1 - 7', desc: 'Jump to Tab' },
-        { key: 'm', desc: 'Toggle Microphone' },
-        { key: 'f', desc: 'Toggle Fullscreen' },
-        { key: 'c', desc: 'Toggle Camera Motion' },
-        { key: 'Space', desc: 'Play / Pause' },
-        { key: '?', desc: 'Show Shortcuts' }
+        { key: 'j / k', i18nKey: 'nextPreviousTab' },
+        { key: 'h / l', i18nKey: 'toggleSidebar' },
+        { key: '[ / ]', i18nKey: 'nextPreviousTemplate' },
+        { key: '1 - 7', i18nKey: 'jumpToTab' },
+        { key: 'm', i18nKey: 'toggleMicrophone' },
+        { key: 'f', i18nKey: 'toggleFullscreen' },
+        { key: 'c', i18nKey: 'toggleCameraMotion' },
+        { key: 'Space', i18nKey: 'playPause' },
+        { key: '?', i18nKey: 'showShortcuts' }
       ],
       isDesktop: !!window.electronAPI,
       monitors: [],
@@ -1287,6 +1296,7 @@ export default {
         Streaming.stop();
         this.streamState = "";
         this.streamMessage = "";
+        if (TEXT && typeof TEXT.setLiveState === "function") TEXT.setLiveState(false);
       }
       if (this.audio) {
         this.audio.stop(() => {
@@ -1302,13 +1312,15 @@ export default {
 
     saveTikTokSettings() {
       localStorage.setItem("noterender_tiktok_rtmp", this.tiktokRtmpUrl.trim());
-      localStorage.setItem("noterender_tiktok_key", this.tiktokStreamKey.trim());
       localStorage.setItem("noterender_tiktok_relay", this.tiktokRelayUrl.trim());
     },
 
     handleStreamStatus(state, message) {
       this.streamState = state;
       this.streamMessage = message;
+      if (TEXT && typeof TEXT.setLiveState === "function") {
+        TEXT.setLiveState(state === "live");
+      }
     },
 
     buildRtmpUrl() {
@@ -1376,8 +1388,8 @@ export default {
 
       // WebGPUEngine specific check: don't resize if it's not fully ready
       if (this.engine.isWebGPU && !this.engine.snapshotRendering) {
-          // This is a heuristic, but often the engine is not ready for resize
-          // if internal attachments haven't been initialized by the first render.
+        // This is a heuristic, but often the engine is not ready for resize
+        // if internal attachments haven't been initialized by the first render.
       }
 
       const container = this.canvas.parentElement;
@@ -1433,6 +1445,10 @@ export default {
       }
     },
 
+    handleWindowResize() {
+      this.resizeCanvas();
+    },
+
     async mountScene() {
       if (this.isMounting) return;
       this.isMounting = true;
@@ -1486,8 +1502,8 @@ export default {
       // Ensure canvas is correctly sized before first render/resize
       this.resizeCanvas();
       
-      window.addEventListener("resize", () => { this.resizeCanvas(); });
-      
+      window.addEventListener("resize", this.handleWindowResize);
+
       try {
         console.log("Creating scene...");
         await this.createScene();
@@ -1587,7 +1603,7 @@ export default {
   mounted() {
     // Refresh subscription/auth state from server
     if (this.isLoggedIn) {
-      this.$store.dispatch("fetchMe").then(() => {});
+      this.$store.dispatch("fetchMe").catch(() => {});
     }
 
     // Check Stripe redirect: refresh subscription from /api/me once webhook has landed
@@ -1601,6 +1617,8 @@ export default {
             } else {
               window.history.replaceState({}, document.title, window.location.pathname);
             }
+          }).catch(() => {
+            window.history.replaceState({}, document.title, window.location.pathname);
           });
         }
       };
@@ -1651,6 +1669,7 @@ export default {
   },
 
   beforeDestroy() {
+    window.removeEventListener("resize", this.handleWindowResize);
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("mousemove", this.handleMouseMove);
     window.removeEventListener("touchstart", this.handleMouseMove);
@@ -1663,6 +1682,12 @@ export default {
 </script>
 
 <style scoped>
+.locale-switcher-slot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
 .logo-wrapper {
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(5px);

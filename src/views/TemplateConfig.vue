@@ -1,10 +1,10 @@
 <template>
   <div class="template-config pa-6" v-if="activeTemplate">
-    <div class="text-overline mb-4 primary--text">Template Tuning</div>
+    <div class="text-overline mb-4 primary--text">{{ $t('templateConfig.tuning') }}</div>
     
     <div v-for="(param, key) in activeTemplate.configuration" :key="key" class="mb-6">
       <div class="d-flex justify-space-between align-center mb-1">
-        <span class="text-caption grey--text">{{ param.label }}</span>
+        <span class="text-caption grey--text">{{ $te('templates.' + activeTemplate.name + '.config.' + key) ? $t('templates.' + activeTemplate.name + '.config.' + key) : param.label }}</span>
         <span class="text-caption primary--text font-weight-bold">{{ currentConfig[key] }}</span>
       </div>
       
@@ -32,11 +32,11 @@
 
     <v-btn block outlined small color="grey" @click="resetToDefault" class="mt-4 rounded-pill">
       <v-icon left x-small>mdi-refresh</v-icon>
-      Reset to Default
+      {{ $t('templateConfig.reset') }}
     </v-btn>
   </div>
   <div v-else class="pa-6 text-center grey--text">
-    Select a template to customize it
+    {{ $t('templateConfig.select') }}
   </div>
 </template>
 
