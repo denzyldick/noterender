@@ -133,10 +133,10 @@ function layout() {
     row.holder.width = (panelW - padding * 2) + "px";
     row.holder.height = rowH + "px";
     row.holder.leftInPixels = padding;
-    row.name.block.fontSize = Math.max(9, 13 * currentScale);
-    row.msg.block.fontSize = Math.max(8, 11 * currentScale);
-    row.name.block.topInPixels = 6 * currentScale;
-    row.msg.block.topInPixels = 26 * currentScale;
+    row.name.fontSize = Math.max(9, 13 * currentScale);
+    row.msg.fontSize = Math.max(8, 11 * currentScale);
+    row.name.topInPixels = 6 * currentScale;
+    row.msg.topInPixels = 26 * currentScale;
     feedY += rowH + gap;
   });
 }
