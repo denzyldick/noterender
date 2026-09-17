@@ -1,6 +1,8 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { ensureGlow } from "./components/glow";
+import { scaled } from "@/js/perf";
 
 let ground;
 let sun;
@@ -45,7 +47,7 @@ const template = {
         // --- Digital Aurora Background ---
         digitalAurora = new BABYLON.SolidParticleSystem("aurora", scene);
         const ribbonShape = BABYLON.MeshBuilder.CreatePlane("r", { width: 2000, height: 5 }, scene);
-        digitalAurora.addShape(ribbonShape, 50);
+        digitalAurora.addShape(ribbonShape, scaled(50));
         ribbonShape.dispose();
         const auroraMesh = digitalAurora.buildMesh();
         auroraMesh.material = new BABYLON.StandardMaterial("auroraMat", scene);
@@ -80,13 +82,13 @@ const template = {
         }
 
         // --- Moving Terrain ---
-        ground = BABYLON.MeshBuilder.CreateGround("g", { width: 3000, height: 3000, subdivisions: 256, updatable: true }, scene);
+        ground = BABYLON.MeshBuilder.CreateGround("g", { width: 3000, height: 3000, subdivisions: 128, updatable: true }, scene);
         const mat = new BABYLON.StandardMaterial("m", scene);
         mat.wireframe = true;
         mat.emissiveColor.copyFrom(_primaryColor);
         ground.material = mat;
 
-        if (!scene.glowLayer) new BABYLON.GlowLayer("glow", scene);
+        ensureGlow(scene);
     },
 
     getFFT(fft, idx) {

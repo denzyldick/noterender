@@ -1,0 +1,17 @@
+name = "noterender-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "noterender-db"
+database_id = "5b3b263c-8069-4e5c-8910-4e65d2c07e3c"
+migrations_dir = "migrations"
+
+[vars]
+APP_URL = "https://noterender-7bc.pages.dev"
+
+# Never put secrets here — set with: wrangler secret put STRIPE_SECRET_KEY

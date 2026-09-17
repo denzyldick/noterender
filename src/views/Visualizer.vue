@@ -27,13 +27,15 @@ import aurora from "@/js/templates/aurora";
 import cathedral from "@/js/templates/cathedral";
 import oscillate from "@/js/templates/oscillate";
 import reactor from "@/js/templates/reactor";
+import station from "@/js/templates/station";
 
 import PLANE from "@/js/templates/components/plane";
+import { computeRenderScale } from "@/js/perf";
 
 const templateModules = {
   terrain, trap, solaris, city, infinity, tunnel,
   nebulacore, aether, monolith, prism, flora,
-  clouds, aurora, cathedral, oscillate, reactor,
+  clouds, aurora, cathedral, oscillate, reactor, station,
 };
 
 export default {
@@ -78,8 +80,7 @@ export default {
         return;
       }
 
-      const dpr = window.devicePixelRatio || 1;
-      this.engine.setHardwareScalingLevel(1 / dpr);
+      this.engine.setHardwareScalingLevel(computeRenderScale(this.canvas));
 
       this.scene = new BABYLON.Scene(this.engine);
       this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
@@ -132,8 +133,7 @@ export default {
       if (!this.engine || !this.canvas) return;
       this.canvas.width = window.innerWidth;
       this.canvas.height = window.innerHeight;
-      const dpr = window.devicePixelRatio || 1;
-      this.engine.setHardwareScalingLevel(1 / dpr);
+      this.engine.setHardwareScalingLevel(computeRenderScale(this.canvas));
       this.engine.resize();
       TEXT.resize(this.canvas.width, this.canvas.height);
     },

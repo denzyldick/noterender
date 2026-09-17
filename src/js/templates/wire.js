@@ -1,6 +1,7 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { ensureGlow } from "./components/glow";
 
 let sceneRef;
 let currentCamera;
@@ -73,9 +74,7 @@ const template = {
         bg.position.z = 50;
         bg.material = bgMat;
 
-        if (!scene.glowLayer) {
-            new BABYLON.GlowLayer("glow", scene).intensity = 0.5;
-        }
+        ensureGlow(scene, 0.5);
     },
 
     render(fft, config) {

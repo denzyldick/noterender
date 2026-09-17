@@ -1,6 +1,7 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { ensureGlow } from "./components/glow";
 
 let sceneRef;
 let currentCamera;
@@ -114,9 +115,7 @@ const template = {
             roseWindow.push(ray);
         }
 
-        if (!scene.glowLayer) {
-            new BABYLON.GlowLayer("glow", scene).intensity = 1.2;
-        }
+        ensureGlow(scene, 1.2);
     },
 
     render(fft, config) {

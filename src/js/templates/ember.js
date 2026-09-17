@@ -1,6 +1,7 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { scaled } from "@/js/perf";
 
 let sceneRef;
 let currentCamera;
@@ -55,7 +56,7 @@ const template = {
 
         const box = BABYLON.MeshBuilder.CreateBox("s", { size: 1 }, scene);
         stars = new BABYLON.SolidParticleSystem("stars", scene, { updatable: true });
-        stars.addShape(box, STAR_COUNT);
+        stars.addShape(box, scaled(STAR_COUNT));
         box.dispose();
         const mesh = stars.buildMesh();
         mesh.material = new BABYLON.StandardMaterial("starMat", scene);

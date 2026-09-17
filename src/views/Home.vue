@@ -14,6 +14,7 @@ import city from "../js/templates/city";
 import terrain from "../js/templates/terrain";
 import nebulacore from "../js/templates/nebulacore";
 import TEXT from "@/js/templates/components/text";
+import { computeRenderScale } from "@/js/perf";
 
 export default {
   name: "Home",
@@ -167,7 +168,12 @@ export default {
       this.canvas = document.getElementById("renderCanvas");
       try {
         const webgpuSupported = await BABYLON.WebGPUEngine.IsSupportedAsync;
-        if (webgpuSupported) {
+        let canUseWebGPU = false;
+        if (webgpuSupported && navigator.gpu) {
+            const adapter = await navigator.gpu.requestAdapter();
+            canUseWebGPU = !!adapter && typeof adapter.requestAdapterInfo === 'function';
+        }
+        if (canUseWebGPU) {
             this.engine = new BABYLON.WebGPUEngine(this.canvas, { antialias: true });
             await this.engine.initAsync();
             console.log("WebGPU Engine Initialized");
@@ -181,6 +187,8 @@ export default {
           stencil: true,
         });
       }
+
+      this.engine.setHardwareScalingLevel(computeRenderScale(this.canvas));
 
       this.createScene();
       // run the render loop

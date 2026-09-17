@@ -1,6 +1,7 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { ensureGlow } from "./components/glow";
 
 let sceneRef;
 let currentCamera;
@@ -51,6 +52,7 @@ const template = {
         facetBase.material = facetMat;
         facetBase.isVisible = false;
         facetBase.registerInstancedBuffer("color", 4);
+        facetBase.instancedBuffers.color = new BABYLON.Color4(1, 1, 1, 1);
 
         facets = [];
         const facetCount = 120;
@@ -78,7 +80,7 @@ const template = {
             outerRings.push(ring);
         }
 
-        if (!scene.glowLayer) new BABYLON.GlowLayer("glow", scene).intensity = 2.0;
+        ensureGlow(scene, 2.0);
     },
 
     render(fft, config) {

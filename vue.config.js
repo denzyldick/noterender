@@ -68,7 +68,25 @@ module.exports = {
     },
     workboxOptions: {
       skipWaiting: true,
-      clientsClaim: true
+      clientsClaim: true,
+      exclude: [/\.map$/, /assets\/station\//],
+      navigateFallback: `${publicPath}index.html`,
+      runtimeCaching: [
+        {
+          urlPattern: ({ request }) => request.mode === 'navigate',
+          handler: 'NetworkFirst',
+          options: { cacheName: 'pages-cache', networkTimeoutSeconds: 3 }
+        },
+        {
+          urlPattern: /assets\/station\//,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'station-assets',
+            cacheableResponse: { statuses: [0, 200] },
+            expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 }
+          }
+        }
+      ]
     }
   }
 }

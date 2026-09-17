@@ -151,6 +151,12 @@ export default {
         } else {
           await this.$store.dispatch("register", { email: this.email, password: this.password });
         }
+        // Refresh subscription state from server
+        const me = await this.$store.dispatch("fetchMe").catch(() => ({}));
+        if (me && me.subscriptionActive) {
+          this.dialog = false;
+          return;
+        }
         // Clear sensitive data
         this.email = "";
         this.password = "";

@@ -1,6 +1,7 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { ensureGlow } from "./components/glow";
 
 let currentScene;
 let currentCamera;
@@ -8,22 +9,52 @@ let t = 0;
 let currentTemplateConfig = {};
 
 // World Elements
-let roadSegments = [];
-let sidewalks = [];
 let buildings = [];
 let streetLights = [];
 let lightStreaks = [];
+let crossRoads = [];
+let crossCars = [];
 
-// Recycler Constants
+// Street Constants (curve repeats every ROAD_LENGTH so the loop wraps seamlessly)
 const ROAD_LENGTH = 1000;
 const SEGMENT_COUNT = 8; // Total loop depth 8000 units
+const TOTAL_DEPTH = ROAD_LENGTH * SEGMENT_COUNT;
 const SPEED = 8.0;
 const ROAD_WIDTH = 120;
 const SIDEWALK_WIDTH = 60;
+const CURVE_AMP = 40;
+const CROSS_STEP = 2000;
+const CROSS_OFFSET = 1000;
+const CROSS_RADIUS = 170;
 
 // Pre-allocated Colors
 const _primaryColor = new BABYLON.Color3();
 const _accentColor = new BABYLON.Color3();
+
+let poolMat;
+let haloMat;
+let buildMatA;
+let buildMatB;
+let cityHemiLt;
+let cityDirLt;
+
+function curveX(z) {
+    return Math.sin((z % ROAD_LENGTH) / ROAD_LENGTH * Math.PI * 2) * CURVE_AMP;
+}
+
+function curveInfo(z) {
+    const d = 4;
+    const tx = curveX(z + d) - curveX(z - d);
+    const tz = 2 * d;
+    const len = Math.sqrt(tx * tx + tz * tz);
+    return {
+        x: curveX(z),
+        z: z,
+        nx: tz / len,
+        nz: -tx / len,
+        angle: Math.atan2(tx, tz),
+    };
+}
 
 const template = {
     init(camera, renderer, nb, scene, width, height, d, config) {
@@ -34,7 +65,7 @@ const template = {
         const templateData = config.templates.find(td => td.name === 'city');
         currentTemplateConfig = templateData ? templateData.currentConfig : {};
         const c = currentTemplateConfig;
-        
+
         CAMERA_PHYSICS.lock();
         if (camera) {
             camera.detachControl();
@@ -70,39 +101,79 @@ const template = {
         sideMat.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.1);
         sideMat.emissiveColor = new BABYLON.Color3(0.02, 0.02, 0.02);
 
-        const buildMat = new BABYLON.StandardMaterial("buildMat", scene);
-        buildMat.emissiveColor = new BABYLON.Color3(1,1,1);
-        buildMat.disableLighting = true;
+        const buildTextA = makeWindowTexture(scene, 12, 16);
+        buildMatA = new BABYLON.StandardMaterial("buildMatA", scene);
+        buildMatA.diffuseColor = new BABYLON.Color3(0.05, 0.06, 0.08);
+        buildMatA.emissiveTexture = buildTextA;
+        buildMatA.emissiveColor = _accentColor.scale(0.6);
+        buildMatA.specularColor = new BABYLON.Color3(0, 0, 0);
+
+        const buildTextB = makeWindowTexture(scene, 9, 20);
+        buildMatB = new BABYLON.StandardMaterial("buildMatB", scene);
+        buildMatB.diffuseColor = new BABYLON.Color3(0.04, 0.05, 0.07);
+        buildMatB.emissiveTexture = buildTextB;
+        buildMatB.emissiveColor = _accentColor.scale(0.6);
+        buildMatB.specularColor = new BABYLON.Color3(0, 0, 0);
+
+        cityHemiLt = new BABYLON.HemisphericLight("cityHemi", new BABYLON.Vector3(0.2, 1, 0.4), scene);
+        cityHemiLt.intensity = 0.75;
+        cityDirLt = new BABYLON.DirectionalLight("cityDir", new BABYLON.Vector3(0.5, -1, 0.25), scene);
+        cityDirLt.intensity = 0.85;
 
         const lightMat = new BABYLON.StandardMaterial("lightMat", scene);
         lightMat.emissiveColor = _accentColor;
         lightMat.disableLighting = true;
 
-        // --- Road & Sidewalks ---
-        const roadBase = BABYLON.MeshBuilder.CreatePlane("road", { width: ROAD_WIDTH, height: ROAD_LENGTH + 2 }, scene);
-        roadBase.rotation.x = Math.PI / 2;
-        roadBase.material = roadMat;
-        roadBase.isVisible = false;
+        // --- Curved Road + Sidewalks (static geometry, props stream over it) ---
+        const HALF = ROAD_WIDTH / 2;
+        const samples = [];
+        for (let z = -ROAD_LENGTH; z <= TOTAL_DEPTH + ROAD_LENGTH; z += 20) samples.push(z);
 
-        const sideBase = BABYLON.MeshBuilder.CreateBox("side", { width: SIDEWALK_WIDTH, height: 2, depth: ROAD_LENGTH }, scene);
-        sideBase.material = sideMat;
-        sideBase.isVisible = false;
+        const roadL = samples.map(zz => { const p = curveInfo(zz); return new BABYLON.Vector3(p.x + p.nx * HALF, 0, p.z + p.nz * HALF); });
+        const roadR = samples.map(zz => { const p = curveInfo(zz); return new BABYLON.Vector3(p.x - p.nx * HALF, 0, p.z - p.nz * HALF); });
+        const roadMesh = BABYLON.MeshBuilder.CreateRibbon("roadCurve", { pathArray: [roadL, roadR], sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+        roadMesh.material = roadMat;
 
-        roadSegments = [];
-        sidewalks = [];
-        for (let i = 0; i < SEGMENT_COUNT; i++) {
-            const z = i * ROAD_LENGTH;
-            const r = roadBase.createInstance("r" + i);
-            r.position.z = z;
-            roadSegments.push(r);
+        const swLTop = samples.map(zz => { const p = curveInfo(zz); return new BABYLON.Vector3(p.x + p.nx * (HALF + SIDEWALK_WIDTH), 0.02, p.z + p.nz * (HALF + SIDEWALK_WIDTH)); });
+        const swLBot = swLTop.map(v => new BABYLON.Vector3(v.x, -0.3, v.z));
+        const swRTop = samples.map(zz => { const p = curveInfo(zz); return new BABYLON.Vector3(p.x - p.nx * (HALF + SIDEWALK_WIDTH), 0.02, p.z - p.nz * (HALF + SIDEWALK_WIDTH)); });
+        const swRBot = swRTop.map(v => new BABYLON.Vector3(v.x, -0.3, v.z));
+        const swL = BABYLON.MeshBuilder.CreateRibbon("swL", { pathArray: [swLBot, swLTop], sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+        swL.material = sideMat;
+        const swR = BABYLON.MeshBuilder.CreateRibbon("swR", { pathArray: [swRBot, swRTop], sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+        swR.material = sideMat;
 
-            const sL = sideBase.createInstance("sL" + i);
-            sL.position.set(-(ROAD_WIDTH/2 + SIDEWALK_WIDTH/2), -1, z);
-            sidewalks.push(sL);
+        // --- Intersections (cross streets) + cross traffic ---
+        crossRoads = [];
+        crossCars = [];
+        const crossBase = BABYLON.MeshBuilder.CreateBox("crossR", { width: CROSS_RADIUS * 2, height: 0.6, depth: 60 }, scene);
+        crossBase.material = roadMat;
+        crossBase.isVisible = false;
 
-            const sR = sideBase.createInstance("sR" + i);
-            sR.position.set((ROAD_WIDTH/2 + SIDEWALK_WIDTH/2), -1, z);
-            sidewalks.push(sR);
+        const carBase = BABYLON.MeshBuilder.CreateBox("car", { width: 2.4, height: 1, depth: 4 }, scene);
+        carBase.material = lightMat;
+        carBase.isVisible = false;
+
+        for (let k = 0; k < TOTAL_DEPTH / CROSS_STEP; k++) {
+            const cz = CROSS_OFFSET + k * CROSS_STEP;
+            const p = curveInfo(cz);
+            const cr = crossBase.createInstance("cr" + k);
+            cr.position.set(p.x, -0.29, p.z);
+            cr.rotation.y = p.angle;
+            crossRoads.push({ mesh: cr, z: cz, nx: p.nx, nz: p.nz, angle: p.angle });
+
+            for (let j = 0; j < 2; j++) {
+                const car = carBase.createInstance("car_" + k + "_" + j);
+                const carObj = {
+                    mesh: car,
+                    crossIdx: k,
+                    dir: j === 0 ? 1 : -1,
+                    xi: (j === 0 ? -1 : 1) * Math.random() * 120,
+                    speed: 1.4 + Math.random() * 1.0,
+                };
+                car.rotation.y = p.angle + Math.PI / 2;
+                crossCars.push(carObj);
+            }
         }
 
         // --- Street Elements (Lights & Streaks) ---
@@ -119,42 +190,79 @@ const template = {
         bulb.material = lightMat;
         bulb.isVisible = false;
 
+        // --- Street-Light Pools (glow pools cast on the asphalt) ---
+        poolMat = new BABYLON.StandardMaterial("poolMat", scene);
+        poolMat.emissiveColor = _accentColor.scale(0.55);
+        poolMat.disableLighting = true;
+        poolMat.alpha = 0.85;
+        poolMat.specularColor = new BABYLON.Color3(0, 0, 0);
+
+        haloMat = new BABYLON.StandardMaterial("haloMat", scene);
+        haloMat.emissiveColor = _accentColor.scale(0.25);
+        haloMat.disableLighting = true;
+        haloMat.alpha = 0.6;
+        haloMat.specularColor = new BABYLON.Color3(0, 0, 0);
+
+        const poolBase = BABYLON.MeshBuilder.CreateDisc("pool", { radius: 16, tessellation: 24 }, scene);
+        poolBase.rotation.x = Math.PI / 2;
+        poolBase.material = poolMat;
+        poolBase.isVisible = false;
+
+        const haloBase = BABYLON.MeshBuilder.CreateDisc("halo", { radius: 32, tessellation: 24 }, scene);
+        haloBase.rotation.x = Math.PI / 2;
+        haloBase.material = haloMat;
+        haloBase.isVisible = false;
+
         for (let i = 0; i < 20; i++) {
             const side = i % 2 === 0 ? 1 : -1;
-            const z = (i / 20) * (ROAD_LENGTH * SEGMENT_COUNT);
+            const z = (i / 20) * TOTAL_DEPTH;
             const m = lightMesh.createInstance("lp" + i);
-            m.position.set((ROAD_WIDTH/2 + 5) * side, 30, z);
-            if (side > 0) m.rotation.y = Math.PI;
-
+            m.position.y = 30;
             const b = bulb.createInstance("lb" + i);
-            b.position.set((ROAD_WIDTH/2 - 2) * side, 58, z);
-            
-            streetLights.push({ mesh: m, bulb: b, baseZ: z });
+            b.position.y = 58;
+            const pool = poolBase.createInstance("pool" + i);
+            const halo = haloBase.createInstance("halo" + i);
+
+            streetLights.push({
+                mesh: m, bulb: b, pool, halo,
+                roadZ: z, side,
+                poleLat: (ROAD_WIDTH / 2 + 5) * side,
+                bulbLat: (ROAD_WIDTH / 2 - 2) * side,
+            });
         }
 
-        // --- Buildings ---
-        const box = BABYLON.MeshBuilder.CreateBox("box", { size: 1 }, scene);
-        box.isVisible = false;
-        box.material = buildMat;
-        box.registerInstancedBuffer("color", 4);
+        // --- Buildings (glass towers with lit windows) ---
+        const boxA = BABYLON.MeshBuilder.CreateBox("boxA", { size: 1 }, scene);
+        boxA.isVisible = false;
+        boxA.material = buildMatA;
+        boxA.registerInstancedBuffer("color", 4);
+        boxA.instancedBuffers.color = new BABYLON.Color4(_primaryColor.r, _primaryColor.g, _primaryColor.b, 1);
+
+        const boxB = BABYLON.MeshBuilder.CreateBox("boxB", { size: 1 }, scene);
+        boxB.isVisible = false;
+        boxB.material = buildMatB;
+        boxB.registerInstancedBuffer("color", 4);
+        boxB.instancedBuffers.color = new BABYLON.Color4(_primaryColor.r, _primaryColor.g, _primaryColor.b, 1);
 
         buildings = [];
         for (let i = 0; i < 100; i++) {
-            const b = box.createInstance("b" + i);
+            const b = (i % 2 === 0 ? boxA : boxB).createInstance("b" + i);
             const side = Math.random() > 0.5 ? 1 : -1;
-            const lateral = (ROAD_WIDTH/2 + SIDEWALK_WIDTH + 20 + Math.random() * 400) * side;
-            const z = Math.random() * (ROAD_LENGTH * SEGMENT_COUNT);
+            let lateral;
+            if (i % 5 === 0) {
+                lateral = (ROAD_WIDTH/2 + SIDEWALK_WIDTH + 260 + Math.random() * 220) * side;
+            } else {
+                lateral = (ROAD_WIDTH/2 + SIDEWALK_WIDTH + 8 + Math.random() * 140) * side;
+            }
+            const z = Math.random() * TOTAL_DEPTH;
             const w = 40 + Math.random() * 80;
             const h = (c.height || 200) * (0.5 + Math.random() * 0.5);
-            
-            b.position.set(lateral, h/2, z);
-            b.scaling.set(w, h, w);
+
             b.instancedBuffers.color = new BABYLON.Color4(_primaryColor.r, _primaryColor.g, _primaryColor.b, 1);
-            
-            buildings.push({ mesh: b, baseH: h, fftIdx: Math.floor(Math.random() * 128) });
+            buildings.push({ mesh: b, roadZ: z, lateral, w, baseH: h, fftIdx: Math.floor(Math.random() * 128) });
         }
 
-        // --- Traffic Light Streaks ---
+        // --- Traffic Light Streaks (moving along the road surface) ---
         const streakBase = BABYLON.MeshBuilder.CreateBox("stk", { width: 2, height: 0.5, depth: 150 }, scene);
         streakBase.material = lightMat;
         streakBase.isVisible = false;
@@ -163,13 +271,11 @@ const template = {
         for (let i = 0; i < 15; i++) {
             const s = streakBase.createInstance("stk" + i);
             const lane = (Math.random() > 0.5 ? 1 : -1) * (20 + Math.random() * 30);
-            const z = Math.random() * (ROAD_LENGTH * SEGMENT_COUNT);
-            lightStreaks.push({ mesh: s, baseZ: z, lane, speedMult: 2 + Math.random() * 4 });
+            const z = Math.random() * TOTAL_DEPTH;
+            lightStreaks.push({ mesh: s, roadZ: z, lane, speedMult: 2 + Math.random() * 4 });
         }
 
-        if (!scene.glowLayer) {
-            new BABYLON.GlowLayer("glow", scene).intensity = 1.4;
-        }
+        ensureGlow(scene, 1.4);
     },
 
     render(fft, config) {
@@ -195,40 +301,78 @@ const template = {
         }
 
         const frameSpeed = SPEED * (1 + pBass * 4.0);
-        const totalWorldDepth = ROAD_LENGTH * SEGMENT_COUNT;
 
-        // --- Move Everything ---
-        const recycle = (mesh, offset = 0) => {
-            mesh.position.z -= frameSpeed;
-            if (mesh.position.z < -1000) mesh.position.z += totalWorldDepth;
+        const scroll = (value) => {
+            let z = value - frameSpeed;
+            if (z < -1000) z += TOTAL_DEPTH;
+            return z;
         };
 
-        roadSegments.forEach(s => recycle(s));
-        sidewalks.forEach(s => recycle(s));
-        
+        // --- Street lights + pools stream along the curved road ---
         streetLights.forEach(l => {
-            recycle(l.mesh);
-            l.bulb.position.z = l.mesh.position.z;
+            l.roadZ = scroll(l.roadZ);
+            const p = curveInfo(l.roadZ);
+
+            l.mesh.position.set(p.x + p.nx * l.poleLat, 30, p.z + p.nz * l.poleLat);
+            l.mesh.rotation.y = p.angle + (l.side > 0 ? 0 : Math.PI);
+
+            l.bulb.position.set(p.x + p.nx * l.bulbLat, 58, p.z + p.nz * l.bulbLat);
             l.bulb.material.emissiveColor.copyFrom(_accentColor);
+
+            l.pool.position.set(p.x + p.nx * l.bulbLat, 0.08, p.z + p.nz * l.bulbLat);
+            l.halo.position.set(p.x + p.nx * l.bulbLat, 0.06, p.z + p.nz * l.bulbLat);
+            const poolScale = 1 + pBass * 0.8;
+            const haloScale = 1 + pBass * 0.5;
+            l.pool.scaling.set(poolScale, poolScale, 1);
+            l.halo.scaling.set(haloScale, haloScale, 1);
         });
 
+        if (poolMat) {
+            poolMat.emissiveColor.set(_accentColor.r * 0.55, _accentColor.g * 0.55, _accentColor.b * 0.55);
+            haloMat.emissiveColor.set(_accentColor.r * 0.25, _accentColor.g * 0.25, _accentColor.b * 0.25);
+        }
+
+        const winBright = 0.55 + bass * 1.4;
+        if (buildMatA) {
+            buildMatA.emissiveColor.set(_accentColor.r * winBright, _accentColor.g * winBright, _accentColor.b * winBright);
+            buildMatB.emissiveColor.set(_accentColor.r * winBright, _accentColor.g * winBright, _accentColor.b * winBright);
+        }
+
+        // --- Buildings (pulse with music, follow the curve) ---
         buildings.forEach(b => {
-            recycle(b.mesh);
+            b.roadZ = scroll(b.roadZ);
+            const p = curveInfo(b.roadZ);
             const val = (fft[b.fftIdx % fft.length] / 255) * boost;
             const h = b.baseH * (1 + val * 0.4);
-            b.mesh.scaling.y = h;
-            b.mesh.position.y = h / 2;
+            b.mesh.scaling.set(b.w, h, b.w);
+            b.mesh.position.set(p.x + p.nx * b.lateral, h / 2, p.z + p.nz * b.lateral);
+            b.mesh.rotation.y = p.angle;
             const intensity = 0.3 + val * 0.7;
             b.mesh.instancedBuffers.color.set(_primaryColor.r * intensity, _primaryColor.g * intensity, _primaryColor.b * intensity, 1);
         });
 
+        // --- Traffic light streaks on the road ---
         lightStreaks.forEach(s => {
-            s.mesh.position.z -= frameSpeed * s.speedMult;
-            if (s.mesh.position.z < -1000) s.mesh.position.z += totalWorldDepth;
-            s.mesh.position.x = s.lane;
-            s.mesh.position.y = 2;
+            s.roadZ -= frameSpeed * s.speedMult;
+            if (s.roadZ < -1000) s.roadZ += TOTAL_DEPTH;
+            const p = curveInfo(s.roadZ);
+            s.mesh.position.set(p.x + p.nx * s.lane, 2, p.z + p.nz * s.lane);
+            s.mesh.rotation.y = p.angle;
             s.mesh.material.emissiveColor.copyFrom(_accentColor);
-            s.mesh.scaling.z = 1 + pBass * 5;
+            s.mesh.scaling.z = 1 + pBass * 3;
+        });
+
+        // --- Cross traffic: cars accelerate with the bass ---
+        const carBoost = 1 + pBass * 3;
+        crossCars.forEach(car => {
+            car.xi += car.dir * car.speed * carBoost;
+            if (car.xi > CROSS_RADIUS) car.xi = -CROSS_RADIUS;
+            else if (car.xi < -CROSS_RADIUS) car.xi = CROSS_RADIUS;
+
+            const cross = crossRoads[car.crossIdx];
+            const cx = curveX(cross.z);
+            car.mesh.position.set(cx + cross.nx * car.xi, 0.8, cross.z + cross.nz * car.xi);
+            car.mesh.material.emissiveColor.copyFrom(_accentColor);
         });
 
         // --- Dynamic Camera ---
@@ -242,18 +386,72 @@ const template = {
 
         const plane = PLANE.getPlane();
         if (plane) plane.position.set(0, 10 + pBass * 4, 0);
+
+        // --- Street Lights tint the logo while passing ---
+        let maxProx = 0;
+        const planeZ = plane ? plane.position.z : 0;
+        for (let i = 0; i < streetLights.length; i++) {
+            const dz = Math.abs(planeZ - streetLights[i].mesh.position.z);
+            if (dz < 220) {
+                const prox = 1 - dz / 220;
+                if (prox > maxProx) maxProx = prox;
+            }
+        }
+
+        if (plane && plane.material) {
+            const tint = Math.min(1, maxProx * 0.9 + pBass * 0.3);
+            if (tint > 0.02) {
+                plane.material.emissiveColor.set(
+                    1 + (_accentColor.r - 1) * tint,
+                    1 + (_accentColor.g - 1) * tint,
+                    1 + (_accentColor.b - 1) * tint
+                );
+            } else {
+                plane.material.emissiveColor.set(1, 1, 1);
+            }
+        }
     },
 
     dispose() {
         currentCamera = null;
         currentScene = null;
-        roadSegments = [];
-        sidewalks = [];
         buildings = [];
         streetLights = [];
         lightStreaks = [];
+        crossRoads = [];
+        crossCars = [];
+        if (buildMatA) buildMatA.dispose();
+        if (buildMatB) buildMatB.dispose();
+        if (cityHemiLt) cityHemiLt.dispose();
+        if (cityDirLt) cityDirLt.dispose();
+        buildMatA = null;
+        buildMatB = null;
+        cityHemiLt = null;
+        cityDirLt = null;
     }
 };
+
+function makeWindowTexture(scene, cols, rows) {
+    const size = 256;
+    const dt = new BABYLON.DynamicTexture("cityWindows", { width: size, height: size }, scene, true, BABYLON.Texture.BILINEAR_SAMPLINGMODE);
+    const ctx = dt.getContext();
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, size, size);
+    const cw = size / cols;
+    const rh = size / rows;
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+            if (Math.random() > 0.15) {
+                const m = 4 + Math.floor(Math.random() * 8);
+                ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                ctx.fillRect(x * cw + m, y * rh + m, cw - m * 2, rh - m * 2);
+            }
+        }
+    }
+    dt.update();
+    return dt;
+}
 
 function hslToRgb(h, s, l) {
     let r, g, b;

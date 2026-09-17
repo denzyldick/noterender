@@ -33,6 +33,9 @@ let liveState = false;
 let liveStartedAt = 0;
 let engagementCount = 0;
 
+let watermarkVisible = true;
+let qrVisible = true;
+
 const ACCENT = "#00E5FF";
 const PANEL_MARGIN = 28;
 
@@ -77,6 +80,15 @@ function animateRow(row, birth) {
   row.holder.alpha = alpha;
   row.holder.topInPixels = (baseY + offset);
   if (age >= LIFE) row.holder.isVisible = false;
+}
+
+function applyQrVisibility() {
+  if (!qrPanel) return;
+  const visible = watermarkVisible && qrVisible;
+  qrPanel.isVisible = visible;
+  if (!visible) {
+    feedRows.forEach((row) => { row.holder.isVisible = false; });
+  }
 }
 
 function layout() {
@@ -419,12 +431,13 @@ export default {
   update(title, subtitle, showWatermark = true) {
     if (text1) text1.text = title || "";
     if (text2) text2.text = subtitle || "";
-    if (qrPanel) {
-      qrPanel.isVisible = showWatermark;
-      if (!showWatermark) {
-        feedRows.forEach((row) => { row.holder.isVisible = false; });
-      }
-    }
+    watermarkVisible = showWatermark;
+    applyQrVisibility();
+  },
+
+  setQrVisibility(visible) {
+    qrVisible = !!visible;
+    applyQrVisibility();
   },
 
   setLiveState(live) {

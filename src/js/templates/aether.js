@@ -1,6 +1,8 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { ensureGlow } from "./components/glow";
+import { scaled } from "@/js/perf";
 
 let sceneRef;
 let currentCamera;
@@ -60,7 +62,7 @@ const template = {
         // --- Particle Swarm ---
         sps = new BABYLON.SolidParticleSystem("swarm", scene, { updatable: true });
         const sphere = BABYLON.MeshBuilder.CreateSphere("s", { diameter: 2 }, scene);
-        sps.addShape(sphere, 250);
+        sps.addShape(sphere, scaled(250));
         sphere.dispose();
         const mesh = sps.buildMesh();
         mesh.material = new BABYLON.StandardMaterial("swarmMat", scene);
@@ -79,9 +81,7 @@ const template = {
         sps.initParticles();
         sps.setParticles();
 
-        if (!scene.glowLayer) {
-            new BABYLON.GlowLayer("glow", scene).intensity = 0.8;
-        }
+        ensureGlow(scene, 0.8);
     },
 
     render(fft, config) {

@@ -1,0 +1,16 @@
+{
+  "name": "noterender-api",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply noterender-db --remote",
+    "db:local": "wrangler d1 migrations apply noterender-db --local",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260910.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^4.128.0"
+  }
+}

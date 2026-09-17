@@ -1,6 +1,8 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { ensureGlow } from "./components/glow";
+import { scaled, capKernel } from "@/js/perf";
 
 let t = 0;
 let bars = [];
@@ -63,7 +65,7 @@ const template = {
         // --- Hyper-Space Background ---
         hyperSpace = new BABYLON.SolidParticleSystem("hyperSpace", scene);
         const lineShape = BABYLON.MeshBuilder.CreateBox("l", { width: 0.2, height: 0.2, depth: 50 }, scene);
-        hyperSpace.addShape(lineShape, c.hyperspace || 800);
+        hyperSpace.addShape(lineShape, scaled(c.hyperspace || 800));
         lineShape.dispose();
         const hyperMesh = hyperSpace.buildMesh();
         hyperMesh.material = new BABYLON.StandardMaterial("hyperMat", scene);
@@ -112,7 +114,7 @@ const template = {
         // --- Dust Particles ---
         particles = new BABYLON.SolidParticleSystem("trapStars", scene);
         const poly = BABYLON.MeshBuilder.CreateBox("p", { size: 1.2 }, scene);
-        particles.addShape(poly, 1000);
+        particles.addShape(poly, scaled(1000));
         poly.dispose();
         const partMesh = particles.buildMesh();
         partMesh.material = new BABYLON.StandardMaterial("partMat", scene);
@@ -128,10 +130,8 @@ const template = {
         particles.initParticles();
         particles.setParticles();
 
-        if (!scene.glowLayer) {
-            glowLayer = new BABYLON.GlowLayer("glow", scene);
-        }
-        glowLayer.blurKernelSize = c.glow || 48;
+        glowLayer = ensureGlow(scene);
+        glowLayer.blurKernelSize = capKernel(c.glow);
     },
 
     resetHyperParticle(particle) {

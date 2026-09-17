@@ -1,6 +1,7 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { ensureGlow } from "./components/glow";
 
 let sceneRef;
 let currentCamera;
@@ -62,7 +63,7 @@ const template = {
             prisms.push({ mesh: p, angle, radius, rotVel: new BABYLON.Vector3(Math.random()*0.02, Math.random()*0.02, Math.random()*0.02) });
         }
 
-        if (!scene.glowLayer) new BABYLON.GlowLayer("glow", scene).intensity = 1.6;
+        ensureGlow(scene, 1.6);
     },
 
     render(fft, config) {

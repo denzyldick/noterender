@@ -1,6 +1,8 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { ensureGlow } from "./components/glow";
+import { scaled } from "@/js/perf";
 
 let t = 0;
 let rings = [];
@@ -69,7 +71,7 @@ const template = {
         // --- Star Field ---
         stars = new BABYLON.SolidParticleSystem("stars", scene);
         const p = BABYLON.MeshBuilder.CreateBox("p", { size: 1.5 }, scene);
-        stars.addShape(p, 1000);
+        stars.addShape(p, scaled(1000));
         p.dispose();
         const starMesh = stars.buildMesh();
         starMesh.material = new BABYLON.StandardMaterial("starMat", scene);
@@ -87,7 +89,7 @@ const template = {
         stars.initParticles();
         stars.setParticles();
 
-        if (!scene.glowLayer) new BABYLON.GlowLayer("glow", scene);
+        ensureGlow(scene);
     },
 
     resetStar(part) {

@@ -1,6 +1,8 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { ensureGlow } from "./components/glow";
+import { scaled } from "@/js/perf";
 
 let sceneRef;
 let currentCamera;
@@ -47,7 +49,7 @@ const template = {
         // --- Cube Grid SPS ---
         cubeSPS = new BABYLON.SolidParticleSystem("cubeGrid", scene, { updatable: true });
         const box = BABYLON.MeshBuilder.CreateBox("b", { size: 1 }, scene);
-        cubeSPS.addShape(box, c.cubeCount || 400);
+        cubeSPS.addShape(box, scaled(c.cubeCount || 400));
         box.dispose();
         const mesh = cubeSPS.buildMesh();
         mesh.material = new BABYLON.StandardMaterial("cubeMat", scene);
@@ -66,7 +68,7 @@ const template = {
         cubeSPS.initParticles();
         cubeSPS.setParticles();
 
-        if (!scene.glowLayer) new BABYLON.GlowLayer("glow", scene).intensity = 1.5;
+        ensureGlow(scene, 1.5);
     },
 
     render(fft, config) {

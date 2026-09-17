@@ -95,14 +95,19 @@ class Audio {
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: true,
+        selfBrowserSurface: "include",
+        surfaceSwitching: "include",
       });
-      this.stream = stream;
 
       const audioTracks = stream.getAudioTracks();
       if (audioTracks.length === 0) {
-        throw new Error("No system audio track found. Make sure to check 'Share audio'.");
+        stream.getTracks().forEach((track) => track.stop());
+        const err = new Error("No system audio track found. Make sure to check 'Share audio'.");
+        err.code = "NO_SYSTEM_AUDIO_TRACK";
+        throw err;
       }
 
+      this.stream = stream;
       this.mediaSource = this.context.createMediaStreamSource(stream);
       this.mediaSource.connect(this.analyzer);
       this.initialized = true;

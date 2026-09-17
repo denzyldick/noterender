@@ -5,12 +5,15 @@
         v-for="template in templates"
         :key="template.name"
         :value="template.name"
-        @click="$store.commit('templateSelected', template.name)"
+        @click="selectTemplate(template)"
         :class="{ 'active-item': selected === template.name }"
       >
         <v-list-item-content>
           <v-list-item-title class="text-h6 font-weight-bold text-uppercase">
             {{ template.name }}
+            <v-icon v-if="isLocked(template)" small color="amber" class="ml-1">
+              mdi-crown
+            </v-icon>
           </v-list-item-title>
           <v-list-item-subtitle class="text-caption">
             {{ $te('templates.' + template.name + '.desc') ? $t('templates.' + template.name + '.desc') : template.description }}
@@ -38,6 +41,21 @@ export default {
     },
     selected() {
       return this.$store.state.template;
+    },
+    subscriptionActive() {
+      return this.$store.state.subscription.active;
+    },
+  },
+  methods: {
+    isLocked(template) {
+      return !!template.premium && !this.subscriptionActive;
+    },
+    selectTemplate(template) {
+      if (this.isLocked(template)) {
+        this.$emit("premium-required", template);
+        return;
+      }
+      this.$store.commit("templateSelected", template.name);
     },
   },
 };

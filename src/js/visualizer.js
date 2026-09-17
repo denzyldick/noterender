@@ -1,5 +1,6 @@
 import * as BABYLON from "babylonjs";
 import Recording from "@/js/Recording";
+import { computeRenderScale } from "@/js/perf";
 
 class Visualizer {
   /**
@@ -22,13 +23,18 @@ class Visualizer {
     // Load the 3D engine
     try {
         const webgpuSupported = await BABYLON.WebGPUEngine.IsSupportedAsync;
-        if (webgpuSupported) {
+        let canUseWebGPU = false;
+        if (webgpuSupported && navigator.gpu) {
+            const adapter = await navigator.gpu.requestAdapter();
+            canUseWebGPU = !!adapter && typeof adapter.requestAdapterInfo === 'function';
+        }
+        if (canUseWebGPU) {
             this.engine = new BABYLON.WebGPUEngine(this.canvas, { 
               antialias: true,
-              adaptToDeviceRatio: true 
+              adaptToDeviceRatio: false 
             });
             await this.engine.initAsync();
-            this.engine.setHardwareScalingLevel(1 / (window.devicePixelRatio || 1));
+            this.engine.setHardwareScalingLevel(computeRenderScale(this.canvas));
             console.log("WebGPU Engine Initialized");
         } else {
             throw new Error("WebGPU not supported");
@@ -39,9 +45,9 @@ class Visualizer {
           preserveDrawingBuffer: true,
           stencil: true,
           antialias: true,
-          adaptToDeviceRatio: true
+          adaptToDeviceRatio: false
         });
-        this.engine.setHardwareScalingLevel(1 / (window.devicePixelRatio || 1));
+        this.engine.setHardwareScalingLevel(computeRenderScale(this.canvas));
     }
 
     this.createScene();

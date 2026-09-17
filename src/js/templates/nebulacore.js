@@ -1,6 +1,8 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { ensureGlow } from "./components/glow";
+import { scaled } from "@/js/perf";
 
 let t = 0;
 let rings = [];
@@ -72,7 +74,7 @@ const template = {
         // --- Vortex Particles ---
         vortex = new BABYLON.SolidParticleSystem("vortexSps", scene);
         const poly = BABYLON.MeshBuilder.CreateBox("p", { size: 2 }, scene);
-        vortex.addShape(poly, 2000);
+        vortex.addShape(poly, scaled(2000));
         poly.dispose();
         const mesh = vortex.buildMesh();
         mesh.material = new BABYLON.StandardMaterial("vm", scene);
@@ -91,7 +93,7 @@ const template = {
         vortex.initParticles();
         vortex.setParticles();
 
-        if (!scene.glowLayer) new BABYLON.GlowLayer("glow", scene);
+        ensureGlow(scene);
     },
 
     resetVortexParticle(part, accent) {

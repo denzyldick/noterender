@@ -9,6 +9,32 @@ Vue.use(Vuex);
 const API_BASE =
   process.env.VUE_APP_API_URL || "";
 
+const DEV_NO_AUTH = process.env.NODE_ENV === "development";
+
+const DEV_USER = {
+  id: 1,
+  email: "dev@local",
+  subscriptionActive: true,
+  subscriptionStatus: "active",
+  subscriptionPlan: "monthly",
+};
+
+function devMock(path: string): any | null {
+  if (!DEV_NO_AUTH) return null;
+  const p = path.replace(/\?.*$/, "");
+  if (p === "/api/me") return DEV_USER;
+  if (p === "/api/auth/login" || p === "/api/auth/register")
+    return { token: "dev-token", user: DEV_USER };
+  if (p === "/api/logout") return { success: true };
+  if (p === "/api/projects") return [];
+  if (p === "/api/shoutout/approved") return [];
+  if (p === "/api/shoutout/pending") return [];
+  if (/^\/api\/projects\/\d+$/.test(p)) return { success: true, id: 1 };
+  if (/^\/api\/shoutout\/\d+\/approve$/.test(p)) return { success: true };
+  if (p === "/api/shoutout" || p === "/api/waitlist") return { success: true };
+  return null;
+}
+
 let vuexStore: any = null;
 
 const BANNED_KEYS = ["__proto__", "constructor", "prototype"];
@@ -27,6 +53,8 @@ function sanitizePersisted(value: any): any {
 }
 
 function api(path: string, options: any = {}) {
+  const mock = devMock(path);
+  if (mock !== null) return Promise.resolve(mock);
   const token = localStorage.getItem("noterender_token");
   const headers: any = { "Content-Type": "application/json", ...options.headers };
   if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -112,6 +140,21 @@ const store = new Vuex.Store({
   state: {
     template: persisted.template || "terrain",
     templates: [
+      {
+        name: "station",
+        preview: "",
+        description: "Metro station with a reactive R46 subway train arriving on the beat.",
+        price: "0",
+        priceId: null,
+        premium: true,
+        configuration: {
+          trainSpeed: { type: "slider", min: 0.2, max: 3.0, step: 0.1, default: 1.0, label: "Train Speed" },
+          bassReactivity: { type: "slider", min: 0.2, max: 3.0, step: 0.1, default: 1.0, label: "Bass Reactivity" },
+          logoScale: { type: "slider", min: 0.5, max: 2.0, step: 0.1, default: 1.0, label: "Logo Scale" },
+          lightPulse: { type: "slider", min: 0.0, max: 2.0, step: 0.1, default: 1.0, label: "Light Pulse" }
+        },
+        currentConfig: { trainSpeed: 1.0, bassReactivity: 1.0, logoScale: 1.0, lightPulse: 1.0 }
+      },
       {
         name: "trap",
         preview: "",
@@ -366,14 +409,14 @@ const store = new Vuex.Store({
       bassBoost: 1.0,
     },
     auth: {
-      token: localStorage.getItem("noterender_token") || null,
-      user: JSON.parse(localStorage.getItem("noterender_user") || "null"),
-      userId: parseInt(localStorage.getItem("noterender_user_id") || "0"),
+      token: DEV_NO_AUTH ? "dev-token" : localStorage.getItem("noterender_token") || null,
+      user: DEV_NO_AUTH ? DEV_USER : JSON.parse(localStorage.getItem("noterender_user") || "null"),
+      userId: DEV_NO_AUTH ? DEV_USER.id : parseInt(localStorage.getItem("noterender_user_id") || "0"),
     },
     subscription: {
-      active: false,
-      status: "none",
-      plan: null,
+      active: DEV_NO_AUTH,
+      status: DEV_NO_AUTH ? "active" : "none",
+      plan: DEV_NO_AUTH ? "monthly" : null,
     },
     announcement: { text: "", visible: false, duration: 5 },
     shoutouts: [] as any[],

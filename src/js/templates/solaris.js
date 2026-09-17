@@ -1,6 +1,8 @@
 import * as BABYLON from "babylonjs";
 import PLANE from "./components/plane";
 import CAMERA_PHYSICS from "@/js/templates/components/camera";
+import { ensureGlow } from "./components/glow";
+import { scaled } from "@/js/perf";
 
 let sun;
 let vls;
@@ -63,7 +65,7 @@ const template = {
         // --- Asteroid Belt ---
         asteroids = new BABYLON.SolidParticleSystem("asteroids", scene);
         const rock = BABYLON.MeshBuilder.CreatePolyhedron("rock", { type: 1, size: 5 }, scene);
-        asteroids.addShape(rock, c.asteroids || 300);
+        asteroids.addShape(rock, scaled(c.asteroids || 300));
         rock.dispose();
         const asterMesh = asteroids.buildMesh();
         asterMesh.material = new BABYLON.StandardMaterial("asterMat", scene);
@@ -84,7 +86,7 @@ const template = {
         asteroids.initParticles();
         asteroids.setParticles();
 
-        if (!scene.glowLayer) new BABYLON.GlowLayer("glow", scene);
+        ensureGlow(scene);
     },
 
     render(fft, config) {

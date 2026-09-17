@@ -94,7 +94,7 @@
               <div class="pa-0">
                 <div class="pa-6 pb-0">
                   <div class="text-overline mb-4 primary--text">{{ $t('tabs.templates') }}</div>
-                  <Templates />
+                  <Templates @premium-required="openTemplatePaywall" />
                 </div>
                 <v-divider class="mx-6 my-2 opacity-10"></v-divider>
                 <TemplateConfig />
@@ -174,6 +174,10 @@
                   {{ $t('sound.systemShareTip1') }} <strong>{{ $t('sound.systemShareTipTab') }}</strong> {{ $t('sound.systemShareTipOr') }} <strong>{{ $t('sound.systemShareTipWindow') }}</strong> {{ $t('sound.systemShareTipCheck') }} <strong>{{ $t('sound.systemShareTipChecked') }}</strong> {{ $t('sound.systemShareTipCheckedEnd') }}
                 </v-alert>
 
+                <v-alert v-if="audioSource === 'system' && isFirefox" dense text type="warning" class="mt-2 text-caption">
+                  {{ $t('sound.firefoxNoSystemAudio') }}
+                </v-alert>
+
                 <v-file-input v-if="audioSource === 'file' && appMode === 'studio'" :label="$t('sound.audioSource')" outlined dense @change="soundSelected" prepend-inner-icon="mdi-music-circle" class="mt-4"></v-file-input>
                 
                 <div v-if="appMode === 'live'">
@@ -184,6 +188,8 @@
                   </v-alert>
 
                   <v-switch v-model="removeWatermarkCheckbox" :label="$t('sound.cleanPerformance')" color="primary" dense class="mb-4" @click.native="paywallMode = 'live'"></v-switch>
+
+                  <v-switch v-if="isPro" v-model="hideQr" :label="$t('sound.hideQr')" color="primary" dense class="mb-4" @change="persistHideQr"></v-switch>
 
                   <v-divider class="my-2 opacity-10"></v-divider>
 
@@ -450,6 +456,13 @@
             <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" to="/legal">{{ $t('footer.legal') }}</v-btn></v-col>
             <v-col cols="6"><v-btn text x-small color="grey" block class="justify-start px-0" href="mailto:support@noterender.com">{{ $t('footer.support') }}</v-btn></v-col>
           </v-row>
+
+          <div class="d-flex align-center mt-4">
+            <span class="text-caption grey--text mr-2">{{ $t('footer.community') }}</span>
+            <v-btn icon small color="grey" :href="discordUrl" target="_blank" rel="noopener" :aria-label="$t('footer.discord')" :title="$t('footer.discord')" class="social-icon-btn">
+              <v-icon size="18">mdi-discord</v-icon>
+            </v-btn>
+          </div>
         </div>
       </div>
     </v-navigation-drawer>
@@ -567,6 +580,10 @@
             <div class="text-overline primary--text font-weight-black mb-n1" style="letter-spacing: 3px !important">{{ $t('transport.activeNote') }}</div>
             <div class="text-h6 white--text text-uppercase font-weight-light truncate-text">{{ template }}</div>
           </div>
+          <v-chip v-if="renderBackend" small outlined color="primary" dark class="ml-2 text-overline">
+            <v-icon left size="14">mdi-chip</v-icon>
+            {{ renderBackend }}
+          </v-chip>
         </v-card>
       </div>
     </v-main>
@@ -611,6 +628,22 @@
       </v-card>
     </v-dialog>
 
+    <!-- System audio error dialog -->
+    <v-dialog v-model="showSystemAudioError" max-width="500">
+      <v-card color="rgba(15,15,15,0.95)" class="pa-6 rounded-xl" style="border:1px solid rgba(255,255,255,0.1)">
+        <v-card-title class="pa-0 primary--text font-weight-black text-h5 mb-4 letter-spacing-2">{{ $t('sound.systemAudioErrorTitle') }}</v-card-title>
+
+        <div class="mb-4">
+          <div class="d-flex mb-3">
+            <v-icon color="error" class="mr-3">mdi-monitor-speaker-off</v-icon>
+            <div class="text-caption grey--text">{{ $t('sound.systemAudioErrorDesc') }}</div>
+          </div>
+        </div>
+
+        <v-btn block color="primary" @click="showSystemAudioError = false" class="font-weight-bold">{{ $t('common.gotIt') }}</v-btn>
+      </v-card>
+    </v-dialog>
+
     <!-- Audio Setup Guide Dialog -->
     <v-dialog v-model="showAudioSetupGuide" max-width="500">
       <v-card color="rgba(15,15,15,0.95)" class="pa-6 rounded-xl" style="border:1px solid rgba(255,255,255,0.1)">
@@ -650,6 +683,7 @@ import Effects from "@/js/Effects";
 import CAMERA from "@/js/templates/components/camera";
 import Streaming from "@/js/Streaming";
 import { asset } from "@/js/assets";
+import { computeRenderScale } from "@/js/perf";
 
 // Visualizer Engines
 import city from "../js/templates/city";
@@ -668,6 +702,7 @@ import aurora from "../js/templates/aurora";
 import cathedral from "../js/templates/cathedral";
 import oscillate from "../js/templates/oscillate";
 import reactor from "../js/templates/reactor";
+import station from "../js/templates/station";
 
 export default {
   name: "Player",
@@ -677,6 +712,7 @@ export default {
       drawer: false,
       activeTab: 0,
       playing: false,
+      hideQr: false,
       audio: null,
       engine: null,
       scene: null,
@@ -688,15 +724,17 @@ export default {
       subtitle: "",
       accentColorHex: "#00E5FF",
       lightColorHex: "#00E5FF",
+      renderBackend: "",
       templates: {
         city, terrain, nebulacore, trap, solaris, infinity, tunnel, aether, monolith, prism, flora,
-        clouds, aurora, cathedral, oscillate, reactor
+        clouds, aurora, cathedral, oscillate, reactor, station
       },
       showPaywall: false,
       isExporting: false,
       isTransitioning: false,
       activeTemplateName: "",
       showHelp: false,
+      discordUrl: "https://discord.gg/noterender",
       mouseTimer: null,
       isMouseMoving: true,
       appMode: "studio",
@@ -712,6 +750,7 @@ export default {
       selectedDeviceId: "",
       showAudioSetupGuide: false,
       showLiveDialog: false,
+      showSystemAudioError: false,
       dontShowLiveDialog: localStorage.getItem("noterender_dont_show_live_dialog") === "true",
       showAnnounceInput: false,
       announcementInput: "",
@@ -758,6 +797,7 @@ export default {
     };
   },
   computed: {
+    isFirefox() { return navigator.userAgent.indexOf("Firefox/") !== -1; },
     template() { return this.$store.state.template; },
     soundFile() { return this.$store.state.file; },
     audioSource: {
@@ -979,8 +1019,12 @@ export default {
       await this.startLiveCapture();
     },
 
+    openTemplatePaywall(template) {
+      this.paywallMode = 'premium';
+      this.showPaywall = true;
+    },
+
     async startLiveCapture() {
-      this.showLiveDialog = false;
       if (this.dontShowLiveDialog) {
         localStorage.setItem("noterender_dont_show_live_dialog", "true");
       }
@@ -1018,6 +1062,11 @@ export default {
       });
       const saved = this.announcementInput;
       this.announcementInput = "";
+    },
+
+    persistHideQr(val) {
+      localStorage.setItem("noterender_hide_qr", val ? "true" : "false");
+      if (TEXT && typeof TEXT.setQrVisibility === "function") TEXT.setQrVisibility(!val);
     },
 
     async saveCurrentProject() {
@@ -1151,7 +1200,12 @@ export default {
         } else {
           nextIndex = (currentIndex + 1) % templates.length;
         }
-        this.$store.commit('templateSelected', templates[nextIndex].name);
+        const next = templates[nextIndex];
+        if (next.premium && !this.subscriptionActive) {
+          this.openTemplatePaywall(next);
+          return;
+        }
+        this.$store.commit('templateSelected', next.name);
       }
 
       // 1-7 - Direct Tab Jump
@@ -1379,6 +1433,13 @@ export default {
         } catch (e) {
           console.warn("Visualizer start audio error:", e);
           this.playing = false;
+          this.showLiveDialog = false;
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+          }
+          if (e && e.code === "NO_SYSTEM_AUDIO_TRACK") {
+            this.showSystemAudioError = true;
+          }
         }
       }, 500);
     },
@@ -1435,6 +1496,9 @@ export default {
       this.canvas.style.width = `${targetWidth}px`;
       this.canvas.style.height = `${targetHeight}px`;
       
+      // Recompute render resolution so explicit export sizes render 1:1
+      this.engine.setHardwareScalingLevel(computeRenderScale(this.canvas));
+      
       // Scale text based on current dimensions
       TEXT.resize(targetWidth, targetHeight);
       
@@ -1461,7 +1525,12 @@ export default {
         if (!this.engine) {
             try {
                 const supported = await BABYLON.WebGPUEngine.IsSupportedAsync;
-                if (supported) {
+                let canUseWebGPU = false;
+                if (supported && navigator.gpu) {
+                  const adapter = await navigator.gpu.requestAdapter();
+                  canUseWebGPU = !!adapter && typeof adapter.requestAdapterInfo === 'function';
+                }
+                if (canUseWebGPU) {
                     const engine = new BABYLON.WebGPUEngine(this.canvas, { antialias: true });
                     await engine.initAsync();
                     this.engine = engine;
@@ -1496,8 +1565,8 @@ export default {
 
     async setupEngine() {
       console.log("Setting up engine...");
-      const devicePixelRatio = window.devicePixelRatio || 1;
-      this.engine.setHardwareScalingLevel(1 / devicePixelRatio);
+      this.renderBackend = this.engine && this.engine.isWebGPU ? "WebGPU" : "WebGL";
+      this.engine.setHardwareScalingLevel(computeRenderScale(this.canvas));
       
       // Ensure canvas is correctly sized before first render/resize
       this.resizeCanvas();
@@ -1629,6 +1698,12 @@ export default {
     this.title = this.$store.state.title;
     this.subtitle = this.$store.state.subtitle;
 
+    // Restore QR visibility preference (pro feature)
+    this.hideQr = localStorage.getItem("noterender_hide_qr") === "true";
+    if (this.hideQr && TEXT && typeof TEXT.setQrVisibility === "function") {
+      TEXT.setQrVisibility(false);
+    }
+
     // Load user projects and set up QR
     if (this.isLoggedIn) {
       this.loadProjects();
@@ -1732,6 +1807,15 @@ export default {
   0% { opacity: 1; }
   50% { opacity: 0.4; }
   100% { opacity: 1; }
+}
+
+.social-icon-btn {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.social-icon-btn:hover {
+  color: #5865F2 !important;
+  transform: scale(1.15);
 }
 
 @keyframes pulse-red-animation {
